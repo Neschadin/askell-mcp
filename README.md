@@ -1,18 +1,25 @@
 # askell-mcp
 
-MCP server for [Askell](https://askell.is) payment and subscription API — monitoring, discovery, and operator-approved mutations.
+[MCP](https://modelcontextprotocol.io) server for the [Askell](https://askell.is) payment and subscription API.
 
-Built with [Bun](https://bun.sh) and [@modelcontextprotocol/server](https://ts.sdk.modelcontextprotocol.io/v2/) (MCP TypeScript SDK v2).
+Connect it to Cursor, Claude Desktop, or any MCP client to discover Askell endpoints, inspect customers/contracts/billing, and call the API — with confirmation before mutating requests.
 
-**Requires [Bun](https://bun.sh) ≥ 1.1.**
+## Requirements
 
-Distributed as an npm package for `bunx`, plus optional compiled binaries on GitHub Releases.
+- An [Askell](https://askell.is) account and **secret API key** (from the Askell dashboard)
+- One of:
+  - [Bun](https://bun.sh) ≥ 1.3.14 (for `bunx`), or
+  - a prebuilt binary from [Releases](https://github.com/Neschadin/askell-mcp/releases) (no Bun needed)
 
-## Install (users)
+## Quick start
 
-### Option A — bunx (recommended)
+### 1. Get API keys
 
-Requires Bun on the machine. In Cursor / Claude Desktop `mcp.json`:
+In the Askell dashboard, copy your **private (secret)** API key. Optionally also the **public** key (only needed for temporary payment-method / checkout status endpoints).
+
+### 2. Add to your MCP client
+
+**With Bun** (`bunx`):
 
 ```json
 {
@@ -21,25 +28,14 @@ Requires Bun on the machine. In Cursor / Claude Desktop `mcp.json`:
       "command": "bunx",
       "args": ["-y", "askell-mcp"],
       "env": {
-        "ASKELL_PRIVATE_API_KEY": "your_secret_api_key",
-        "ASKELL_PUBLIC_API_KEY": "your_public_api_key_optional"
+        "ASKELL_PRIVATE_API_KEY": "your_secret_api_key"
       }
     }
   }
 }
 ```
 
-Or globally:
-
-```bash
-bun add -g askell-mcp
-askell-mcp
-```
-
-### Option B — compiled binary (no Bun at runtime)
-
-Download the asset for your OS/arch from the [GitHub Release](https://github.com/Neschadin/askell-mcp/releases) for the version you want
-(`askell-mcp-linux-x64`, `askell-mcp-darwin-arm64`, …), `chmod +x`, then:
+**With a binary** (download `askell-mcp-<os>-<arch>` from [Releases](https://github.com/Neschadin/askell-mcp/releases), then `chmod +x`):
 
 ```json
 {
@@ -54,141 +50,63 @@ Download the asset for your OS/arch from the [GitHub Release](https://github.com
 }
 ```
 
-See also [`mcp.json.example`](./mcp.json.example).
+Example file: [`mcp.json.example`](./mcp.json.example).
 
-## Features
-
-- **`askell_call`** — call any v1/v2 endpoint; mutating requests require operator approval via MCP elicitation
-- **`askell_list_operations` / `askell_describe_operation`** — discover endpoints from bundled OpenAPI specs
-- **Analysis helpers** — `askell_paginate_all`, `askell_customer_overview`, `askell_contract_overview`, `askell_billing_run_triage`, `askell_list_webhooks`
-- **Resources** — bundled OpenAPI v1/v2 specs and webhook event reference
-
-## Askell environments
-
-Askell does **not** expose a separate sandbox/staging API host. Production and test integrations use the same base URL:
-
-```text
-https://askell.is/api
-```
-
-Testing is done with the **Áskell Test Gateway** payment acquirer in your Askell account dashboard, not via a different API hostname. See [Askell Set Up docs](https://docs.askell.is/en/getting_started/index.html).
-
-`apiBaseUrl` remains configurable in case Askell adds environments later.
+Restart the client after saving.
 
 ## Configuration
 
-| Variable                                            | Required | Default                 |
-| --------------------------------------------------- | -------- | ----------------------- |
-| `ASKELL_PRIVATE_API_KEY` or `ASKELL_SECRET_API_KEY` | yes      | —                       |
-| `ASKELL_PUBLIC_API_KEY`                             | no       | —                       |
-| `ASKELL_API_URL` or `ASKELL_API_BASE_URL`           | no       | `https://askell.is/api` |
-| `ASKELL_RESPONSE_MAX_BYTES`                         | no       | `64000`                 |
-| `ASKELL_REQUIRE_MUTATION_APPROVAL`                  | no       | `true`                  |
+| Variable                           | Required | Default                 | Description                                     |
+| ---------------------------------- | -------- | ----------------------- | ----------------------------------------------- |
+| `ASKELL_PRIVATE_API_KEY`           | yes\*    | —                       | Secret API key (_or_ `ASKELL_SECRET_API_KEY`)   |
+| `ASKELL_PUBLIC_API_KEY`            | no       | —                       | Public key for a few checkout/payment endpoints |
+| `ASKELL_API_URL`                   | no       | `https://askell.is/api` | API base URL (_or_ `ASKELL_API_BASE_URL`)       |
+| `ASKELL_RESPONSE_MAX_BYTES`        | no       | `64000`                 | Max response size returned to the model         |
+| `ASKELL_REQUIRE_MUTATION_APPROVAL` | no       | `true`                  | Confirm before POST/PUT/PATCH/DELETE            |
 
-## Develop locally
+Askell has **no separate sandbox host** — production and test traffic use the same URL. Use the **Áskell Test Gateway** acquirer in your dashboard for safe payment testing. See [Askell getting started](https://docs.askell.is/en/getting_started/index.html).
 
-```bash
-cp .env.example .env
-# edit keys
-bun install
-bun run dev
-```
+## What you can do
 
-Bun loads `.env` automatically from the project root.
+Typical agent workflow:
 
-From a checkout (without publishing):
+1. **Discover** — `askell_list_operations` / `askell_describe_operation` (from bundled OpenAPI v1 + v2)
+2. **Support tasks** — customer/contract/billing helpers below
+3. **Anything else** — `askell_call` for a raw endpoint (mutations ask for approval when enabled)
 
-```json
-{
-  "mcpServers": {
-    "askell": {
-      "command": "bun",
-      "args": ["run", "bin/askell-mcp"],
-      "cwd": "/absolute/path/to/askell-mcp",
-      "env": {
-        "ASKELL_PRIVATE_API_KEY": "..."
-      }
-    }
-  }
-}
-```
+### Tools
 
-Unit tests (no network):
+| Tool                        | Description                              |
+| --------------------------- | ---------------------------------------- |
+| `askell_list_operations`    | Search bundled OpenAPI operations        |
+| `askell_describe_operation` | Params and body schema for one operation |
+| `askell_call`               | Call any v1/v2 endpoint                  |
+| `askell_paginate_all`       | Follow paginated list endpoints          |
+| `askell_customer_overview`  | v1 customer + subscriptions              |
+| `askell_contract_overview`  | v2 subscription contract + billing runs  |
+| `askell_billing_run_triage` | v2 billing run (+ optional contract)     |
+| `askell_list_webhooks`      | List configured webhooks                 |
 
-```bash
-bun test
-```
+### Resources
 
-Live smoke / integration (needs `ASKELL_PRIVATE_API_KEY` in `.env`):
+| URI                            | Content                 |
+| ------------------------------ | ----------------------- |
+| `askell://spec/v1`             | OpenAPI v1              |
+| `askell://spec/v2`             | OpenAPI v2              |
+| `askell://docs/webhook-events` | Webhook event reference |
 
-```bash
-bun run smoke
-bun run test:integration
-```
+## API notes (short)
 
-Inspector:
-
-```bash
-bun run inspect
-```
-
-## Sync OpenAPI specs
-
-```bash
-bun run sync-specs
-```
-
-Downloads:
-
-- v1: https://askell.is/api/swagger/swagger.json
-- v2: https://askell.is/api/swagger/v2/swagger.json
-
-## Release
-
-Push a `v*` tag (e.g. `v0.1.0`). CI will:
-
-1. Run tests + typecheck
-2. Build platform binaries and attach them to the GitHub Release
-3. Publish the same version to npm (needs repo secret `NPM_TOKEN`)
-
-Local binary builds:
-
-```bash
-bun run build:linux-x64
-# → dist/askell-mcp-linux-x64
-```
-
-Dry-run pack:
-
-```bash
-npm pack --dry-run
-```
-
-## Tools
-
-| Tool                        | Description                               |
-| --------------------------- | ----------------------------------------- |
-| `askell_list_operations`    | Search bundled OpenAPI operations         |
-| `askell_describe_operation` | Full params/body schema for one operation |
-| `askell_call`               | Raw API call with mutation approval       |
-| `askell_paginate_all`       | Auto-follow paginated list endpoints      |
-| `askell_customer_overview`  | v1 customer + subscriptions               |
-| `askell_contract_overview`  | v2 contract + billing runs                |
-| `askell_billing_run_triage` | v2 billing run + optional contract        |
-| `askell_list_webhooks`      | v1 webhook management list                |
-
-## Evaluation
-
-`evaluation.xml` has 10 read-only Q&A pairs for testing whether an LLM can use these tools effectively. Run with the skill harness if present:
-
-```bash
-python .agents/skills/mcp-tool-design/scripts/evaluation.py \
-  -t stdio -c bun -a run bin/askell-mcp \
-  -e ASKELL_PRIVATE_API_KEY=... \
-  -o evaluation_report.md \
-  evaluation.xml
-```
+- **v1** — legacy paths like `/customers/`, `/subscriptions/` (no `/v2` prefix)
+- **v2** — current model: catalogs, quotes, checkouts, contracts, billing runs under `/v2/`
+- Paths use **trailing slashes**
+- Prefer **v2** for new integrations; v1 remains for existing ones
+- Docs: [docs.askell.is](https://docs.askell.is/) · OpenAPI: [v1](https://askell.is/api/swagger/swagger.json) · [v2](https://askell.is/api/swagger/v2/swagger.json)
 
 ## License
 
-MIT
+[MIT](./LICENSE)
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for local development, tests, and releases.
