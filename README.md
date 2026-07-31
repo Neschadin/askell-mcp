@@ -38,7 +38,7 @@ askell-mcp
 
 ### Option B — compiled binary (no Bun at runtime)
 
-Download the asset for your OS/arch from the GitHub Release for the version you want
+Download the asset for your OS/arch from the [GitHub Release](https://github.com/Neschadin/askell-mcp/releases) for the version you want
 (`askell-mcp-linux-x64`, `askell-mcp-darwin-arm64`, …), `chmod +x`, then:
 
 ```json

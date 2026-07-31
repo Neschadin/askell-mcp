@@ -4,6 +4,14 @@
   "description": "MCP server for the Askell payment and subscription API (Bun + stdio)",
   "author": "Neschadin Oleksandr",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Neschadin/askell-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Neschadin/askell-mcp/issues"
+  },
+  "homepage": "https://github.com/Neschadin/askell-mcp#readme",
   "keywords": [
     "mcp",
     "askell",

@@ -20,7 +20,9 @@ const listInputSchema = z.object({
   search: z
     .string()
     .optional()
-    .describe('Case-insensitive search in id, path, summary, description, tags'),
+    .describe(
+      'Case-insensitive search in id, path, summary, description, tags',
+    ),
   apiKeyKind: z
     .enum(['secret', 'public'])
     .optional()
@@ -41,6 +43,8 @@ const describeInputSchema = z.object({
     ),
 });
 
+const apiVersionSchema = z.enum(['v1', 'v2']);
+const apiKeyKindSchema = z.enum(['secret', 'public']);
 const httpMethodSchema = z.enum([
   'GET',
   'POST',
@@ -49,8 +53,6 @@ const httpMethodSchema = z.enum([
   'DELETE',
   'HEAD',
 ]);
-const apiVersionSchema = z.enum(['v1', 'v2']);
-const apiKeyKindSchema = z.enum(['secret', 'public']);
 
 const operationSummarySchema = z.object({
   id: z.string(),
