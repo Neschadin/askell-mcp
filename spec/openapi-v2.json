@@ -1,0 +1,4951 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Áskell API V2",
+    "description": "# Authentication\nAuthentication is via `Authorization` header. When using this documentation to test the API you should prepend your given api key with `\"Api-Key \"`. \n\nYou are given two types of API keys, one public and one secret. Your public key is safe to use in javascript so that it is public to the world. It can only \nbe used to generate a temporary payment method, which in turn has to be confirmed using your secret api key.\n\nSee [the documentation](https://docs.askell.is/) for more information.\n",
+    "termsOfService": "https://www.askell.is/terms-conditions",
+    "contact": {
+      "name": "Documentation",
+      "url": "https://docs.askell.is"
+    },
+    "version": "2.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://askell.is/api/"
+    }
+  ],
+  "security": [
+    {
+      "Secret-Api-Key": []
+    },
+    {
+      "Public-Api-Key": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "V2 Catalog",
+      "description": "Subscription V2 catalog product and price read APIs, requires secret api key."
+    },
+    {
+      "name": "V2 Bundles",
+      "description": "Subscription V2 bundle template and add-on discovery APIs, requires secret api key."
+    },
+    {
+      "name": "V2 Subscription Contracts",
+      "description": "Subscription V2 quote, contract creation, contract reads, restricted updates, and lifecycle APIs, requires secret api key."
+    },
+    {
+      "name": "V2 Customer Payment Methods",
+      "description": "Subscription V2 customer payment-method management APIs for card, claim, and invoice collection, requires secret api key."
+    },
+    {
+      "name": "V2 Entitlements",
+      "description": "Subscription V2 customer/product service entitlement access checks, requires secret api key."
+    },
+    {
+      "name": "V2 Checkouts",
+      "description": "Subscription V2 hosted checkout APIs, requires secret api key."
+    },
+    {
+      "name": "V2 Embedded Checkout Sessions",
+      "description": "Subscription V2 embedded checkout session APIs for seller backend integrations."
+    },
+    {
+      "name": "V2 Billing Runs",
+      "description": "Subscription V2 billing-run read and retry APIs, requires secret api key."
+    }
+  ],
+  "paths": {
+    "/v2/catalog/products/": {
+      "get": {
+        "tags": [
+          "V2 Catalog"
+        ],
+        "summary": "List V2 catalog products",
+        "description": "Lists catalog products for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ActiveFilter"
+          },
+          {
+            "$ref": "#/components/parameters/V2ReferenceFilter"
+          },
+          {
+            "$ref": "#/components/parameters/PageSizeFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2CatalogProductList"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/catalog/products/{productId}/": {
+      "get": {
+        "tags": [
+          "V2 Catalog"
+        ],
+        "summary": "Get a V2 catalog product",
+        "description": "Returns a catalog product and its prices for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ProductId"
+          },
+          {
+            "$ref": "#/components/parameters/V2ActiveFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2CatalogProductDetail"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/catalog/prices/": {
+      "get": {
+        "tags": [
+          "V2 Catalog"
+        ],
+        "summary": "List V2 catalog prices",
+        "description": "Lists catalog prices for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ActiveFilter"
+          },
+          {
+            "in": "query",
+            "name": "product",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Product id or product reference."
+          },
+          {
+            "$ref": "#/components/parameters/V2ReferenceFilter"
+          },
+          {
+            "in": "query",
+            "name": "currency",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by currency."
+          },
+          {
+            "in": "query",
+            "name": "billing_type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "recurring",
+                "one_time"
+              ]
+            },
+            "description": "Filter by price billing type."
+          },
+          {
+            "in": "query",
+            "name": "recurrence_type",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by recurrence type."
+          },
+          {
+            "$ref": "#/components/parameters/PageSizeFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2CatalogPriceList"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/catalog/prices/{priceId}/": {
+      "get": {
+        "tags": [
+          "V2 Catalog"
+        ],
+        "summary": "Get a V2 catalog price",
+        "description": "Returns a catalog price for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2PriceId"
+          },
+          {
+            "$ref": "#/components/parameters/V2ActiveFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2CatalogPrice"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/bundle-templates/": {
+      "get": {
+        "tags": [
+          "V2 Bundles"
+        ],
+        "summary": "List V2 bundle templates",
+        "description": "Lists bundle templates for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ActiveFilter"
+          },
+          {
+            "$ref": "#/components/parameters/V2ReferenceFilter"
+          },
+          {
+            "$ref": "#/components/parameters/PageSizeFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2BundleTemplateList"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/bundle-templates/{bundleTemplateId}/": {
+      "get": {
+        "tags": [
+          "V2 Bundles"
+        ],
+        "summary": "Get a V2 bundle template",
+        "description": "Returns a bundle template and its selectable item prices for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2BundleTemplateId"
+          },
+          {
+            "$ref": "#/components/parameters/V2ActiveFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2BundleTemplateDetail"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/bundle-templates/{bundleTemplateId}/addons/": {
+      "post": {
+        "tags": [
+          "V2 Bundles"
+        ],
+        "summary": "Discover V2 bundle add-ons",
+        "description": "Returns product and bundle add-ons available for a selected bundle configuration. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2BundleTemplateId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2BundleAddonDiscoveryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2BundleAddonDiscovery"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-offer-quotes/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Quote a V2 subscription offer",
+        "description": "Compiles a bundle or direct catalog item offer without creating a contract. Recurring quote lines reflect first-period start proration when the offer begins between anchor dates. Requires a secret key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionOfferQuoteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2SubscriptionOfferQuote"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/customers/{customerReference}/payment-methods/": {
+      "get": {
+        "tags": [
+          "V2 Customer Payment Methods"
+        ],
+        "summary": "List V2 customer payment methods",
+        "description": "Lists active verified payment methods for a customer identified by customer reference. Canceled methods are omitted from the list. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CustomerReference"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2CustomerPaymentMethodList"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "V2 Customer Payment Methods"
+        ],
+        "summary": "Create or replace a V2 customer payment method",
+        "description": "Creates a card payment method or creates/replaces the active claim or invoice setup for the selected account payment processor. The account payment processor is always explicit. Card imports create a new row and cancel conflicting active card methods; claim and invoice creation replaces only the matching active setup. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CustomerReference"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2CustomerPaymentMethodCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/V2CustomerPaymentMethod"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/customers/{customerReference}/payment-methods/{paymentMethodId}/": {
+      "get": {
+        "tags": [
+          "V2 Customer Payment Methods"
+        ],
+        "summary": "Get a V2 customer payment method",
+        "description": "Returns a sanitized payment method by id for the customer, including canceled methods. Token data is never returned. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CustomerReference"
+          },
+          {
+            "$ref": "#/components/parameters/V2PaymentMethodId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2CustomerPaymentMethod"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "V2 Customer Payment Methods"
+        ],
+        "summary": "Update a V2 customer payment method",
+        "description": "Partially updates mutable setup fields for an active payment method. Metadata is shallow-merged and null values remove metadata keys. The collection method and account payment processor are immutable; create a new payment method to change them. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CustomerReference"
+          },
+          {
+            "$ref": "#/components/parameters/V2PaymentMethodId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2CustomerPaymentMethodPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2CustomerPaymentMethod"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "V2 Customer Payment Methods"
+        ],
+        "summary": "Cancel a V2 customer payment method",
+        "description": "Soft-cancels the payment method, clears stored setup data, and returns 204. Repeating the delete for an already canceled method is idempotent. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CustomerReference"
+          },
+          {
+            "$ref": "#/components/parameters/V2PaymentMethodId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Payment method canceled"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/customer-entitlements/": {
+      "get": {
+        "tags": [
+          "V2 Entitlements"
+        ],
+        "summary": "Evaluate V2 customer service entitlements",
+        "description": "Returns current or time-specific service entitlement state for a customer, optionally filtered by catalog product reference. Requires a secret key. Use `service_active` as the integration-facing access flag; do not infer access from payment state.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "customer_reference",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Customer reference to evaluate."
+          },
+          {
+            "in": "query",
+            "name": "product_reference",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional catalog product reference. When omitted, all current entitlements for the customer are returned."
+          },
+          {
+            "in": "query",
+            "name": "at",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Optional evaluation timestamp. Defaults to the current server time."
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2CustomerEntitlements"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/": {
+      "get": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "List V2 subscription contracts",
+        "description": "Lists subscription contracts for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by contract state."
+          },
+          {
+            "in": "query",
+            "name": "customer",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Filter by customer id."
+          },
+          {
+            "in": "query",
+            "name": "customer_reference",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by customer reference."
+          },
+          {
+            "$ref": "#/components/parameters/PageSizeFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2SubscriptionContractList"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Create a V2 subscription contract",
+        "description": "Creates a subscription contract from either a bundle template or direct recurring catalog prices. Use `initial_billing_mode` to choose first-period billing behavior: `none` creates only the recurring schedules, `create_initial_run` creates a scheduled initial BillingRun, and `next_invoice` defers first-period recurring proration lines to the first scheduled invoice. Initial one-time items require `initial_billing_mode=create_initial_run`. Requires a secret key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionContractCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/V2SubscriptionContract"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/": {
+      "get": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Get a V2 subscription contract",
+        "description": "Returns a subscription contract for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2SubscriptionContract"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Partially update a V2 subscription contract",
+        "description": "Restricted patch endpoint. Only `metadata` and `payment_processor_override` may be updated. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionContractPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2SubscriptionContract"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/proration-preview/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Preview a V2 subscription contract proration",
+        "description": "Previews the proration impact of updating an existing V2 subscription contract item. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionContractProrationPreview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SubscriptionContractProrationPreviewResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/items/update/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Update a V2 subscription contract item with proration",
+        "description": "Executes a prorated update for an existing V2 subscription contract item. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionContractItemUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SubscriptionContractItemUpdateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/items/add/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Add a V2 subscription contract item with proration",
+        "description": "Executes a prorated add-item change for an existing V2 subscription contract. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionContractItemAdd"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SubscriptionContractItemUpdateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/items/remove/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Remove a V2 subscription contract item with proration",
+        "description": "Executes a prorated remove-item change for an existing V2 subscription contract. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionContractItemRemove"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SubscriptionContractItemUpdateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/cancel/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Cancel a V2 subscription contract",
+        "description": "Cancels a V2 subscription contract immediately or schedules cancellation at the end of the current billing cycle. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionContractCancel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2SubscriptionContract"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/restart/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Restart renewals for a V2 subscription contract",
+        "description": "Clears a pending period-end cancellation or reactivates a canceled V2 subscription contract. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionContractRestart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2SubscriptionContract"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/pause/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Pause renewals for a V2 subscription contract",
+        "description": "Creates a finite pause window for a V2 subscription contract. Current pauses move the contract to paused and future pauses are scheduled. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionContractPause"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2SubscriptionContract"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/resume/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Resume renewals for a paused V2 subscription contract",
+        "description": "Cancels the current pause and resumes renewals for a paused V2 subscription contract. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionContractResume"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2SubscriptionContract"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/pause/{pauseId}/": {
+      "delete": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Delete a future V2 subscription contract pause",
+        "description": "Soft-cancels a future scheduled pause for a V2 subscription contract. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          },
+          {
+            "name": "pauseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2SubscriptionContract"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/activate/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Activate a V2 subscription contract",
+        "description": "Transitions an inactive V2 subscription contract to active. Use the resume endpoint for paused contracts. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2SubscriptionContract"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/checkouts/": {
+      "post": {
+        "tags": [
+          "V2 Checkouts"
+        ],
+        "summary": "Create a V2 hosted checkout",
+        "description": "Creates a pending hosted checkout from either a bundle template or direct catalog prices, returning a token, checkout URL, and quote snapshot. An explicit account payment processor can be supplied when more than one compatible processor is configured. Requires a secret key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2CheckoutCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/V2Checkout"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/payment-processor-options/": {
+      "post": {
+        "tags": [
+          "V2 Checkouts"
+        ],
+        "summary": "Discover eligible V2 payment processors",
+        "description": "Compiles the requested V2 offer and returns the eligible account payment processors for the resolved currency and collection method. Use this before checkout creation when the client must choose between multiple compatible processors. Requires a secret key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2PaymentProcessorOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2PaymentProcessorOptions"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/checkouts/{token}/": {
+      "get": {
+        "tags": [
+          "V2 Checkouts"
+        ],
+        "summary": "Get a V2 checkout",
+        "description": "Returns a pending or finalized V2 checkout for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CheckoutToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2Checkout"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/checkouts/{token}/payment-method-registrations/": {
+      "post": {
+        "tags": [
+          "V2 Checkouts"
+        ],
+        "summary": "Create a hosted V2 payment method registration",
+        "description": "Creates a checkout-bound hosted payment method registration session for the checkout's selected account payment processor. The response contains a public hosted card-form URL and private status URL. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CheckoutToken"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2PaymentMethodRegistrationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/V2PaymentMethodRegistration"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/payment-method-registrations/{token}/": {
+      "get": {
+        "tags": [
+          "V2 Checkouts"
+        ],
+        "summary": "Get a V2 payment method registration",
+        "description": "Returns the status of a checkout-bound payment method registration and confirms a verified payment method when the processor has completed tokenization. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2PaymentMethodRegistrationToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2PaymentMethodRegistration"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/checkouts/{token}/finalize/": {
+      "post": {
+        "tags": [
+          "V2 Checkouts"
+        ],
+        "summary": "Finalize a V2 checkout",
+        "description": "Creates the subscription contract and initial billing run, then executes payment. The contract is activated only after successful payment. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CheckoutToken"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2CheckoutFinalize"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2Checkout"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/checkout-sessions/": {
+      "post": {
+        "tags": [
+          "V2 Embedded Checkout Sessions"
+        ],
+        "summary": "Create an embedded checkout session",
+        "description": "Creates a short-lived checkout session from a sales channel. The seller backend calls this endpoint with a secret API key and sends only the returned session token to the browser widget. Sales-channel offer, origin, payment-processor, metadata, theme, and terms policies are snapshotted onto the session.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2CheckoutSessionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/V2CheckoutSession"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/checkout-sessions/{token}/": {
+      "get": {
+        "tags": [
+          "V2 Embedded Checkout Sessions"
+        ],
+        "summary": "Get an embedded checkout session",
+        "description": "Returns private checkout-session state for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CheckoutSessionToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2CheckoutSession"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/billing-runs/": {
+      "get": {
+        "tags": [
+          "V2 Billing Runs"
+        ],
+        "summary": "List V2 billing runs",
+        "description": "Returns V2 billing runs for the authenticated account, including lines and attempts. Requires a secret key.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "contract",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Filter by subscription contract id."
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by billing-run state."
+          },
+          {
+            "in": "query",
+            "name": "customer",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Filter by customer id."
+          },
+          {
+            "in": "query",
+            "name": "customer_reference",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by customer reference."
+          },
+          {
+            "$ref": "#/components/parameters/PageSizeFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2BillingRunList"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/billing-runs/{billingRunId}/": {
+      "get": {
+        "tags": [
+          "V2 Billing Runs"
+        ],
+        "summary": "Get a V2 billing run",
+        "description": "Returns a V2 billing run with lines and attempts for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2BillingRunId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2BillingRun"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/billing-runs/{billingRunId}/retry/": {
+      "post": {
+        "tags": [
+          "V2 Billing Runs"
+        ],
+        "summary": "Retry a V2 billing run",
+        "description": "Schedules a manual retry for a retryable V2 billing run. A reason is required and is recorded in billing-run metadata. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2BillingRunId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2BillingRunRetry"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2BillingRun"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "V2ValidationError": {
+        "type": "object",
+        "additionalProperties": true,
+        "example": {
+          "non_field_errors": "Provide exactly one input mode: `bundle_template` or `items`."
+        }
+      },
+      "V2Metadata": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "V2BillingScheduleRule": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "integer",
+            "nullable": true
+          },
+          "day": {
+            "type": "integer",
+            "nullable": true
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_order": {
+            "type": "integer"
+          }
+        }
+      },
+      "V2CatalogPrice": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "product_id": {
+            "type": "integer"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "product_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "example": "ISK"
+          },
+          "unit_amount": {
+            "type": "string",
+            "format": "decimal",
+            "example": "1990.0000"
+          },
+          "billing_type": {
+            "type": "string",
+            "enum": [
+              "recurring",
+              "one_time"
+            ]
+          },
+          "recurrence_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "interval": {
+            "type": "string",
+            "nullable": true
+          },
+          "interval_count": {
+            "type": "integer",
+            "nullable": true
+          },
+          "billing_day_of_month": {
+            "type": "integer",
+            "nullable": true
+          },
+          "billing_schedule_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "billing_schedule_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "billing_schedule_timezone": {
+            "type": "string",
+            "nullable": true
+          },
+          "billing_schedule_rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2BillingScheduleRule"
+            }
+          },
+          "next_occurrences": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "currently_effective": {
+            "type": "boolean"
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "effective_to": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2CatalogProduct": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "tax_policy": {
+            "type": "string",
+            "nullable": true
+          },
+          "tax_rate_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "active_price_count": {
+            "type": "integer"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2CatalogProductDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2CatalogProduct"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "prices": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/V2CatalogPrice"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "V2BundleProduct": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "V2BundleSelectablePrice": {
+        "type": "object",
+        "properties": {
+          "price_id": {
+            "type": "integer"
+          },
+          "display_label": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "price": {
+            "$ref": "#/components/schemas/V2CatalogPrice"
+          }
+        }
+      },
+      "V2BundleTemplateItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "product": {
+            "$ref": "#/components/schemas/V2BundleProduct"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "price_option_scope": {
+            "type": "string"
+          },
+          "default_price_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "default_price": {
+            "nullable": true,
+            "$ref": "#/components/schemas/V2CatalogPrice"
+          },
+          "selectable_prices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2BundleSelectablePrice"
+            }
+          },
+          "display_order": {
+            "type": "integer"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          }
+        }
+      },
+      "V2BundleTemplate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "default_currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "item_count": {
+            "type": "integer"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2BundleTemplateDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2BundleTemplate"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/V2BundleTemplateItem"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "V2ContractItemInput": {
+        "type": "object",
+        "required": [
+          "price"
+        ],
+        "properties": {
+          "price": {
+            "type": "integer"
+          },
+          "rule_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "unit_amount_override": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "discount_percent": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "start_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "end_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          }
+        }
+      },
+      "V2BundleItemSelection": {
+        "type": "object",
+        "required": [
+          "bundle_item"
+        ],
+        "properties": {
+          "bundle_item": {
+            "type": "integer"
+          },
+          "include": {
+            "type": "boolean",
+            "default": true
+          },
+          "selected_price": {
+            "type": "integer",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "unit_amount_override": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "discount_percent": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "start_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "end_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          }
+        }
+      },
+      "V2AdditionalBundle": {
+        "type": "object",
+        "required": [
+          "rule_id"
+        ],
+        "properties": {
+          "rule_id": {
+            "type": "integer"
+          },
+          "bundle_template": {
+            "type": "integer"
+          },
+          "bundle_template_id": {
+            "type": "integer"
+          },
+          "bundle_selections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2BundleItemSelection"
+            }
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          }
+        }
+      },
+      "V2BundleAddonDiscoveryRequest": {
+        "type": "object",
+        "properties": {
+          "bundle_item_selections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2BundleItemSelection"
+            }
+          }
+        }
+      },
+      "V2BundleAddonProductOffer": {
+        "type": "object",
+        "properties": {
+          "rule_id": {
+            "type": "integer"
+          },
+          "relationship_type": {
+            "type": "string"
+          },
+          "min_quantity": {
+            "type": "integer"
+          },
+          "max_quantity": {
+            "type": "integer",
+            "nullable": true
+          },
+          "same_interval_required": {
+            "type": "boolean"
+          },
+          "same_currency_required": {
+            "type": "boolean"
+          },
+          "product": {
+            "$ref": "#/components/schemas/V2BundleProduct"
+          },
+          "default_price_id": {
+            "type": "integer"
+          },
+          "selectable_prices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2CatalogPrice"
+            }
+          }
+        }
+      },
+      "V2BundleAddonBundleOffer": {
+        "type": "object",
+        "properties": {
+          "rule_id": {
+            "type": "integer"
+          },
+          "relationship_type": {
+            "type": "string"
+          },
+          "min_quantity": {
+            "type": "integer"
+          },
+          "max_quantity": {
+            "type": "integer",
+            "nullable": true
+          },
+          "same_interval_required": {
+            "type": "boolean"
+          },
+          "same_currency_required": {
+            "type": "boolean"
+          },
+          "bundle_template": {
+            "$ref": "#/components/schemas/V2BundleTemplateDetail"
+          }
+        }
+      },
+      "V2BundleAddonDiscoveryResponse": {
+        "type": "object",
+        "properties": {
+          "bundle_template_id": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "recurrence_type": {
+            "type": "string"
+          },
+          "interval": {
+            "type": "string",
+            "nullable": true
+          },
+          "interval_count": {
+            "type": "integer",
+            "nullable": true
+          },
+          "billing_day_of_month": {
+            "type": "integer",
+            "nullable": true
+          },
+          "billing_schedule_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "product_addons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2BundleAddonProductOffer"
+            }
+          },
+          "bundle_addons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2BundleAddonBundleOffer"
+            }
+          }
+        }
+      },
+      "V2SubscriptionOfferQuoteCreate": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "bundle_template": {
+            "type": "integer",
+            "nullable": true
+          },
+          "bundle_quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "bundle_item_selections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2BundleItemSelection"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2ContractItemInput"
+            }
+          },
+          "initial_items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2ContractItemInput"
+            }
+          },
+          "additional_items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2ContractItemInput"
+            }
+          },
+          "additional_bundles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2AdditionalBundle"
+            }
+          }
+        }
+      },
+      "V2SubscriptionContractCreate": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2SubscriptionOfferQuoteCreate"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "customer": {
+                "type": "integer"
+              },
+              "customer_reference": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "inactive",
+                  "active",
+                  "paused",
+                  "canceled"
+                ],
+                "default": "inactive"
+              },
+              "billing_anchor_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "next_billing_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "recurring": {
+                "type": "boolean",
+                "default": true
+              },
+              "payment_processor_override": {
+                "type": "integer",
+                "nullable": true
+              },
+              "metadata": {
+                "$ref": "#/components/schemas/V2Metadata"
+              },
+              "initial_billing_mode": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "create_initial_run",
+                  "next_invoice"
+                ],
+                "default": "none",
+                "description": "`none` creates recurring schedules without a first-period billing artifact. `create_initial_run` creates a scheduled initial BillingRun with first-period recurring lines and one-time initial items. `next_invoice` creates pending first-period recurring proration lines for the first scheduled invoice."
+              }
+            }
+          }
+        ]
+      },
+      "V2SubscriptionContractPatch": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "payment_processor_override": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "V2SubscriptionContractCancel": {
+        "type": "object",
+        "properties": {
+          "cancel_at_period_end": {
+            "type": "boolean",
+            "default": false
+          },
+          "effective_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancel_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "proration_behavior": {
+            "type": "string",
+            "enum": [
+              "none",
+              "create_prorations",
+              "always_invoice"
+            ],
+            "nullable": true
+          },
+          "settlement_behavior": {
+            "type": "string",
+            "enum": [
+              "next_invoice",
+              "invoice_now",
+              "credit_balance",
+              "refund_manual"
+            ],
+            "nullable": true
+          },
+          "include_pending_adjustments": {
+            "type": "boolean",
+            "default": false
+          },
+          "idempotency_key": {
+            "type": "string",
+            "nullable": true
+          },
+          "preview_token": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "V2SubscriptionContractRestart": {
+        "type": "object",
+        "properties": {
+          "effective_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "proration_behavior": {
+            "type": "string",
+            "enum": [
+              "none",
+              "create_prorations",
+              "always_invoice"
+            ],
+            "nullable": true
+          },
+          "settlement_behavior": {
+            "type": "string",
+            "enum": [
+              "next_invoice",
+              "invoice_now",
+              "credit_balance",
+              "refund_manual"
+            ],
+            "nullable": true
+          },
+          "include_pending_adjustments": {
+            "type": "boolean",
+            "default": false
+          },
+          "idempotency_key": {
+            "type": "string",
+            "nullable": true
+          },
+          "preview_token": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "V2SubscriptionContractPause": {
+        "type": "object",
+        "required": [
+          "start_date",
+          "end_date"
+        ],
+        "properties": {
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "proration_behavior": {
+            "type": "string",
+            "enum": [
+              "none",
+              "create_prorations",
+              "always_invoice"
+            ],
+            "nullable": true
+          },
+          "settlement_behavior": {
+            "type": "string",
+            "enum": [
+              "next_invoice",
+              "invoice_now",
+              "credit_balance",
+              "refund_manual"
+            ],
+            "nullable": true
+          },
+          "include_pending_adjustments": {
+            "type": "boolean",
+            "default": false
+          },
+          "idempotency_key": {
+            "type": "string",
+            "nullable": true
+          },
+          "preview_token": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "V2SubscriptionContractResume": {
+        "type": "object",
+        "properties": {
+          "effective_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "proration_behavior": {
+            "type": "string",
+            "enum": [
+              "none",
+              "create_prorations",
+              "always_invoice"
+            ],
+            "nullable": true
+          },
+          "settlement_behavior": {
+            "type": "string",
+            "enum": [
+              "next_invoice",
+              "invoice_now",
+              "credit_balance",
+              "refund_manual"
+            ],
+            "nullable": true
+          },
+          "include_pending_adjustments": {
+            "type": "boolean",
+            "default": false
+          },
+          "idempotency_key": {
+            "type": "string",
+            "nullable": true
+          },
+          "preview_token": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "V2SubscriptionContractProrationPreview": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "add_item",
+              "remove_item",
+              "update_item",
+              "pause",
+              "resume",
+              "cancel",
+              "restart"
+            ],
+            "default": "update_item"
+          },
+          "contract_item": {
+            "type": "integer"
+          },
+          "price": {
+            "type": "integer",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "nullable": true
+          },
+          "discount_percent": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "effective_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "pause_end_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "proration_behavior": {
+            "type": "string",
+            "enum": [
+              "none",
+              "create_prorations",
+              "always_invoice"
+            ],
+            "nullable": true
+          },
+          "settlement_behavior": {
+            "type": "string",
+            "enum": [
+              "next_invoice",
+              "invoice_now",
+              "credit_balance",
+              "refund_manual"
+            ],
+            "nullable": true
+          },
+          "include_pending_adjustments": {
+            "type": "boolean",
+            "default": false
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "V2SubscriptionContractItemAdd": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2SubscriptionContractProrationPreview"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "add_item"
+                ],
+                "default": "add_item"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "nullable": true
+              },
+              "preview_token": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "V2SubscriptionContractItemRemove": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2SubscriptionContractProrationPreview"
+          },
+          {
+            "type": "object",
+            "required": [
+              "contract_item"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "remove_item"
+                ],
+                "default": "remove_item"
+              },
+              "idempotency_key": {
+                "type": "string",
+                "nullable": true
+              },
+              "preview_token": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "V2SubscriptionContractItemUpdate": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2SubscriptionContractProrationPreview"
+          },
+          {
+            "type": "object",
+            "required": [
+              "contract_item"
+            ],
+            "properties": {
+              "idempotency_key": {
+                "type": "string",
+                "nullable": true
+              },
+              "preview_token": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "V2SubscriptionContractProrationLine": {
+        "type": "object",
+        "properties": {
+          "line_type": {
+            "type": "string"
+          },
+          "price_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "price_version_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "product_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "unit_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "discount_percent": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string"
+          },
+          "line_subtotal_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "line_tax_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "line_total_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "proration_factor": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "proration_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "adjustment_service_start_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "adjustment_service_end_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tax_percent": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "tax_calculation_mode": {
+            "type": "string",
+            "nullable": true
+          },
+          "source_billing_run_line_id": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "V2SubscriptionContractProrationPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string"
+          },
+          "effective_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "proration_behavior": {
+            "type": "string",
+            "nullable": true
+          },
+          "settlement_behavior": {
+            "type": "string",
+            "nullable": true
+          },
+          "old_recurring_total": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "new_recurring_total": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "debit_lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2SubscriptionContractProrationLine"
+            }
+          },
+          "credit_lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2SubscriptionContractProrationLine"
+            }
+          },
+          "net_amount_due_now": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "net_balance_credit": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "next_billing_estimate": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "resolved_price_version_ids": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "preview_token": {
+            "type": "string"
+          }
+        }
+      },
+      "V2SubscriptionContractItemUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "change_id": {
+            "type": "integer"
+          },
+          "billing_run_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "pending_adjustment_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "contract": {
+            "$ref": "#/components/schemas/V2SubscriptionContract"
+          }
+        }
+      },
+      "V2CheckoutCreate": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2SubscriptionOfferQuoteCreate"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "collection_method": {
+                "type": "string",
+                "enum": [
+                  "card",
+                  "claim",
+                  "invoice"
+                ],
+                "default": "card"
+              },
+              "account_payment_processor": {
+                "type": "integer",
+                "nullable": true
+              },
+              "customer": {
+                "type": "integer"
+              },
+              "customer_reference": {
+                "type": "string"
+              },
+              "metadata": {
+                "$ref": "#/components/schemas/V2Metadata"
+              },
+              "delivery_address": {
+                "$ref": "#/components/schemas/V2Address",
+                "description": "Optional delivery-address snapshot for physical products or alternate delivery."
+              }
+            }
+          }
+        ]
+      },
+      "V2Address": {
+        "type": "object",
+        "properties": {
+          "delivery_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_1": {
+            "type": "string"
+          },
+          "address_2": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_3": {
+            "type": "string",
+            "nullable": true
+          },
+          "zip_code": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string",
+            "nullable": true,
+            "description": "Required by the embedded checkout widget for non-Icelandic addresses. Icelandic addresses resolve city from `zip_code`."
+          },
+          "country": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code.",
+            "default": "IS"
+          }
+        }
+      },
+      "V2PaymentProcessorOptionsRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2SubscriptionOfferQuoteCreate"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "collection_method": {
+                "type": "string",
+                "enum": [
+                  "card",
+                  "claim",
+                  "invoice"
+                ],
+                "default": "card"
+              },
+              "account_payment_processor": {
+                "type": "integer",
+                "nullable": true
+              }
+            }
+          }
+        ]
+      },
+      "V2PaymentProcessorOption": {
+        "type": "object",
+        "properties": {
+          "account_payment_processor_id": {
+            "type": "integer"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "payment_processor": {
+            "type": "string"
+          },
+          "payment_processor_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "collection_method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "claim",
+              "invoice"
+            ]
+          },
+          "resolution_source": {
+            "type": "string",
+            "enum": [
+              "explicit",
+              "eligible"
+            ]
+          },
+          "render_mode": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_3d_secure": {
+            "type": "boolean"
+          },
+          "card_collection_in_frontend": {
+            "type": "boolean"
+          },
+          "supports_checkout": {
+            "type": "boolean"
+          },
+          "address_required": {
+            "type": "boolean"
+          },
+          "supports_payment_method_registration": {
+            "type": "boolean"
+          },
+          "supports_initial_charge": {
+            "type": "boolean"
+          },
+          "supports_recurring_charge": {
+            "type": "boolean"
+          },
+          "registration_mode": {
+            "type": "string",
+            "enum": [
+              "card_registration",
+              "claim_setup",
+              "invoice_collection"
+            ]
+          },
+          "public_registration_config": {
+            "type": "object"
+          }
+        }
+      },
+      "V2PaymentProcessorOptionsResponse": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "collection_method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "claim",
+              "invoice"
+            ]
+          },
+          "selected_account_payment_processor_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "selection_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "requires_selection": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2PaymentProcessorOption"
+            }
+          }
+        }
+      },
+      "V2CheckoutSessionCreate": {
+        "type": "object",
+        "required": [
+          "sales_channel"
+        ],
+        "properties": {
+          "sales_channel": {
+            "type": "string",
+            "description": "Sales channel id or account-scoped reference."
+          },
+          "customer": {
+            "type": "integer",
+            "description": "Existing customer id. Provide only one of `customer` or `customer_reference`."
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "Seller customer reference. If an existing customer has this reference, the session is bound to that customer."
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/V2Metadata",
+            "description": "Optional checkout theme override for this session."
+          },
+          "terms_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional per-session terms URL. Sales-channel terms are used when omitted."
+          },
+          "terms_required": {
+            "type": "boolean",
+            "default": false,
+            "description": "Requires buyer acceptance for this session. A provided `terms_url` also makes acceptance required."
+          },
+          "expires_in_seconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 86400
+          }
+        }
+      },
+      "V2CheckoutSession": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "expired",
+              "canceled"
+            ]
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sales_channel": {
+            "type": "string"
+          },
+          "allowed_origins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "theme": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "checkout_token": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "contract_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "initial_billing_run_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          }
+        }
+      },
+      "V2CustomerPaymentMethodSetup": {
+        "type": "object",
+        "properties": {
+          "collection_method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "claim",
+              "invoice"
+            ]
+          },
+          "claim_rule_id": {
+            "type": "integer"
+          },
+          "claim_template_id": {
+            "type": "integer"
+          },
+          "payor_id": {
+            "type": "string"
+          },
+          "external_customer_reference": {
+            "type": "string"
+          },
+          "invoice_email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2CustomerPaymentMethodMetadata": {
+        "type": "object",
+        "properties": {
+          "v2_setup": {
+            "$ref": "#/components/schemas/V2CustomerPaymentMethodSetup"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          }
+        }
+      },
+      "V2CustomerPaymentMethod": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "collection_method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "claim",
+              "invoice"
+            ]
+          },
+          "payment_processor": {
+            "type": "string"
+          },
+          "account_payment_processor_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "account_payment_processor_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_info": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "canceled": {
+            "type": "boolean"
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2CustomerPaymentMethodMetadata"
+          }
+        }
+      },
+      "V2CustomerPaymentMethodCreate": {
+        "type": "object",
+        "required": [
+          "collection_method",
+          "account_payment_processor"
+        ],
+        "properties": {
+          "collection_method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "claim",
+              "invoice"
+            ]
+          },
+          "account_payment_processor": {
+            "type": "integer",
+            "description": "Account payment processor id. Required for all collection methods."
+          },
+          "display_info": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "token": {
+            "type": "string",
+            "description": "Required for direct card imports. Never returned by the API."
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Card expiry timestamp. For card imports, provide this or expiration_month plus expiration_year."
+          },
+          "expiration_month": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "expiration_year": {
+            "type": "integer",
+            "minimum": 2000
+          },
+          "claim_rule_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "claim_template_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "payor_id": {
+            "type": "string",
+            "description": "Claim payor kennitala. Defaults from customer_reference when omitted and valid."
+          },
+          "external_customer_reference": {
+            "type": "string",
+            "description": "Invoice-system customer reference. Defaults from customer_reference when omitted."
+          },
+          "invoice_email": {
+            "type": "string",
+            "format": "email",
+            "description": "Invoice delivery email. Defaults from the customer email when omitted."
+          }
+        }
+      },
+      "V2CustomerPaymentMethodPatch": {
+        "type": "object",
+        "properties": {
+          "display_info": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata",
+            "description": "Shallow-merged into existing client metadata. A null value removes that metadata key."
+          },
+          "claim_rule_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "claim_template_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "payor_id": {
+            "type": "string"
+          },
+          "external_customer_reference": {
+            "type": "string"
+          },
+          "invoice_email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2CheckoutFinalize": {
+        "type": "object",
+        "properties": {
+          "execute_payment": {
+            "type": "boolean",
+            "default": true
+          },
+          "payment_method_registration_token": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "V2PaymentMethodRegistrationCreate": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "hosted"
+            ],
+            "default": "hosted"
+          },
+          "return_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "cancel_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          }
+        }
+      },
+      "V2PaymentMethodRegistration": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "succeeded",
+              "failed",
+              "canceled"
+            ]
+          },
+          "checkout_token": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "checkout_url": {
+            "type": "string"
+          },
+          "status_url": {
+            "type": "string"
+          },
+          "account_payment_processor_id": {
+            "type": "integer"
+          },
+          "payment_processor": {
+            "type": "string"
+          },
+          "registration_mode": {
+            "type": "string",
+            "enum": [
+              "hosted_card_form"
+            ]
+          },
+          "temporary_payment_method_token": {
+            "type": "string",
+            "nullable": true
+          },
+          "payment_method_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "error_message": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2Checkout": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "token": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "checkout_url": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "processing",
+              "succeeded",
+              "failed",
+              "pending_external",
+              "canceled"
+            ]
+          },
+          "customer_id": {
+            "type": "integer"
+          },
+          "customer_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "account_payment_processor_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string"
+          },
+          "subtotal_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "tax_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "total_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "contract_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "initial_billing_run_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "quote_snapshot": {
+            "$ref": "#/components/schemas/V2SubscriptionOfferQuote"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2SubscriptionOfferQuoteLine": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "creates_contract_item": {
+            "type": "boolean"
+          },
+          "price_id": {
+            "type": "integer"
+          },
+          "product_id": {
+            "type": "integer"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "product_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "billing_type": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "unit_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "line_subtotal_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "line_tax_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "line_total_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "tax_rate_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "tax_rate_version_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "tax_percent": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "tax_calculation_mode": {
+            "type": "string",
+            "nullable": true
+          },
+          "service_period_start_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "service_period_end_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "proration_factor": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "renewal_line_subtotal_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "renewal_line_tax_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "renewal_line_total_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          }
+        }
+      },
+      "V2SubscriptionOfferQuote": {
+        "type": "object",
+        "properties": {
+          "input_mode": {
+            "type": "string",
+            "enum": [
+              "bundle",
+              "direct_items"
+            ]
+          },
+          "bundle_template_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "bundle_quantity": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "period_start_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "period_end_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "subtotal_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "tax_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "total_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "first_period_recurring_subtotal_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "first_period_recurring_tax_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "first_period_recurring_total_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "recurring_subtotal_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "recurring_tax_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "recurring_total_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "billing_schedule_preview": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "recurring_items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2SubscriptionOfferQuoteLine"
+            }
+          },
+          "initial_lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2SubscriptionOfferQuoteLine"
+            }
+          }
+        }
+      },
+      "V2SubscriptionContractItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "price_id": {
+            "type": "integer"
+          },
+          "product": {
+            "$ref": "#/components/schemas/V2BundleProduct"
+          },
+          "price": {
+            "$ref": "#/components/schemas/V2CatalogPrice"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "unit_amount_override": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "discount_percent": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "start_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "end_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "billing_anchor_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "next_billing_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "next_billing_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "last_billed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "service_active": {
+            "type": "boolean"
+          },
+          "service_state": {
+            "type": "string",
+            "enum": [
+              "inactive",
+              "active",
+              "pending_payment",
+              "past_due",
+              "ended"
+            ]
+          },
+          "entitled_from": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "entitled_until": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "current_service_period_start_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "current_service_period_end_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "entitlement_billing_run_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          }
+        }
+      },
+      "V2BundlePurchaseSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "bundle_template_id": {
+            "type": "integer"
+          },
+          "bundle_template_name": {
+            "type": "string"
+          },
+          "bundle_template_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2BillingRunSummary": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "period_start_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "period_end_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "subtotal_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "tax_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "total_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "attempt_count": {
+            "type": "integer"
+          },
+          "max_attempts": {
+            "type": "integer"
+          },
+          "next_retry_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "last_attempt_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "transaction_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2BillingRunAttempt": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "attempt_no": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "transaction_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "transaction_uuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "transaction_external_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "fail_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "fail_message": {
+            "type": "string",
+            "nullable": true
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2BillingRunLine": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "contract_item_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "price_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "product_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "unit_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "discount_percent": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string"
+          },
+          "line_subtotal_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "line_tax_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "line_total_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "service_period_start_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "service_period_end_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "proration_factor": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "tax_rate_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "tax_rate_version_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "tax_percent": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "tax_calculation_mode": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2BillingRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "contract_id": {
+            "type": "integer"
+          },
+          "customer_id": {
+            "type": "integer"
+          },
+          "customer_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "period_start_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "period_end_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "subtotal_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "tax_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "total_amount": {
+            "type": "string",
+            "format": "decimal"
+          },
+          "attempt_count": {
+            "type": "integer"
+          },
+          "max_attempts": {
+            "type": "integer"
+          },
+          "next_retry_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "last_attempt_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "transaction_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "transaction_uuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "transaction_external_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2BillingRunLine"
+            }
+          },
+          "attempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2BillingRunAttempt"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2BillingRunRetry": {
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "process_now": {
+            "type": "boolean",
+            "default": false
+          },
+          "execute_payment": {
+            "type": "boolean",
+            "default": false
+          },
+          "dryrun": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "V2SubscriptionContractCustomer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "customer_reference": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "customer_username": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "V2SubscriptionContractBillingCadence": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "recurrence_type": {
+            "type": "string"
+          },
+          "interval": {
+            "type": "string",
+            "nullable": true
+          },
+          "interval_count": {
+            "type": "integer",
+            "nullable": true
+          },
+          "billing_day_of_month": {
+            "type": "integer",
+            "nullable": true
+          },
+          "billing_schedule_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "billing_schedule_name": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "V2SubscriptionContractPauseWindow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2EntitlementSummary": {
+        "type": "object",
+        "description": "Aggregate service entitlement state for a subscription contract.",
+        "properties": {
+          "service_active": {
+            "type": "boolean"
+          },
+          "service_state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "partial",
+              "past_due"
+            ]
+          },
+          "active_service_item_count": {
+            "type": "integer"
+          },
+          "inactive_service_item_count": {
+            "type": "integer"
+          },
+          "past_due_service_item_count": {
+            "type": "integer"
+          },
+          "total_active_quantity": {
+            "type": "integer"
+          },
+          "active_product_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "evaluated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2CustomerEntitlementItem": {
+        "type": "object",
+        "description": "One contract item considered by the customer entitlement access check.",
+        "properties": {
+          "subscription_contract_id": {
+            "type": "integer"
+          },
+          "contract_item_id": {
+            "type": "integer"
+          },
+          "product_id": {
+            "type": "integer"
+          },
+          "product_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "price_id": {
+            "type": "integer"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "service_active": {
+            "type": "boolean"
+          },
+          "service_state": {
+            "type": "string",
+            "enum": [
+              "inactive",
+              "active",
+              "pending_payment",
+              "past_due",
+              "ended"
+            ]
+          },
+          "entitled_from": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "entitled_until": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "current_service_period_start_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "current_service_period_end_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "entitlement_billing_run_id": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "V2CustomerEntitlements": {
+        "type": "object",
+        "description": "Customer/product service entitlement access-check response.",
+        "properties": {
+          "customer_reference": {
+            "type": "string"
+          },
+          "product_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "service_active": {
+            "type": "boolean",
+            "description": "Simple integration-facing access flag."
+          },
+          "service_state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "partial",
+              "past_due"
+            ]
+          },
+          "total_active_quantity": {
+            "type": "integer"
+          },
+          "active_product_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "evaluated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2CustomerEntitlementItem"
+            }
+          }
+        }
+      },
+      "V2SubscriptionContract": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "customer_id": {
+            "type": "integer"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/V2SubscriptionContractCustomer"
+          },
+          "customer_reference": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "billing_anchor_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "billing_timezone": {
+            "type": "string"
+          },
+          "billing_time": {
+            "type": "string"
+          },
+          "billing_advance_policy": {
+            "type": "string",
+            "enum": [
+              "on_run_created",
+              "on_run_succeeded"
+            ]
+          },
+          "service_entitlement_policy": {
+            "type": "string",
+            "enum": [
+              "on_run_created",
+              "on_run_succeeded"
+            ]
+          },
+          "service_active": {
+            "type": "boolean"
+          },
+          "service_state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "partial",
+              "past_due"
+            ]
+          },
+          "active_service_item_count": {
+            "type": "integer"
+          },
+          "inactive_service_item_count": {
+            "type": "integer"
+          },
+          "total_active_quantity": {
+            "type": "integer"
+          },
+          "entitlement_summary": {
+            "$ref": "#/components/schemas/V2EntitlementSummary"
+          },
+          "billing_attention_required": {
+            "type": "boolean"
+          },
+          "trial_start_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trial_end_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "next_billing_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancel_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancel_at_period_end": {
+            "type": "boolean"
+          },
+          "canceled_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string"
+          },
+          "recurring": {
+            "type": "boolean"
+          },
+          "has_future_pause": {
+            "type": "boolean"
+          },
+          "paused_until": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "payment_processor_override_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "legacy_subscription_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2SubscriptionContractItem"
+            }
+          },
+          "pauses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2SubscriptionContractPauseWindow"
+            }
+          },
+          "current_pauses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2SubscriptionContractPauseWindow"
+            }
+          },
+          "future_pauses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2SubscriptionContractPauseWindow"
+            }
+          },
+          "past_pauses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2SubscriptionContractPauseWindow"
+            }
+          },
+          "billing_cadence": {
+            "$ref": "#/components/schemas/V2SubscriptionContractBillingCadence"
+          },
+          "bundle_purchases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2BundlePurchaseSummary"
+            }
+          },
+          "bundle_purchase_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "initial_billing_run": {
+            "$ref": "#/components/schemas/V2BillingRunSummary"
+          },
+          "initial_billing_run_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "initial_billing_run_total_amount": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "latest_billing_run": {
+            "$ref": "#/components/schemas/V2BillingRunSummary"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "PageSizeFilter": {
+        "in": "query",
+        "name": "page_size",
+        "schema": {
+          "type": "integer"
+        },
+        "description": "The number of items to return in the response. If omitted, no pagination is applied."
+      },
+      "V2ActiveFilter": {
+        "in": "query",
+        "name": "active",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "all",
+            "any"
+          ]
+        },
+        "description": "Filter active resources. Use `all` or `any` to include active and inactive resources."
+      },
+      "V2ReferenceFilter": {
+        "in": "query",
+        "name": "reference",
+        "schema": {
+          "type": "string"
+        },
+        "description": "Filter by resource reference."
+      },
+      "V2ProductId": {
+        "name": "productId",
+        "in": "path",
+        "description": "Catalog product id.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "V2PriceId": {
+        "name": "priceId",
+        "in": "path",
+        "description": "Catalog price id.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "V2BundleTemplateId": {
+        "name": "bundleTemplateId",
+        "in": "path",
+        "description": "Bundle template id.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "V2ContractId": {
+        "name": "contractId",
+        "in": "path",
+        "description": "Subscription contract id.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "V2BillingRunId": {
+        "name": "billingRunId",
+        "in": "path",
+        "description": "Billing run id.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "V2CustomerReference": {
+        "name": "customerReference",
+        "in": "path",
+        "description": "Customer reference for the customer within the authenticated account.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "V2PaymentMethodId": {
+        "name": "paymentMethodId",
+        "in": "path",
+        "description": "Payment method id.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "V2CheckoutToken": {
+        "name": "token",
+        "in": "path",
+        "description": "V2 checkout token.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "V2PaymentMethodRegistrationToken": {
+        "name": "token",
+        "in": "path",
+        "description": "V2 payment method registration token.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "V2CheckoutSessionToken": {
+        "name": "token",
+        "in": "path",
+        "description": "Embedded checkout session token.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "responses": {
+      "V2ValidationError": {
+        "description": "Validation error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2ValidationError"
+            }
+          }
+        }
+      },
+      "V2NotFound": {
+        "description": "Not found"
+      },
+      "V2CatalogProductList": {
+        "description": "V2 catalog product list",
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/V2CatalogProduct"
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/V2CatalogProduct"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "V2CatalogProductDetail": {
+        "description": "V2 catalog product detail",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2CatalogProductDetail"
+            }
+          }
+        }
+      },
+      "V2CatalogPriceList": {
+        "description": "V2 catalog price list",
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/V2CatalogPrice"
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/V2CatalogPrice"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "V2CatalogPrice": {
+        "description": "V2 catalog price",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2CatalogPrice"
+            }
+          }
+        }
+      },
+      "V2BundleTemplateList": {
+        "description": "V2 bundle template list",
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/V2BundleTemplate"
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/V2BundleTemplate"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "V2BundleTemplateDetail": {
+        "description": "V2 bundle template detail",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2BundleTemplateDetail"
+            }
+          }
+        }
+      },
+      "V2BundleAddonDiscovery": {
+        "description": "V2 bundle add-on discovery response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2BundleAddonDiscoveryResponse"
+            }
+          }
+        }
+      },
+      "V2SubscriptionOfferQuote": {
+        "description": "V2 subscription offer quote",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2SubscriptionOfferQuote"
+            }
+          }
+        }
+      },
+      "V2SubscriptionContract": {
+        "description": "V2 subscription contract",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2SubscriptionContract"
+            }
+          }
+        }
+      },
+      "V2CustomerEntitlements": {
+        "description": "V2 customer service entitlement access-check result",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2CustomerEntitlements"
+            }
+          }
+        }
+      },
+      "V2CustomerPaymentMethod": {
+        "description": "V2 customer payment method",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2CustomerPaymentMethod"
+            }
+          }
+        }
+      },
+      "V2CustomerPaymentMethodList": {
+        "description": "V2 customer payment method list",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/V2CustomerPaymentMethod"
+              }
+            }
+          }
+        }
+      },
+      "V2Checkout": {
+        "description": "V2 checkout",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2Checkout"
+            }
+          }
+        }
+      },
+      "V2PaymentMethodRegistration": {
+        "description": "V2 payment method registration",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2PaymentMethodRegistration"
+            }
+          }
+        }
+      },
+      "V2PaymentProcessorOptions": {
+        "description": "V2 payment processor options",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2PaymentProcessorOptionsResponse"
+            }
+          }
+        }
+      },
+      "V2CheckoutSession": {
+        "description": "Embedded checkout session",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2CheckoutSession"
+            }
+          }
+        }
+      },
+      "V2SubscriptionContractList": {
+        "description": "V2 subscription contract list",
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/V2SubscriptionContract"
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/V2SubscriptionContract"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "V2BillingRun": {
+        "description": "V2 billing run",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2BillingRun"
+            }
+          }
+        }
+      },
+      "V2BillingRunList": {
+        "description": "V2 billing run list",
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/V2BillingRun"
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/V2BillingRun"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "Secret-Api-Key": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      },
+      "Public-Api-Key": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  }
+}

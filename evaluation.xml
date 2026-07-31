@@ -1,0 +1,42 @@
+<evaluation>
+  <qa_pair>
+    <question>Using only the Askell MCP discovery tools, find the total number of API operations defined across both the v1 and v2 bundled OpenAPI specs combined (all HTTP methods, all tags). Note that a single call may cap the number of items returned — make sure you are counting the true total, not just what one page of results shows. Answer with a single integer.</question>
+    <answer>75</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Across both the v1 and v2 Askell API specs, how many total operations require the public API key (as opposed to the secret API key)? Answer with a single integer.</question>
+    <answer>3</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Find the Askell v2 operation whose summary is "Create a V2 subscription contract". What is its operation id, in the `{apiVersion}:{method}:{path}` format used by the discovery tools?</question>
+    <answer>v2:POST:/v2/subscription-contracts/</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Look up the Askell v2 operation for retrying a billing run (`POST /v2/billing-runs/{billingRunId}/retry/`). According to its request body schema, what is the single required field name?</question>
+    <answer>reason</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>What OpenAPI tag is the Askell v1 "Get a test response" health-check operation (`GET /hello/`) categorized under?</question>
+    <answer>Hello</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Call the Askell v1 health-check endpoint (`GET /hello/`) through the MCP server. What is the value of the "status" field in the JSON response body?</question>
+    <answer>success</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>According to the Askell MCP's bundled webhook-events reference, webhook payloads are signed with an HMAC using which hash algorithm?</question>
+    <answer>SHA-512</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>In the bundled v2 OpenAPI spec, the `GET /v2/subscription-contracts/` operation exposes two query parameters (besides pagination) for filtering by customer. Using the exact `name` values from the spec and listing them in the order they appear, what are they (comma-separated)?</question>
+    <answer>customer, customer_reference</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Consider only Askell v1 subscriptions whose start_date falls between 2026-07-01T00:00:00Z and 2026-08-01T00:00:00Z (exclusive). How many distinct subscription plan names appear among them? Answer with a single integer.</question>
+    <answer>2</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Among Askell customers whose first-ever v1 subscription started between 2026-04-10T00:00:00Z and 2026-07-11T00:00:00Z (exclusive), which subscription plan name is the most common among those first subscriptions?</question>
+    <answer>Grunnáskrift</answer>
+  </qa_pair>
+</evaluation>
