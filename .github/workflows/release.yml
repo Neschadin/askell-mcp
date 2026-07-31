@@ -3,97 +3,162 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
+      - 'v*.*.*-*'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
+
+env:
+  BUN_VERSION: '1.3.14'
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: bun-linux-x64
-            artifact: askell-mcp-linux-x64
-          - os: ubuntu-latest
-            target: bun-linux-arm64
-            artifact: askell-mcp-linux-arm64
-          - os: macos-latest
-            target: bun-darwin-arm64
-            artifact: askell-mcp-darwin-arm64
-          - os: macos-latest
-            target: bun-darwin-x64
-            artifact: askell-mcp-darwin-x64
-
-    runs-on: ${{ matrix.os }}
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+
+      - name: Validate release tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          if ! [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Tag must be semver (vX.Y.Z): got ${GITHUB_REF_NAME}" >&2
+            exit 1
+          fi
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun ci
 
       - name: Unit tests
         run: bun test
 
       - name: Typecheck
         run: bun run typecheck
+
+  build:
+    needs: validate
+    # Bun cross-compiles -- no macOS runners needed
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: bun-linux-x64
+            artifact: askell-mcp-linux-x64
+            smoke: true
+          - target: bun-linux-arm64
+            artifact: askell-mcp-linux-arm64
+            smoke: false
+          - target: bun-darwin-arm64
+            artifact: askell-mcp-darwin-arm64
+            smoke: false
+          - target: bun-darwin-x64
+            artifact: askell-mcp-darwin-x64
+            smoke: false
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun ci
 
       - name: Compile binary
         run: bun build --compile --target=${{ matrix.target }} src/index.ts --outfile dist/${{ matrix.artifact }}
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Smoke test binary
+        run: |
+          BIN="dist/${{ matrix.artifact }}"
+          chmod +x "$BIN"
+          test -s "$BIN"
+          file "$BIN"
+          if [[ "${{ matrix.smoke }}" == "true" ]]; then
+            # Starts then waits on stdio; timeout = healthy boot
+            set +e
+            ASKELL_PRIVATE_API_KEY=ci-smoke timeout 2 "$BIN" 2>"$RUNNER_TEMP/smoke.err"
+            code=$?
+            set -e
+            cat "$RUNNER_TEMP/smoke.err"
+            # 124 = timeout (expected); 0 = exited cleanly
+            [[ "$code" -eq 124 || "$code" -eq 0 ]]
+            grep -q 'askell-mcp running on stdio' "$RUNNER_TEMP/smoke.err"
+          fi
+
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: dist/${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 7
 
   release:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
+          pattern: askell-mcp-*
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum askell-mcp-* > SHA256SUMS
+          cat SHA256SUMS
+          ls -la
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/*
           generate_release_notes: true
+          fail_on_unmatched_files: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
   npm-publish:
-    needs: build
+    needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: ${{ env.BUN_VERSION }}
 
-      - uses: actions/setup-node@v4
+      # Node is only for npm CLI provenance / trusted publishing (needs npm ≥ 11.5.1)
+      - uses: actions/setup-node@v6
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Unit tests
-        run: bun test
-
-      - name: Typecheck
-        run: bun run typecheck
+        run: bun ci
 
       - name: Sync package version from tag
         run: |
@@ -102,7 +167,13 @@ jobs:
           bun -e "const p=await Bun.file('package.json').json(); p.version=process.env.TAG!; await Bun.write('package.json', JSON.stringify(p,null,2)+'\n')"
           node -e "console.log('package.json version:', require('./package.json').version)"
 
+      # Trusted Publishing (OIDC) — do NOT set NODE_AUTH_TOKEN / NPM_TOKEN.
+      # Provenance is emitted automatically when publishing via OIDC.
       - name: Publish to npm
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          if [[ "$TAG" == *-* ]]; then
+            npm publish --access public --tag next
+          else
+            npm publish --access public
+          fi

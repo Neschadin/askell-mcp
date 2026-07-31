@@ -145,11 +145,21 @@ Downloads:
 
 ## Release
 
-Push a `v*` tag (e.g. `v0.1.0`). CI will:
+Push a semver tag (e.g. `v0.1.0`). CI runs: **validate** → **build** (4 cross-compiled binaries on Ubuntu) → **GitHub Release** (with `SHA256SUMS`) → **npm publish** (OIDC).
 
-1. Run tests + typecheck
-2. Build platform binaries and attach them to the GitHub Release
-3. Publish the same version to npm (needs repo secret `NPM_TOKEN`)
+Prerelease tags (`v0.1.0-rc.1`) mark the GitHub release as prerelease and publish npm under the `next` dist-tag.
+
+### npm Trusted Publishing (required)
+
+Classic `NPM_TOKEN` + 2FA fails CI with `EOTP`. Use OIDC only:
+
+1. Create the package on [npmjs.com](https://www.npmjs.com/) (empty / first manual publish if the name is new)
+2. Open **askell-mcp** → **Settings** → **Trusted Publisher** → GitHub Actions:
+   - Organization or user: `Neschadin`
+   - Repository: `askell-mcp`
+   - Workflow filename: `release.yml` (filename only)
+3. Do **not** set `NPM_TOKEN` / `NODE_AUTH_TOKEN` in the repo — workflow uses `id-token: write`
+4. After a successful OIDC publish, revoke any legacy automation tokens and prefer “Require 2FA and disallow tokens”
 
 Local binary builds:
 
