@@ -81,7 +81,7 @@ jobs:
         run: bun ci
 
       - name: Compile binary
-        run: bun build --compile --target=${{ matrix.target }} src/index.ts --outfile dist/${{ matrix.artifact }}
+        run: bun build --compile --minify --target=${{ matrix.target }} src/index.ts --outfile dist/${{ matrix.artifact }}
 
       - name: Smoke test binary
         run: |

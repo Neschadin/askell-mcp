@@ -51,11 +51,11 @@
     "inspect": "bunx @modelcontextprotocol/inspector bun bin/askell-mcp",
     "sync-specs": "bun run scripts/sync-specs.ts",
     "prepack": "bun test && bun run typecheck",
-    "build": "bun build --compile src/index.ts --outfile dist/askell-mcp",
-    "build:linux-x64": "bun build --compile --target=bun-linux-x64 src/index.ts --outfile dist/askell-mcp-linux-x64",
-    "build:linux-arm64": "bun build --compile --target=bun-linux-arm64 src/index.ts --outfile dist/askell-mcp-linux-arm64",
-    "build:darwin-arm64": "bun build --compile --target=bun-darwin-arm64 src/index.ts --outfile dist/askell-mcp-darwin-arm64",
-    "build:darwin-x64": "bun build --compile --target=bun-darwin-x64 src/index.ts --outfile dist/askell-mcp-darwin-x64",
+    "build": "bun build --compile --minify src/index.ts --outfile dist/askell-mcp",
+    "build:linux-x64": "bun build --compile --minify --target=bun-linux-x64 src/index.ts --outfile dist/askell-mcp-linux-x64",
+    "build:linux-arm64": "bun build --compile --minify --target=bun-linux-arm64 src/index.ts --outfile dist/askell-mcp-linux-arm64",
+    "build:darwin-arm64": "bun build --compile --minify --target=bun-darwin-arm64 src/index.ts --outfile dist/askell-mcp-darwin-arm64",
+    "build:darwin-x64": "bun build --compile --minify --target=bun-darwin-x64 src/index.ts --outfile dist/askell-mcp-darwin-x64",
     "build:all": "bun run build && bun run build:linux-x64 && bun run build:linux-arm64 && bun run build:darwin-arm64 && bun run build:darwin-x64"
   },
   "devDependencies": {
