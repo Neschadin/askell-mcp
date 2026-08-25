@@ -1,7 +1,7 @@
 <evaluation>
   <qa_pair>
     <question>Using only the Askell MCP discovery tools, find the total number of API operations defined across both the v1 and v2 bundled OpenAPI specs combined (all HTTP methods, all tags). Note that a single call may cap the number of items returned — make sure you are counting the true total, not just what one page of results shows. Answer with a single integer.</question>
-    <answer>75</answer>
+    <answer>78</answer>
   </qa_pair>
   <qa_pair>
     <question>Across both the v1 and v2 Askell API specs, how many total operations require the public API key (as opposed to the secret API key)? Answer with a single integer.</question>
@@ -38,5 +38,9 @@
   <qa_pair>
     <question>Among Askell customers whose first-ever v1 subscription started between 2026-04-10T00:00:00Z and 2026-07-11T00:00:00Z (exclusive), which subscription plan name is the most common among those first subscriptions?</question>
     <answer>Grunnáskrift</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>In the bundled v2 OpenAPI spec, which path returns the active coupon discount for a subscription contract, or null when none is active? Answer with the exact path from the spec, including the path-parameter placeholder and trailing slash.</question>
+    <answer>/v2/subscription-contracts/{contractId}/discount/</answer>
   </qa_pair>
 </evaluation>

@@ -1137,6 +1137,161 @@
         ]
       }
     },
+    "/v2/subscription-contracts/{contractId}/apply-code/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Apply a promotion code to a V2 subscription contract",
+        "description": "Validates and redeems a promotion code for the contract, creating an active discount that is applied to subsequent billing runs. A contract can only carry one active discount at a time. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "promotion_code"
+                ],
+                "properties": {
+                  "promotion_code": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Promotion code applied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "discount": {
+                      "$ref": "#/components/schemas/V2ContractDiscount"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/discount/": {
+      "get": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Get the active discount for a V2 subscription contract",
+        "description": "Returns the contract's active coupon discount, or null when none is active. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active discount",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "discount": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/V2ContractDiscount"
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/remove-discount/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Remove the active discount from a V2 subscription contract",
+        "description": "Ends the contract's active coupon discount. Subsequent billing runs are charged at full price. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Discount removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
     "/v2/checkouts/": {
       "post": {
         "tags": [
@@ -2091,6 +2246,80 @@
           }
         }
       },
+      "V2ContractDiscount": {
+        "type": "object",
+        "description": "An applied coupon discount on a V2 subscription contract.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "coupon": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true
+              },
+              "amount_off": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true
+              },
+              "currency": {
+                "type": "string",
+                "nullable": true
+              },
+              "percent_off": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true
+              },
+              "duration": {
+                "type": "string",
+                "enum": [
+                  "forever",
+                  "once",
+                  "repeating"
+                ]
+              },
+              "duration_in_months": {
+                "type": "integer",
+                "nullable": true
+              },
+              "discount_display": {
+                "type": "string"
+              }
+            }
+          },
+          "promotion_code": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              }
+            }
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        }
+      },
       "V2SubscriptionOfferQuoteCreate": {
         "type": "object",
         "properties": {
@@ -2135,6 +2364,11 @@
             "items": {
               "$ref": "#/components/schemas/V2AdditionalBundle"
             }
+          },
+          "promotion_code": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional promotion code. When valid, the resulting discount is folded into the offer totals; on contract creation the code is redeemed and a discount is attached to the contract."
           }
         }
       },
@@ -2405,54 +2639,10 @@
           }
         }
       },
-      "V2SubscriptionContractProrationPreview": {
+      "V2SubscriptionContractChangeCommon": {
         "type": "object",
         "properties": {
-          "operation": {
-            "type": "string",
-            "enum": [
-              "add_item",
-              "remove_item",
-              "update_item",
-              "pause",
-              "resume",
-              "cancel",
-              "restart"
-            ],
-            "default": "update_item"
-          },
-          "contract_item": {
-            "type": "integer"
-          },
-          "price": {
-            "type": "integer",
-            "nullable": true
-          },
-          "quantity": {
-            "type": "integer",
-            "nullable": true
-          },
-          "discount_percent": {
-            "type": "string",
-            "format": "decimal",
-            "nullable": true
-          },
           "effective_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "start_date": {
-            "type": "string",
-            "format": "date",
-            "nullable": true
-          },
-          "end_date": {
-            "type": "string",
-            "format": "date",
-            "nullable": true
-          },
-          "pause_end_at": {
             "type": "string",
             "format": "date-time",
             "nullable": true
@@ -2486,10 +2676,11 @@
           }
         }
       },
-      "V2SubscriptionContractItemAdd": {
+      "V2SubscriptionContractProrationPreview": {
+        "description": "Polymorphic preview request. Fields beyond the common ones are operation-specific; fields not supported by the selected operation are rejected with a 400 validation error.",
         "allOf": [
           {
-            "$ref": "#/components/schemas/V2SubscriptionContractProrationPreview"
+            "$ref": "#/components/schemas/V2SubscriptionContractChangeCommon"
           },
           {
             "type": "object",
@@ -2497,9 +2688,99 @@
               "operation": {
                 "type": "string",
                 "enum": [
+                  "add_item",
+                  "remove_item",
+                  "update_item",
+                  "pause",
+                  "resume",
+                  "cancel",
+                  "restart"
+                ],
+                "default": "update_item"
+              },
+              "contract_item": {
+                "type": "integer",
+                "description": "Required for update_item and remove_item."
+              },
+              "price": {
+                "type": "integer",
+                "nullable": true,
+                "description": "Only applies to add_item and update_item. Required for add_item."
+              },
+              "quantity": {
+                "type": "integer",
+                "nullable": true,
+                "description": "Only applies to add_item and update_item."
+              },
+              "discount_percent": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true,
+                "description": "Only applies to add_item and update_item."
+              },
+              "unit_amount_override": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true,
+                "description": "Fixed per-unit amount for the item, used instead of the catalog price. Only applies to add_item and update_item. On update_item, omitting the field keeps the item's current override while an explicit null clears it so the item reverts to the catalog price."
+              },
+              "start_date": {
+                "type": "string",
+                "format": "date",
+                "nullable": true,
+                "description": "Only applies to pause."
+              },
+              "end_date": {
+                "type": "string",
+                "format": "date",
+                "nullable": true,
+                "description": "Only applies to pause."
+              },
+              "pause_end_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "Only applies to pause."
+              }
+            }
+          }
+        ]
+      },
+      "V2SubscriptionContractItemAdd": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2SubscriptionContractChangeCommon"
+          },
+          {
+            "type": "object",
+            "required": [
+              "price"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
                   "add_item"
                 ],
                 "default": "add_item"
+              },
+              "price": {
+                "type": "integer"
+              },
+              "quantity": {
+                "type": "integer",
+                "nullable": true
+              },
+              "discount_percent": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true
+              },
+              "unit_amount_override": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true,
+                "description": "Fixed per-unit amount for the new item, used instead of the catalog price."
               },
               "idempotency_key": {
                 "type": "string",
@@ -2515,7 +2796,7 @@
       "V2SubscriptionContractItemRemove": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/V2SubscriptionContractProrationPreview"
+            "$ref": "#/components/schemas/V2SubscriptionContractChangeCommon"
           },
           {
             "type": "object",
@@ -2529,6 +2810,9 @@
                   "remove_item"
                 ],
                 "default": "remove_item"
+              },
+              "contract_item": {
+                "type": "integer"
               },
               "idempotency_key": {
                 "type": "string",
@@ -2544,7 +2828,7 @@
       "V2SubscriptionContractItemUpdate": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/V2SubscriptionContractProrationPreview"
+            "$ref": "#/components/schemas/V2SubscriptionContractChangeCommon"
           },
           {
             "type": "object",
@@ -2552,6 +2836,35 @@
               "contract_item"
             ],
             "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "update_item"
+                ],
+                "default": "update_item"
+              },
+              "contract_item": {
+                "type": "integer"
+              },
+              "price": {
+                "type": "integer",
+                "nullable": true
+              },
+              "quantity": {
+                "type": "integer",
+                "nullable": true
+              },
+              "discount_percent": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true
+              },
+              "unit_amount_override": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true,
+                "description": "Fixed per-unit amount for the item, used instead of the catalog price. Omitting the field keeps the item's current override; an explicit null clears it so the item reverts to the catalog price."
+              },
               "idempotency_key": {
                 "type": "string",
                 "nullable": true
@@ -2688,9 +3001,15 @@
             "type": "string",
             "format": "decimal"
           },
+          "discount_amount_due_now": {
+            "type": "string",
+            "format": "decimal",
+            "description": "Contract coupon discount applied to the immediate (invoice_now) charge. Percent-off, non-once coupons only; 0.0000 otherwise."
+          },
           "next_billing_estimate": {
             "type": "string",
-            "format": "decimal"
+            "format": "decimal",
+            "description": "Estimated next recurring charge, net of the contract's active coupon discount."
           },
           "resolved_price_version_ids": {
             "type": "object",
@@ -3537,6 +3856,64 @@
           "billing_schedule_preview": {
             "$ref": "#/components/schemas/V2Metadata"
           },
+          "promotion_code": {
+            "type": "string",
+            "nullable": true,
+            "description": "The promotion code applied to this quote, if any. When set, subtotal_amount, tax_amount, and total_amount already include the discount."
+          },
+          "discount": {
+            "type": "object",
+            "nullable": true,
+            "description": "Discount preview when a promotion code was applied.",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "coupon_display": {
+                "type": "string"
+              },
+              "duration": {
+                "type": "string",
+                "enum": [
+                  "forever",
+                  "once",
+                  "repeating"
+                ]
+              },
+              "duration_in_months": {
+                "type": "integer",
+                "nullable": true
+              },
+              "skip_trial_period": {
+                "type": "boolean",
+                "description": "When true, the coupon skipped the offer's trial period: the quoted totals bill the first period immediately."
+              },
+              "discount_subtotal_amount": {
+                "type": "string",
+                "format": "decimal"
+              },
+              "discount_tax_amount": {
+                "type": "string",
+                "format": "decimal"
+              },
+              "discount_total_amount": {
+                "type": "string",
+                "format": "decimal"
+              },
+              "original_subtotal_amount": {
+                "type": "string",
+                "format": "decimal"
+              },
+              "original_tax_amount": {
+                "type": "string",
+                "format": "decimal"
+              },
+              "original_total_amount": {
+                "type": "string",
+                "format": "decimal"
+              }
+            }
+          },
           "recurring_items": {
             "type": "array",
             "items": {
@@ -4252,6 +4629,15 @@
           },
           "customer_reference": {
             "type": "string"
+          },
+          "discount": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2ContractDiscount"
+              }
+            ],
+            "nullable": true,
+            "description": "The active coupon discount on this contract, if any."
           },
           "state": {
             "type": "string"
