@@ -36,12 +36,23 @@ export function registerAnalysisTools(
     {
       title: 'Paginate Askell list endpoint',
       description:
-        'Fetch all pages from a paginated Askell list endpoint (v1/v2). Follows `next` links until exhausted or maxPages is reached. Large results are summarized to fit responseMaxBytes — check meta.truncatedByMaxBytes and meta.compacted in the response.',
+        'Fetch all pages from a paginated Askell list endpoint (v1/v2). Follows `next` links until exhausted or maxPages is reached. When the full payload exceeds responseMaxBytes, items are compacted (summary, then an index of id/dates/plan/customer) so rows are kept — dropping rows is last resort. Check meta.truncatedByMaxBytes, meta.compacted, and meta.compactedMode.',
       inputSchema: z.object({
         path: z.string().describe('List endpoint path, e.g. /subscriptions/'),
-        query: z.record(z.string(), z.unknown()).optional(),
-        apiKeyKind: z.enum(['secret', 'public']).default('secret'),
-        maxPages: z.int().positive().max(100).default(20),
+        query: z
+          .record(z.string(), z.json())
+          .optional()
+          .describe('Query string parameters forwarded to the list endpoint'),
+        apiKeyKind: z
+          .enum(['secret', 'public'])
+          .default('secret')
+          .describe('Which configured API key to use'),
+        maxPages: z
+          .int()
+          .positive()
+          .max(100)
+          .default(20)
+          .describe('Stop after this many pages (default 20, max 100)'),
       }),
       annotations: {
         readOnlyHint: true,
@@ -132,8 +143,15 @@ export function registerAnalysisTools(
       description:
         'Fetch a v2 subscription contract and recent billing runs filtered by contract id. The contract payload includes `discount` (active coupon) when one is applied.',
       inputSchema: z.object({
-        contractId: z.union([z.string(), z.number()]),
-        billingRunLimit: z.int().positive().max(50).default(10),
+        contractId: z
+          .union([z.string().min(1), z.int()])
+          .describe('V2 subscription contract id'),
+        billingRunLimit: z
+          .int()
+          .positive()
+          .max(50)
+          .default(10)
+          .describe('Max billing runs to include (page_size)'),
       }),
       annotations: {
         readOnlyHint: true,
@@ -192,8 +210,13 @@ export function registerAnalysisTools(
       description:
         'Fetch a billing run by id with optional related contract context for failure analysis.',
       inputSchema: z.object({
-        billingRunId: z.union([z.string(), z.number()]),
-        includeContract: z.boolean().default(true),
+        billingRunId: z
+          .union([z.string().min(1), z.int()])
+          .describe('V2 billing run id'),
+        includeContract: z
+          .boolean()
+          .default(true)
+          .describe('Also fetch the related subscription contract when the run has a contract id'),
       }),
       annotations: {
         readOnlyHint: true,
@@ -257,7 +280,12 @@ export function registerAnalysisTools(
       description:
         'List Askell webhook endpoints configured for the account (management API only).',
       inputSchema: z.object({
-        page_size: z.int().positive().max(1000).optional(),
+        page_size: z
+          .int()
+          .positive()
+          .max(1000)
+          .optional()
+          .describe('Page size for GET /webhooks/ (Askell default 10, max 1000)'),
       }),
       annotations: {
         readOnlyHint: true,

@@ -59,7 +59,6 @@ function summarizeListItem(item: unknown): unknown {
     'email',
     'first_name',
     'last_name',
-    'description',
     'currency',
     'amount',
     'total_amount',
@@ -89,6 +88,56 @@ function summarizeListItem(item: unknown): unknown {
   }
 
   return Object.keys(out).length > 0 ? out : obj;
+}
+
+/** Tight projection for analytical list queries (dates, plan name, customer). */
+function indexListItem(item: unknown): unknown {
+  if (item == null || typeof item !== 'object' || Array.isArray(item)) {
+    return item;
+  }
+
+  const obj = item as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+
+  if ('id' in obj) {
+    out.id = obj.id;
+  }
+
+  if ('start_date' in obj) {
+    out.start_date = obj.start_date;
+  } else if ('created_at' in obj) {
+    out.created_at = obj.created_at;
+  }
+
+  if ('ended_at' in obj && obj.ended_at != null) {
+    out.ended_at = obj.ended_at;
+  }
+
+  const plan = obj.plan;
+  if (typeof plan === 'string' || typeof plan === 'number') {
+    out.plan = plan;
+  } else if (plan && typeof plan === 'object' && 'name' in plan) {
+    out.plan = (plan as { name: unknown }).name;
+  } else if ('name' in obj && typeof obj.name === 'string') {
+    out.name = obj.name;
+  }
+
+  const customerRef =
+    obj.customer_reference ??
+    (obj.customer && typeof obj.customer === 'object'
+      ? ((obj.customer as Record<string, unknown>).customer_reference ??
+        (obj.customer as Record<string, unknown>).reference ??
+        (obj.customer as Record<string, unknown>).id)
+      : undefined);
+  if (customerRef !== undefined) {
+    out.customer_reference = customerRef;
+  }
+
+  if (typeof obj.email === 'string') {
+    out.email = obj.email;
+  }
+
+  return Object.keys(out).length > 0 ? out : summarizeListItem(item);
 }
 
 function serializeListPayload(
@@ -146,6 +195,8 @@ function maxFittingCount(
   return lo;
 }
 
+type CompactedMode = 'none' | 'summary' | 'index';
+
 export function buildBoundedListPayload(input: {
   status: number;
   meta: Record<string, unknown>;
@@ -153,30 +204,42 @@ export function buildBoundedListPayload(input: {
   maxBytes: number;
 }): FormattedResponse {
   const { status, meta, items, maxBytes } = input;
-  const itemCount = items.length;
 
   const attempts: Array<{
     items: unknown[];
     pretty: boolean;
-    compacted: boolean;
+    compactedMode: CompactedMode;
     note?: string;
   }> = [
-    { items, pretty: true, compacted: false },
-    { items, pretty: false, compacted: false },
+    { items, pretty: true, compactedMode: 'none' },
+    { items, pretty: false, compactedMode: 'none' },
     {
       items: items.map(summarizeListItem),
       pretty: false,
-      compacted: true,
+      compactedMode: 'summary',
       note: 'Items summarized to fit responseMaxBytes',
+    },
+    {
+      items: items.map(indexListItem),
+      pretty: false,
+      compactedMode: 'index',
+      note: 'Items reduced to an index (id, dates, plan, customer) to fit responseMaxBytes',
     },
   ];
 
   let fullByteLength = 0;
+  let bestPartial: {
+    text: string;
+    returnedCount: number;
+    compactedMode: CompactedMode;
+    note?: string;
+  } | null = null;
 
   for (const attempt of attempts) {
+    const attemptMeta = compactMeta(meta, attempt.compactedMode, attempt.note);
     const fullText = serializeListPayload(
       status,
-      meta,
+      attemptMeta,
       attempt.items,
       attempt.items.length,
       false,
@@ -195,42 +258,43 @@ export function buildBoundedListPayload(input: {
     const returnedCount = maxFittingCount(
       attempt.items,
       status,
-      {
-        ...meta,
-        ...(attempt.compacted ? { compacted: true, note: attempt.note } : {}),
-      },
+      attemptMeta,
       maxBytes,
       attempt.pretty,
     );
 
-    if (returnedCount > 0) {
-      const text = serializeListPayload(
-        status,
-        {
-          ...meta,
-          ...(attempt.compacted ? { compacted: true, note: attempt.note } : {}),
-        },
-        attempt.items,
+    if (returnedCount > (bestPartial?.returnedCount ?? 0)) {
+      bestPartial = {
+        text: serializeListPayload(
+          status,
+          attemptMeta,
+          attempt.items,
+          returnedCount,
+          true,
+          attempt.pretty,
+        ),
         returnedCount,
-        true,
-        attempt.pretty,
-      );
-
-      return {
-        text,
-        truncated: true,
-        byteLength: fullByteLength,
+        compactedMode: attempt.compactedMode,
+        note: attempt.note,
       };
     }
   }
 
+  if (bestPartial && bestPartial.returnedCount > 0) {
+    return {
+      text: bestPartial.text,
+      truncated: true,
+      byteLength: fullByteLength,
+    };
+  }
+
   const text = serializeListPayload(
     status,
-    {
-      ...meta,
-      compacted: true,
-      note: 'Response too large; returning metadata only',
-    },
+    compactMeta(
+      meta,
+      'index',
+      'Response too large; returning metadata only',
+    ),
     [],
     0,
     true,
@@ -241,6 +305,23 @@ export function buildBoundedListPayload(input: {
     text,
     truncated: true,
     byteLength: fullByteLength,
+  };
+}
+
+function compactMeta(
+  meta: Record<string, unknown>,
+  compactedMode: CompactedMode,
+  note?: string,
+): Record<string, unknown> {
+  if (compactedMode === 'none') {
+    return meta;
+  }
+
+  return {
+    ...meta,
+    compacted: true,
+    compactedMode,
+    ...(note ? { note } : {}),
   };
 }
 

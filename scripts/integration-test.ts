@@ -310,6 +310,22 @@ async function main(): Promise<void> {
         describe.structuredContent != null,
     );
 
+    const describeRetry = await callTool(session, 'askell_describe_operation', {
+      operationId: 'v2:POST:/v2/billing-runs/{billingRunId}/retry/',
+    });
+    const retryParsed = describeRetry.parsed as {
+      requestBody?: { schema?: { required?: string[] } };
+    };
+    record(
+      'tool:askell_describe_operation (retry body)',
+      !describeRetry.isError &&
+        describeRetry.structuredContent != null &&
+        retryParsed.requestBody?.schema?.required?.includes('reason') === true,
+      describeRetry.isError
+        ? describeRetry.text.slice(0, 180)
+        : `required=${retryParsed.requestBody?.schema?.required?.join(',')}`,
+    );
+
     // askell_call GET
     const hello = await callTool(session, 'askell_call', {
       method: 'GET',
@@ -339,7 +355,7 @@ async function main(): Promise<void> {
     const paginate = await callTool(session, 'askell_paginate_all', {
       path: '/subscriptions/',
       query: { page_size: 100, type: 'light' },
-      maxPages: 3,
+      maxPages: 100,
     });
     const paginateParsed = paginate.parsed as {
       meta?: { itemCount?: number; returnedCount?: number };
@@ -350,7 +366,8 @@ async function main(): Promise<void> {
       !paginate.isError &&
         paginate.parsed != null &&
         Array.isArray(paginateParsed?.body) &&
-        (paginateParsed.meta?.itemCount ?? 0) > 0,
+        (paginateParsed.meta?.itemCount ?? 0) > 0 &&
+        paginateParsed.meta?.returnedCount === paginateParsed.meta?.itemCount,
       `items=${paginateParsed?.meta?.itemCount}, returned=${paginateParsed?.meta?.returnedCount}`,
     );
 

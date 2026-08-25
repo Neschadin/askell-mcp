@@ -69,20 +69,30 @@ function resolveParameters(
   }
 
   return parameters.map((parameter) => {
+    let source: OpenApiParameter = parameter;
+
     if ('$ref' in parameter && typeof parameter.$ref === 'string') {
       const resolved = resolveRef(doc, parameter.$ref);
       if (resolved && typeof resolved === 'object') {
-        const param = resolved as OpenApiParameter;
-        return {
-          ...param,
-          schema: resolveSchema(doc, param.schema),
-        };
+        source = resolved as OpenApiParameter;
       }
     }
 
+    // Pick known fields only — OpenAPI params often include style/explode/example,
+    // which MCP outputSchema rejects (additionalProperties: false).
     return {
-      ...parameter,
-      schema: resolveSchema(doc, parameter.schema),
+      ...(source.name !== undefined ? { name: source.name } : {}),
+      ...(source.in !== undefined ? { in: source.in } : {}),
+      ...(source.required !== undefined ? { required: source.required } : {}),
+      ...(source.description !== undefined
+        ? { description: source.description }
+        : {}),
+      ...(source.schema !== undefined
+        ? { schema: resolveSchema(doc, source.schema) }
+        : {}),
+      ...(source.$ref !== undefined && source.name === undefined
+        ? { $ref: source.$ref }
+        : {}),
     };
   });
 }

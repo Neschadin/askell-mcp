@@ -24,6 +24,46 @@ describe('ConfigSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  test('rejects non-http(s) schemes', () => {
+    const result = ConfigSchema.safeParse({
+      secretApiKey: 'secret.key',
+      apiBaseUrl: 'ftp://askell.is/api',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test('accepts localhost and loopback HTTP URLs', () => {
+    const local = ConfigSchema.parse({
+      secretApiKey: 'secret.key',
+      apiBaseUrl: 'http://localhost:8000/api',
+    });
+    expect(local.apiBaseUrl).toBe('http://localhost:8000/api');
+
+    const loopback = ConfigSchema.parse({
+      secretApiKey: 'secret.key',
+      apiBaseUrl: 'http://127.0.0.1:8000',
+    });
+    expect(loopback.apiBaseUrl).toBe('http://127.0.0.1:8000');
+  });
+
+  test('coerces env-style strings for bytes and flags', () => {
+    const parsed = ConfigSchema.parse({
+      secretApiKey: 'secret.key',
+      responseMaxBytes: '10000',
+      requireMutationApproval: 'off',
+    });
+    expect(parsed.responseMaxBytes).toBe(10_000);
+    expect(parsed.requireMutationApproval).toBe(false);
+  });
+
+  test('rejects empty public key', () => {
+    const result = ConfigSchema.safeParse({
+      secretApiKey: 'secret.key',
+      publicApiKey: '',
+    });
+    expect(result.success).toBe(false);
+  });
+
   test('accepts optional public key and overrides', () => {
     const parsed = ConfigSchema.parse({
       secretApiKey: 'secret.key',

@@ -1,22 +1,25 @@
 import * as z from 'zod';
 
+const httpUrl = z
+  .url({ protocol: /^https?$/ })
+  .describe('Askell API base URL (default production host)');
+
 export const ConfigSchema = z.object({
-  apiBaseUrl: z
-    .httpUrl()
-    .default('https://askell.is/api')
-    .describe('Askell API base URL (default production host)'),
+  apiBaseUrl: httpUrl.default('https://askell.is/api'),
   secretApiKey: z.string().min(1).describe('Secret (private) API key'),
   publicApiKey: z
     .string()
+    .min(1)
     .optional()
     .describe('Public API key for temporary payment method endpoints'),
-  responseMaxBytes: z
+  responseMaxBytes: z.coerce
+    .number()
     .int()
     .positive()
     .default(64_000)
     .describe('Max response body size returned to the model'),
   requireMutationApproval: z
-    .boolean()
+    .union([z.boolean(), z.stringbool()])
     .default(true)
     .describe('Require operator confirmation before mutating requests'),
 });
@@ -45,17 +48,6 @@ Set ASKELL_PRIVATE_API_KEY (or ASKELL_SECRET_API_KEY), optionally ASKELL_PUBLIC_
       }
     }`;
 
-function parseEnvFlag(
-  value: string | undefined,
-  defaultValue: boolean,
-): boolean {
-  if (value === undefined) {
-    return defaultValue;
-  }
-
-  return !['0', 'false', 'no', 'off'].includes(value.toLowerCase());
-}
-
 function loadConfigFromEnv(): unknown {
   const env = Bun.env;
   const secretApiKey = env.ASKELL_PRIVATE_API_KEY ?? env.ASKELL_SECRET_API_KEY;
@@ -74,11 +66,9 @@ function loadConfigFromEnv(): unknown {
     ...(env.ASKELL_PUBLIC_API_KEY
       ? { publicApiKey: env.ASKELL_PUBLIC_API_KEY }
       : {}),
-    ...(responseMaxBytes ? { responseMaxBytes: Number(responseMaxBytes) } : {}),
+    ...(responseMaxBytes ? { responseMaxBytes } : {}),
     ...(requireMutationApproval !== undefined
-      ? {
-          requireMutationApproval: parseEnvFlag(requireMutationApproval, true),
-        }
+      ? { requireMutationApproval }
       : {}),
   };
 }

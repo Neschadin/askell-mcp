@@ -78,6 +78,86 @@ describe('buildBoundedListPayload', () => {
     expect(parsed.body.length).toBeGreaterThan(0);
     expect(parsed.body.length).toBeLessThan(200);
   });
+
+  test('compacts all rows instead of dropping them when pretty JSON overflows', () => {
+    const items = Array.from({ length: 80 }, (_, i) => ({
+      id: 60_000 + i,
+      start_date: '2026-07-07T12:00:00.825876Z',
+      plan: {
+        id: 1,
+        name: 'Grunnáskrift',
+        description: 'x'.repeat(400),
+      },
+      customer: {
+        id: i,
+        customer_reference: `cust_${i}`,
+        email: `user${i}@example.com`,
+      },
+      description: 'y'.repeat(800),
+      billing_logs: Array.from({ length: 5 }, () => ({
+        note: 'z'.repeat(120),
+      })),
+    }));
+
+    const result = buildBoundedListPayload({
+      status: 200,
+      meta: { path: '/subscriptions/' },
+      items,
+      maxBytes: 12_000,
+    });
+
+    const parsed = JSON.parse(result.text) as {
+      meta: {
+        itemCount: number;
+        returnedCount: number;
+        truncatedByMaxBytes: boolean;
+        compacted?: boolean;
+        compactedMode?: string;
+      };
+      body: Array<{ id?: number; plan?: unknown; customer_reference?: unknown }>;
+    };
+
+    expect(Buffer.byteLength(result.text, 'utf8')).toBeLessThanOrEqual(12_000);
+    expect(parsed.meta.itemCount).toBe(80);
+    expect(parsed.meta.returnedCount).toBe(80);
+    expect(parsed.meta.truncatedByMaxBytes).toBe(false);
+    expect(parsed.meta.compacted).toBe(true);
+    expect(parsed.body).toHaveLength(80);
+  });
+
+  test('502 subscription-like rows fit in the default 64k budget', () => {
+    const items = Array.from({ length: 502 }, (_, i) => ({
+      id: 60_000 + i,
+      start_date: '2026-07-07T12:00:00.825876Z',
+      plan: { id: 1, name: i % 3 === 0 ? 'Grunnáskrift' : 'Plús' },
+      customer: { id: i, customer_reference: `customer-reference-${i}` },
+      description: 'payload'.repeat(80),
+      billing_logs: [{ id: i, amount: 1000, currency: 'ISK' }],
+    }));
+
+    const result = buildBoundedListPayload({
+      status: 200,
+      meta: { pagesFetched: 6 },
+      items,
+      maxBytes: 64_000,
+    });
+
+    const parsed = JSON.parse(result.text) as {
+      meta: {
+        itemCount: number;
+        returnedCount: number;
+        truncatedByMaxBytes: boolean;
+        compacted?: boolean;
+      };
+      body: unknown[];
+    };
+
+    expect(Buffer.byteLength(result.text, 'utf8')).toBeLessThanOrEqual(64_000);
+    expect(parsed.meta.itemCount).toBe(502);
+    expect(parsed.meta.returnedCount).toBe(502);
+    expect(parsed.meta.truncatedByMaxBytes).toBe(false);
+    expect(parsed.body).toHaveLength(502);
+  });
 });
 
 describe('isMutatingMethod', () => {

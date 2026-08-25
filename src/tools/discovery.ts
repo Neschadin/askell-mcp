@@ -77,11 +77,11 @@ const openApiParameterSchema = z.object({
   in: z.enum(['query', 'path', 'header', 'cookie']).optional(),
   required: z.boolean().optional(),
   description: z.string().optional(),
-  schema: z.unknown().optional(),
+  schema: z.json().optional(),
   $ref: z.string().optional(),
 });
 
-const operationDetailSchema = z.object({
+export const operationDetailSchema = z.object({
   id: z.string(),
   apiVersion: apiVersionSchema,
   method: httpMethodSchema,
@@ -95,7 +95,7 @@ const operationDetailSchema = z.object({
       required: z.boolean().optional(),
       description: z.string().optional(),
       contentTypes: z.array(z.string()),
-      schema: z.unknown().optional(),
+      schema: z.json().optional(),
     })
     .optional(),
   apiKeyKind: apiKeyKindSchema,
@@ -171,9 +171,13 @@ export function registerDiscoveryTools(server: McpServer): void {
         };
       }
 
+      // Strip OpenAPI extras (style/explode/…) so structuredContent matches
+      // the output JSON Schema (additionalProperties: false).
+      const payload = operationDetailSchema.parse(operation);
+
       return {
-        content: [{ type: 'text', text: JSON.stringify(operation, null, 2) }],
-        structuredContent: operation,
+        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+        structuredContent: payload,
       };
     },
   );

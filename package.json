@@ -1,6 +1,6 @@
 {
   "name": "askell-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for the Askell payment and subscription API (Bun + stdio)",
   "author": "Neschadin Oleksandr",
   "license": "MIT",
@@ -47,6 +47,7 @@
     "test": "bun test",
     "smoke": "bun run scripts/smoke-test.ts",
     "test:integration": "bun run scripts/integration-test.ts",
+    "eval:tools": "bun run scripts/eval-tools.ts",
     "typecheck": "tsc --noEmit",
     "inspect": "bunx @modelcontextprotocol/inspector bun bin/askell-mcp",
     "sync-specs": "bun run scripts/sync-specs.ts",

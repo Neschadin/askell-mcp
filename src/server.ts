@@ -41,7 +41,7 @@ Auth:
 
 Safety:
 - Mutating askell_call requests require operator approval when requireMutationApproval is enabled.
-- Large list responses may be truncated or summarized to fit responseMaxBytes; check meta.truncatedByMaxBytes and meta.compacted.
+- Large list responses are compacted (index of id/dates/plan/customer) to fit responseMaxBytes before dropping rows; check meta.truncatedByMaxBytes, meta.compacted, and meta.compactedMode.
 
 Resources:
 - askell://spec/v1 and askell://spec/v2 — bundled OpenAPI

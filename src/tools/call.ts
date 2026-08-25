@@ -25,10 +25,10 @@ const callInputSchema = z.object({
     .string()
     .describe('API path relative to apiBaseUrl, e.g. /v2/subscription-contracts/'),
   query: z
-    .record(z.string(), z.unknown())
+    .record(z.string(), z.json())
     .optional()
     .describe('Query string parameters'),
-  body: z.unknown().optional().describe('JSON request body'),
+  body: z.json().optional().describe('JSON request body'),
   apiKeyKind: z
     .enum(['secret', 'public'])
     .default('secret')
