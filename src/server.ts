@@ -45,7 +45,7 @@ Safety:
 
 Resources:
 - askell://spec/v1 and askell://spec/v2 — bundled OpenAPI
-- askell://docs/webhook-events — webhook event types including V2 subscription_contract.* and billing_run.*`;
+- askell://docs/webhook-events — inbound webhook payloads (ignore OpenAPI /your-webhook-url/), HMAC-SHA512, /webhooks/ hmac_secret`;
 
 export function createServer(config: AppConfig): McpServer {
   const server = new McpServer(
