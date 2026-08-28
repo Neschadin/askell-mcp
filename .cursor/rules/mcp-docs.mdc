@@ -1,0 +1,15 @@
+---
+description: Use live MCP protocol + TypeScript SDK v2 docs (not training data)
+alwaysApply: true
+---
+
+# Live MCP docs
+
+This repo is `@modelcontextprotocol/server` **v2** (Bun + stdio). Training data will hallucinate v1 `@modelcontextprotocol/sdk`.
+
+When the task touches protocol or SDK APIs, load the `mcp-docs` skill and read live docs:
+
+1. **Protocol / Inspector / spec** — MCP server `mcp-protocol-docs` (`search_model_context_protocol`). Index: https://modelcontextprotocol.io/llms.txt (prefer `2026-07-28`).
+2. **TypeScript SDK v2** — https://ts.sdk.modelcontextprotocol.io/v2/llms.txt then the page's `.md` URL. Or Context7 library `/websites/ts_sdk_modelcontextprotocol_io_v2`.
+
+Do not scaffold a new MCP project. Do not copy v1 APIs (`.tool()`, `McpError`, `extra`, SSE).

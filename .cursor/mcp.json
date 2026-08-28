@@ -2,6 +2,9 @@
   "mcpServers": {
     "inkeepMcp": {
       "url": "https://mcp.inkeep.com/zod/mcp"
+    },
+    "mcp-protocol-docs": {
+      "url": "https://modelcontextprotocol.io/mcp"
     }
   }
 }
