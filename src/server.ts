@@ -4,7 +4,7 @@ import { AskellClient } from './client/askell-client.ts';
 import type { AppConfig } from './config.ts';
 import { registerResources } from './resources/register.ts';
 import { registerAnalysisTools } from './tools/analysis.ts';
-import { registerCallTool } from './tools/call.ts';
+import { registerCallTools } from './tools/call.ts';
 import { registerDiscoveryTools } from './tools/discovery.ts';
 
 const SERVER_INSTRUCTIONS = `Askell MCP server for payment and subscription operations.
@@ -12,7 +12,7 @@ const SERVER_INSTRUCTIONS = `Askell MCP server for payment and subscription oper
 Workflow:
 1. Use askell_list_operations and askell_describe_operation to discover endpoints, parameters, and auth requirements.
 2. Prefer analysis tools (askell_customer_overview, askell_contract_overview, askell_billing_run_triage, askell_paginate_all, askell_list_webhooks) for common support tasks.
-3. Use askell_call only when no dedicated tool covers the request.
+3. Use askell_call (GET/HEAD) or askell_mutate (POST/PUT/PATCH/DELETE) when no dedicated tool covers the request.
 
 API models:
 - v1 (legacy): PlanVariant + Subscription at paths like /subscriptions/, /customers/. Still supported for existing integrations.
@@ -40,7 +40,8 @@ Auth:
 - Only temporary payment method and checkout status endpoints use the public key.
 
 Safety:
-- Mutating askell_call requests require operator approval when requireMutationApproval is enabled.
+- Writes go through askell_mutate (destructiveHint). Reads go through askell_call (readOnlyHint).
+- mutationGate=auto (default): confirmation form only if this request's envelope declared form elicitation; otherwise the client's own tool-allow UI is the gate. elicit always returns a form (SDK refuses if the client cannot fulfil it). off never asks.
 - Large list responses are compacted (index of id/dates/plan/customer) to fit responseMaxBytes before dropping rows; check meta.truncatedByMaxBytes, meta.compacted, and meta.compactedMode.
 
 Resources:
@@ -51,7 +52,7 @@ export function createServer(config: AppConfig): McpServer {
   const server = new McpServer(
     {
       name: 'askell-mcp',
-      version: '0.1.0',
+      version: '0.3.0',
     },
     {
       instructions: SERVER_INSTRUCTIONS,
@@ -61,7 +62,7 @@ export function createServer(config: AppConfig): McpServer {
   const client = new AskellClient(config);
 
   registerDiscoveryTools(server);
-  registerCallTool(server, client, config);
+  registerCallTools(server, client, config);
   registerAnalysisTools(server, client);
   registerResources(server);
 

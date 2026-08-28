@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
-import { ConfigSchema, normalizeBaseUrl } from './config.ts';
+import { ConfigSchema, MutationGateSchema, normalizeBaseUrl } from './config.ts';
 
 describe('ConfigSchema', () => {
   test('applies defaults', () => {
     const parsed = ConfigSchema.parse({ secretApiKey: 'secret.key' });
     expect(parsed.apiBaseUrl).toBe('https://askell.is/api');
     expect(parsed.responseMaxBytes).toBe(64_000);
-    expect(parsed.requireMutationApproval).toBe(true);
+    expect(parsed.mutationGate).toBe('auto');
     expect(parsed.publicApiKey).toBeUndefined();
   });
 
@@ -46,14 +46,14 @@ describe('ConfigSchema', () => {
     expect(loopback.apiBaseUrl).toBe('http://127.0.0.1:8000');
   });
 
-  test('coerces env-style strings for bytes and flags', () => {
+  test('coerces env-style strings for bytes and mutation gate', () => {
     const parsed = ConfigSchema.parse({
       secretApiKey: 'secret.key',
       responseMaxBytes: '10000',
-      requireMutationApproval: 'off',
+      mutationGate: 'off',
     });
     expect(parsed.responseMaxBytes).toBe(10_000);
-    expect(parsed.requireMutationApproval).toBe(false);
+    expect(parsed.mutationGate).toBe('off');
   });
 
   test('rejects empty public key', () => {
@@ -70,11 +70,39 @@ describe('ConfigSchema', () => {
       publicApiKey: 'public.key',
       apiBaseUrl: 'https://staging.askell.is/api',
       responseMaxBytes: 10_000,
-      requireMutationApproval: false,
+      mutationGate: false,
     });
     expect(parsed.publicApiKey).toBe('public.key');
     expect(parsed.responseMaxBytes).toBe(10_000);
-    expect(parsed.requireMutationApproval).toBe(false);
+    expect(parsed.mutationGate).toBe('off');
+  });
+});
+
+describe('MutationGateSchema', () => {
+  test('defaults to auto', () => {
+    expect(MutationGateSchema.parse(undefined)).toBe('auto');
+  });
+
+  test('accepts auto/elicit/off', () => {
+    expect(MutationGateSchema.parse('auto')).toBe('auto');
+    expect(MutationGateSchema.parse('elicit')).toBe('elicit');
+    expect(MutationGateSchema.parse('off')).toBe('off');
+  });
+
+  test('maps booleans and ASKELL_REQUIRE_MUTATION_APPROVAL aliases', () => {
+    expect(MutationGateSchema.parse(true)).toBe('elicit');
+    expect(MutationGateSchema.parse(false)).toBe('off');
+    expect(MutationGateSchema.parse('true')).toBe('elicit');
+    expect(MutationGateSchema.parse('false')).toBe('off');
+    expect(MutationGateSchema.parse('on')).toBe('elicit');
+    expect(MutationGateSchema.parse('yes')).toBe('elicit');
+    expect(MutationGateSchema.parse('1')).toBe('elicit');
+    expect(MutationGateSchema.parse('no')).toBe('off');
+    expect(MutationGateSchema.parse('0')).toBe('off');
+  });
+
+  test('rejects unknown values', () => {
+    expect(MutationGateSchema.safeParse('maybe').success).toBe(false);
   });
 });
 

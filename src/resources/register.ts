@@ -25,7 +25,7 @@ Rare historical payloads used \`{ event, data, ref?, sender? }\`. If both \`even
 - Create body: \`{ url, event }\` (\`event\` may be a specific type or a family wildcard like \`payment.*\`)
 - Create/get response includes \`hmac_secret\` (store it; Askell will not show it again in a useful way if you lose it) and \`hmac_digest\` (typically \`SHA512\`)
 
-Tools: \`askell_list_webhooks\`, \`askell_call\`.
+Tools: \`askell_list_webhooks\`, \`askell_call\` (GET), \`askell_mutate\` (POST/PUT/PATCH/DELETE).
 
 ## Event families and payload fields
 

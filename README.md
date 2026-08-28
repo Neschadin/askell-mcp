@@ -2,7 +2,7 @@
 
 [MCP](https://modelcontextprotocol.io) server for the [Askell](https://askell.is) payment and subscription API.
 
-Connect it to Cursor, Claude Desktop, or any MCP client to discover Askell endpoints, inspect customers/contracts/billing, and call the API — with confirmation before mutating requests.
+Connect it to Cursor, Claude Desktop, or any MCP client to discover Askell endpoints, inspect customers/contracts/billing, and call the API. Reads and writes are separate tools so clients can show their own approval UI on mutations.
 
 ## Requirements
 
@@ -62,9 +62,18 @@ Restart the client after saving.
 | `ASKELL_PUBLIC_API_KEY`            | no       | —                       | Public key for a few checkout/payment endpoints |
 | `ASKELL_API_URL`                   | no       | `https://askell.is/api` | API base URL (_or_ `ASKELL_API_BASE_URL`)       |
 | `ASKELL_RESPONSE_MAX_BYTES`        | no       | `64000`                 | Max response size returned to the model         |
-| `ASKELL_REQUIRE_MUTATION_APPROVAL` | no       | `true`                  | Confirm before POST/PUT/PATCH/DELETE            |
+| `ASKELL_MUTATION_GATE`             | no       | `auto`                  | `auto` / `elicit` / `off` — see below           |
+| `ASKELL_REQUIRE_MUTATION_APPROVAL` | no       | —                       | Deprecated alias: `true`→`elicit`, `false`→`off` |
 
 Askell has **no separate sandbox host** — production and test traffic use the same URL. Use the **Áskell Test Gateway** acquirer in your dashboard for safe payment testing. See [Askell getting started](https://docs.askell.is/en/getting_started/index.html).
+
+`ASKELL_MUTATION_GATE`:
+
+- **`auto` (default)** — confirmation form only if *this request's* `_meta` envelope declared form elicitation (MCP 2026-07-28). 2025-era clients (Cursor, most hosts) do not send that envelope, so the mutation runs and their own “allow this tool” UI is the gate.
+- **`elicit`** — always return an elicitation form. The SDK refuses the call if the client cannot fulfil it (2026 envelope / 2025 initialize via the legacy shim).
+- **`off`** — never ask (eval / trusted automation).
+
+If both `ASKELL_MUTATION_GATE` and `ASKELL_REQUIRE_MUTATION_APPROVAL` are set, `ASKELL_MUTATION_GATE` wins.
 
 ## What you can do
 
@@ -72,7 +81,7 @@ Typical agent workflow:
 
 1. **Discover** — `askell_list_operations` / `askell_describe_operation` (from bundled OpenAPI v1 + v2)
 2. **Support tasks** — customer/contract/billing helpers below
-3. **Anything else** — `askell_call` for a raw endpoint (mutations ask for approval when enabled)
+3. **Anything else** — `askell_call` for GET/HEAD, `askell_mutate` for POST/PUT/PATCH/DELETE
 
 ### Tools
 
@@ -80,7 +89,8 @@ Typical agent workflow:
 | --------------------------- | ---------------------------------------- |
 | `askell_list_operations`    | Search bundled OpenAPI operations        |
 | `askell_describe_operation` | Params and body schema for one operation |
-| `askell_call`               | Call any v1/v2 endpoint                  |
+| `askell_call`               | GET/HEAD any v1/v2 endpoint              |
+| `askell_mutate`             | POST/PUT/PATCH/DELETE any v1/v2 endpoint |
 | `askell_paginate_all`       | Follow paginated list endpoints          |
 | `askell_customer_overview`  | v1 customer + subscriptions              |
 | `askell_contract_overview`  | v2 subscription contract + billing runs  |

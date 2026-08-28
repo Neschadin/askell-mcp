@@ -1,8 +1,30 @@
 import * as z from 'zod';
 
+export const MUTATION_GATES = ['auto', 'elicit', 'off'] as const;
+export type MutationGate = (typeof MUTATION_GATES)[number];
+
 const httpUrl = z
   .url({ protocol: /^https?$/ })
   .describe('Askell API base URL (default production host)');
+
+const mutationGateAliases = z
+  .enum(['true', 'false', 'on', 'yes', 'no', '1', '0'])
+  .transform((value): MutationGate => {
+    return value === 'true' || value === 'on' || value === 'yes' || value === '1'
+      ? 'elicit'
+      : 'off';
+  });
+
+export const MutationGateSchema = z
+  .union([
+    z.enum(MUTATION_GATES),
+    z.boolean().transform((value): MutationGate => (value ? 'elicit' : 'off')),
+    mutationGateAliases,
+  ])
+  .default('auto')
+  .describe(
+    'Mutation confirmation: auto (elicit if client declared it), elicit (require form), off (never)',
+  );
 
 export const ConfigSchema = z.object({
   apiBaseUrl: httpUrl.default('https://askell.is/api'),
@@ -18,10 +40,7 @@ export const ConfigSchema = z.object({
     .positive()
     .default(64_000)
     .describe('Max response body size returned to the model'),
-  requireMutationApproval: z
-    .union([z.boolean(), z.stringbool()])
-    .default(true)
-    .describe('Require operator confirmation before mutating requests'),
+  mutationGate: MutationGateSchema,
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;
@@ -58,7 +77,9 @@ function loadConfigFromEnv(): unknown {
 
   const apiBaseUrl = env.ASKELL_API_URL ?? env.ASKELL_API_BASE_URL;
   const responseMaxBytes = env.ASKELL_RESPONSE_MAX_BYTES;
-  const requireMutationApproval = env.ASKELL_REQUIRE_MUTATION_APPROVAL;
+  const mutationGateRaw =
+    env.ASKELL_MUTATION_GATE ?? env.ASKELL_REQUIRE_MUTATION_APPROVAL;
+  const mutationGate = mutationGateRaw?.trim().toLowerCase() || undefined;
 
   return {
     ...(apiBaseUrl ? { apiBaseUrl } : {}),
@@ -67,9 +88,7 @@ function loadConfigFromEnv(): unknown {
       ? { publicApiKey: env.ASKELL_PUBLIC_API_KEY }
       : {}),
     ...(responseMaxBytes ? { responseMaxBytes } : {}),
-    ...(requireMutationApproval !== undefined
-      ? { requireMutationApproval }
-      : {}),
+    ...(mutationGate !== undefined ? { mutationGate } : {}),
   };
 }
 

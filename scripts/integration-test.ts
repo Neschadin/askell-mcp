@@ -241,6 +241,7 @@ async function main(): Promise<void> {
       'askell_list_operations',
       'askell_describe_operation',
       'askell_call',
+      'askell_mutate',
       'askell_paginate_all',
       'askell_customer_overview',
       'askell_contract_overview',
