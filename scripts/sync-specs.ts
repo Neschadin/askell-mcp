@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
 
+import { patchAskellV1Spec } from '../src/openapi/patch-v1.ts';
+
 const SPECS = [
   {
     version: 'v1',
@@ -21,8 +23,9 @@ for (const spec of SPECS) {
     throw new Error(`Failed to fetch ${spec.url}: HTTP ${response.status}`);
   }
 
-  const json = await response.json();
-  await Bun.write(spec.output, JSON.stringify(json, null, 2));
+  const json: unknown = await response.json();
+  const document = spec.version === 'v1' ? patchAskellV1Spec(json) : json;
+  await Bun.write(spec.output, `${JSON.stringify(document, null, 2)}\n`);
   console.error(`Wrote ${spec.output.pathname}`);
 }
 

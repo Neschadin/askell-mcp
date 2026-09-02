@@ -6,7 +6,7 @@ description: >-
   Triggers: tools, resources, prompts, elicitation, input_required, completion,
   notifications, stdio, Streamable HTTP, authorization, capability negotiation,
   Inspector, registerTool, serveStdio, Zod 4 schemas, protocol 2026-07-28.
-  Skip only for Askell-domain work with zero protocol/SDK questions.
+  Skip only for Askell-domain work with zero protocol/SDK questions (that is `askell-docs`).
 ---
 
 # MCP live docs (protocol + TS SDK v2)

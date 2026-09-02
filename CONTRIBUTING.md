@@ -47,8 +47,10 @@ bun run inspect          # MCP Inspector
 bun run sync-specs
 ```
 
-- v1: https://askell.is/api/swagger/swagger.json
-- v2: https://askell.is/api/swagger/v2/swagger.json
+Fetches Askell swagger, then **v1 is overlaid** (`src/openapi/patch-v1.ts`: drop inbound `Webhook calls` dummy path, split Customer read vs create, fill missing 201/200 bodies) before writing `spec/openapi-v*.json`.
+
+- v1 upstream: https://askell.is/api/swagger/swagger.json
+- v2: https://askell.is/api/swagger/v2/swagger.json (unpatched)
 
 ## Local binary build
 

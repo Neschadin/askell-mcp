@@ -11,11 +11,11 @@ Headers:
 - Hook-Event: event type (\`subscription.renewed\`, \`payment.changed\`, or a family wildcard \`subscription.*\`)
 - Hook-API-Version: \`v1\` for plan/subscription/customer/payment/checkout, \`v2\` for subscription_contract / billing_run
 
-## Body shape (OpenAPI is wrong here)
+## Body shape (not in OpenAPI)
 
 JSON body **is the event object**. It is **not** \`{ event, data }\`.
 
-Ignore \`POST /your-webhook-url/\` in the bundled v1 spec — its requestBody (\`SubscriptionMultiLite\`: \`{ customer, subscriptions[] }\`) does not match live webhooks.
+Upstream swagger used to document a dummy \`POST /your-webhook-url/\` with \`SubscriptionMultiLite\` (\`{ customer, subscriptions[] }\`). \`sync-specs\` strips that path. Inbound payloads are still undocumented in OpenAPI — this resource is the overlay.
 
 Rare historical payloads used \`{ event, data, ref?, sender? }\`. If both \`event\` and \`data\` are objects, use \`data\`.
 

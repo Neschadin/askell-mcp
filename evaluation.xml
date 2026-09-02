@@ -1,7 +1,7 @@
 <evaluation>
   <qa_pair>
     <question>Using only the Askell MCP discovery tools, find the total number of API operations defined across both the v1 and v2 bundled OpenAPI specs combined (all HTTP methods, all tags). Note that a single call may cap the number of items returned — make sure you are counting the true total, not just what one page of results shows. Answer with a single integer.</question>
-    <answer>78</answer>
+    <answer>77</answer>
   </qa_pair>
   <qa_pair>
     <question>Across both the v1 and v2 Askell API specs, how many total operations require the public API key (as opposed to the secret API key)? Answer with a single integer.</question>

@@ -8,7 +8,8 @@
       "name": "Documentation",
       "url": "https://docs.askell.is"
     },
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "x-askell-mcp-patched": "v1-overlay-1"
   },
   "servers": [
     {
@@ -51,10 +52,6 @@
     {
       "name": "Webhooks",
       "description": "Management of webhooks. Requires secret api key."
-    },
-    {
-      "name": "Webhook calls",
-      "description": "Webhook calls from Áskell to your system."
     },
     {
       "name": "Transaction",
@@ -339,7 +336,14 @@
         },
         "responses": {
           "201": {
-            "description": "Successful operation"
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid status value",
@@ -506,7 +510,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful operation"
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not found"
@@ -572,7 +583,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful operation"
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not found"
@@ -1367,23 +1385,6 @@
         ]
       }
     },
-    "/your-webhook-url/": {
-      "post": {
-        "tags": [
-          "Webhook calls"
-        ],
-        "summary": "Called when subscription changed or renewed",
-        "description": "We recommend that you verify all calls from us to your webhook endpoints. We sign each request with the `Hook-HMAC` header. The value is a HMAC digest derived from the body of the request and a secret key only known by the API and you. We also supply the type of event in the `Hook-Event` header.\n\nHere is a sample implementation in Python. This process is very similar to the one Shopify uses so more information can possibly be gleaned from their [documentation](https://shopify.dev/tutorials/manage-webhooks#verify-webhook).\n```\nimport base64\nimport hmac\nimport hashlib\n\nWEBHOOK_SECRET = \"Your webhook secret\".encode()\nWEBHOOK_DIGEST_TYPE = 'sha512'\n\ndef verify(hmac_header, digest_method, secret, message):\n   digestmod = getattr(hashlib, digest_method)\n   signed = base64.b64encode(\n       hmac.new(secret, message, digestmod).digest(),\n   ).strip()\n   return hmac.compare_digest(signed, hmac_header)\n\n# your view function\ndef handle_webhook(request):\n   # The signature\n   digest = request.META.get('HTTP_HOOK_HMAC').encode()\n   # The name of the webhook event\n   event = request.META.get('HTTP_HOOK_EVENT').encode()\n\n   body = request.body\n   if verify(digest, WEBHOOK_DIGEST_TYPE, WEBHOOK_SECRET, body):\n       payload = json.loads(body)\n       # ... the rest of your code here```\n",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/SubscriptionMultiLite"
-        },
-        "responses": {
-          "200": {
-            "description": "Successful operation"
-          }
-        }
-      }
-    },
     "/webhooks/": {
       "get": {
         "tags": [
@@ -1423,7 +1424,14 @@
         },
         "responses": {
           "201": {
-            "description": "Successful operation"
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Webhook"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid status value",
@@ -1521,7 +1529,14 @@
         },
         "responses": {
           "200": {
-            "description": "Successful operation"
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Webhook"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid status value",
@@ -1964,27 +1979,94 @@
         }
       },
       "Customer": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/CustomerCreate"
+        "type": "object",
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "email",
+          "customer_reference",
+          "phone",
+          "delivery_name",
+          "address_1",
+          "address_2",
+          "address_3",
+          "zip_code",
+          "city",
+          "country",
+          "payment_method",
+          "address"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
           },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "integer",
-                "format": "int64",
-                "example": 1
-              },
-              "payment_method": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PaymentMethod"
-                }
-              }
+          "first_name": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 254
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 32
+          },
+          "customer_reference": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "delivery_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_1": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_2": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_3": {
+            "type": "string",
+            "nullable": true
+          },
+          "zip_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "payment_method": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentMethod"
             }
+          },
+          "address": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomerAddress"
+              }
+            ],
+            "nullable": true
           }
-        ]
+        }
       },
       "CustomerPaginated": {
         "type": "object",
@@ -2591,6 +2673,48 @@
             "type": "string",
             "description": "Checkout or temporary payment method status. `tokencreated` means the token is ready to use.",
             "example": "tokencreated"
+          }
+        }
+      },
+      "CustomerAddress": {
+        "type": "object",
+        "required": [
+          "delivery_name",
+          "address_1",
+          "address_2",
+          "address_3",
+          "zip_code",
+          "city",
+          "country"
+        ],
+        "properties": {
+          "delivery_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_1": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_2": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_3": {
+            "type": "string",
+            "nullable": true
+          },
+          "zip_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
           }
         }
       }

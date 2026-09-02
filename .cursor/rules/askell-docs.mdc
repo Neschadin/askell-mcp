@@ -1,0 +1,15 @@
+---
+description: Use live Askell prose docs (llms.txt), not training data
+alwaysApply: true
+---
+
+# Live Askell docs
+
+OpenAPI in `spec/` is the endpoint contract. Flows (V2 checkout, 3DS, embedded `askell.js`, webhooks, v1 vs v2) live in prose docs that training data will get wrong.
+
+When the task touches Askell domain (tools, resources, server instructions, eval questions, webhooks, checkout, billing), load the `askell-docs` skill and fetch live:
+
+1. Index: https://docs.askell.is/llms.txt
+2. Then the page URL from that index (prefer `/en/`).
+
+Do not vendor the docs site into git. Do not invent endpoints from memory — check bundled spec + live page.

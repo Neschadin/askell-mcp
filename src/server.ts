@@ -46,13 +46,13 @@ Safety:
 
 Resources:
 - askell://spec/v1 and askell://spec/v2 — bundled OpenAPI
-- askell://docs/webhook-events — inbound webhook payloads (ignore OpenAPI /your-webhook-url/), HMAC-SHA512, /webhooks/ hmac_secret`;
+- askell://docs/webhook-events — inbound webhook payloads (not in OpenAPI; dummy /your-webhook-url/ is stripped on sync), HMAC-SHA512, /webhooks/ hmac_secret`;
 
 export function createServer(config: AppConfig): McpServer {
   const server = new McpServer(
     {
       name: 'askell-mcp',
-      version: '0.3.0',
+      version: '0.3.1',
     },
     {
       instructions: SERVER_INSTRUCTIONS,
