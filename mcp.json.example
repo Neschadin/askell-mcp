@@ -1,11 +1,21 @@
 {
   "mcpServers": {
-    "askell": {
+    "askell-prod": {
       "command": "bunx",
       "args": ["-y", "askell-mcp"],
       "env": {
-        "ASKELL_PRIVATE_API_KEY": "your_secret_api_key",
-        "ASKELL_PUBLIC_API_KEY": "your_public_api_key_optional"
+        "ASKELL_ENV": "production",
+        "ASKELL_PRIVATE_API_KEY": "your_production_secret_api_key",
+        "ASKELL_PUBLIC_API_KEY": "your_production_public_api_key_optional"
+      }
+    },
+    "askell-sandbox": {
+      "command": "bunx",
+      "args": ["-y", "askell-mcp"],
+      "env": {
+        "ASKELL_ENV": "sandbox",
+        "ASKELL_PRIVATE_API_KEY": "your_sandbox_secret_api_key",
+        "ASKELL_PUBLIC_API_KEY": "your_sandbox_public_api_key_optional"
       }
     }
   }

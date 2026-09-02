@@ -1,14 +1,50 @@
 import { describe, expect, test } from 'bun:test';
 
-import { ConfigSchema, MutationGateSchema, normalizeBaseUrl } from './config.ts';
+import {
+  ASKELL_API_BASE_URLS,
+  AskellEnvSchema,
+  ConfigSchema,
+  MutationGateSchema,
+  PRODUCTION_API_BASE_URL,
+  SANDBOX_API_BASE_URL,
+  classifyAskellHost,
+  normalizeBaseUrl,
+  resolveAskellTarget,
+} from './config.ts';
 
 describe('ConfigSchema', () => {
-  test('applies defaults', () => {
+  test('defaults to production host from ASKELL_ENV', () => {
     const parsed = ConfigSchema.parse({ secretApiKey: 'secret.key' });
-    expect(parsed.apiBaseUrl).toBe('https://askell.is/api');
+    expect(parsed.askellEnv).toBe('production');
+    expect(parsed.apiBaseUrl).toBe(PRODUCTION_API_BASE_URL);
     expect(parsed.responseMaxBytes).toBe(64_000);
     expect(parsed.mutationGate).toBe('auto');
     expect(parsed.publicApiKey).toBeUndefined();
+  });
+
+  test('ASKELL_ENV=sandbox selects the sandbox host', () => {
+    const parsed = ConfigSchema.parse({
+      secretApiKey: 'secret.key',
+      askellEnv: 'sandbox',
+    });
+    expect(parsed.askellEnv).toBe('sandbox');
+    expect(parsed.apiBaseUrl).toBe(SANDBOX_API_BASE_URL);
+  });
+
+  test('accepts prod as an alias for production', () => {
+    const parsed = ConfigSchema.parse({
+      secretApiKey: 'secret.key',
+      askellEnv: 'prod',
+    });
+    expect(parsed.askellEnv).toBe('production');
+    expect(parsed.apiBaseUrl).toBe(PRODUCTION_API_BASE_URL);
+  });
+
+  test('rejects unknown ASKELL_ENV', () => {
+    expect(
+      ConfigSchema.safeParse({ secretApiKey: 'secret.key', askellEnv: 'staging' })
+        .success,
+    ).toBe(false);
   });
 
   test('rejects empty secret', () => {
@@ -32,18 +68,47 @@ describe('ConfigSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  test('accepts localhost and loopback HTTP URLs', () => {
+  test('accepts localhost and loopback HTTP URLs as custom', () => {
     const local = ConfigSchema.parse({
       secretApiKey: 'secret.key',
       apiBaseUrl: 'http://localhost:8000/api',
     });
+    expect(local.askellEnv).toBe('custom');
     expect(local.apiBaseUrl).toBe('http://localhost:8000/api');
 
     const loopback = ConfigSchema.parse({
       secretApiKey: 'secret.key',
       apiBaseUrl: 'http://127.0.0.1:8000',
     });
+    expect(loopback.askellEnv).toBe('custom');
     expect(loopback.apiBaseUrl).toBe('http://127.0.0.1:8000');
+  });
+
+  test('classifies ASKELL_API_URL of an official host when ASKELL_ENV is omitted', () => {
+    const parsed = ConfigSchema.parse({
+      secretApiKey: 'secret.key',
+      apiBaseUrl: `${SANDBOX_API_BASE_URL}/`,
+    });
+    expect(parsed.askellEnv).toBe('sandbox');
+    expect(parsed.apiBaseUrl).toBe(SANDBOX_API_BASE_URL);
+  });
+
+  test('rejects ASKELL_ENV that disagrees with ASKELL_API_URL', () => {
+    const result = ConfigSchema.safeParse({
+      secretApiKey: 'secret.key',
+      askellEnv: 'sandbox',
+      apiBaseUrl: PRODUCTION_API_BASE_URL,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects ASKELL_ENV together with a custom ASKELL_API_URL', () => {
+    const result = ConfigSchema.safeParse({
+      secretApiKey: 'secret.key',
+      askellEnv: 'sandbox',
+      apiBaseUrl: 'http://localhost:8000/api',
+    });
+    expect(result.success).toBe(false);
   });
 
   test('coerces env-style strings for bytes and mutation gate', () => {
@@ -68,13 +133,41 @@ describe('ConfigSchema', () => {
     const parsed = ConfigSchema.parse({
       secretApiKey: 'secret.key',
       publicApiKey: 'public.key',
-      apiBaseUrl: 'https://staging.askell.is/api',
+      askellEnv: 'sandbox',
       responseMaxBytes: 10_000,
       mutationGate: false,
     });
     expect(parsed.publicApiKey).toBe('public.key');
+    expect(parsed.askellEnv).toBe('sandbox');
+    expect(parsed.apiBaseUrl).toBe(SANDBOX_API_BASE_URL);
     expect(parsed.responseMaxBytes).toBe(10_000);
     expect(parsed.mutationGate).toBe('off');
+  });
+});
+
+describe('AskellEnvSchema', () => {
+  test('accepts production and sandbox', () => {
+    expect(AskellEnvSchema.parse('production')).toBe('production');
+    expect(AskellEnvSchema.parse('sandbox')).toBe('sandbox');
+    expect(AskellEnvSchema.parse(' Production ')).toBe('production');
+  });
+});
+
+describe('resolveAskellTarget', () => {
+  test('maps official envs to stable hosts', () => {
+    expect(resolveAskellTarget({})).toEqual({
+      askellEnv: 'production',
+      apiBaseUrl: ASKELL_API_BASE_URLS.production,
+    });
+    expect(resolveAskellTarget({ askellEnv: 'sandbox' })).toEqual({
+      askellEnv: 'sandbox',
+      apiBaseUrl: ASKELL_API_BASE_URLS.sandbox,
+    });
+  });
+
+  test('classifies official URLs', () => {
+    expect(classifyAskellHost(`${SANDBOX_API_BASE_URL}///`)).toBe('sandbox');
+    expect(classifyAskellHost('http://127.0.0.1:8000/api')).toBe('custom');
   });
 });
 

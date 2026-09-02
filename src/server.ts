@@ -1,13 +1,33 @@
 import { McpServer } from '@modelcontextprotocol/server';
 
 import { AskellClient } from './client/askell-client.ts';
-import type { AppConfig } from './config.ts';
+import {
+  PRODUCTION_API_BASE_URL,
+  SANDBOX_API_BASE_URL,
+  normalizeBaseUrl,
+  type AppConfig,
+} from './config.ts';
 import { registerResources } from './resources/register.ts';
 import { registerAnalysisTools } from './tools/analysis.ts';
 import { registerCallTools } from './tools/call.ts';
 import { registerDiscoveryTools } from './tools/discovery.ts';
 
-const SERVER_INSTRUCTIONS = `Askell MCP server for payment and subscription operations.
+export function buildServerInstructions(config: AppConfig): string {
+  const apiBase = normalizeBaseUrl(config.apiBaseUrl);
+  const envLine =
+    config.askellEnv === 'custom'
+      ? `This instance: custom API base ${apiBase} (ASKELL_API_URL override)`
+      : `This instance: ${config.askellEnv} (${apiBase})`;
+
+  return `Askell MCP server for payment and subscription operations.
+
+${envLine}
+Official hosts (picked by ASKELL_ENV=production|sandbox; do not pass the URL):
+- production: ${PRODUCTION_API_BASE_URL}
+- sandbox (isolated tenant, separate API keys): ${SANDBOX_API_BASE_URL}
+v1 and v2 share that base (v2 paths start with /v2/). Keys belong to one host — do not reuse production keys on sandbox or the reverse.
+Áskell Test Gateway is a payment acquirer on either host, not a separate API host.
+If both askell-prod and askell-sandbox MCP servers are connected, pick the instance whose environment matches the intended tenant.
 
 Workflow:
 1. Use askell_list_operations and askell_describe_operation to discover endpoints, parameters, and auth requirements.
@@ -47,6 +67,7 @@ Safety:
 Resources:
 - askell://spec/v1 and askell://spec/v2 — bundled OpenAPI
 - askell://docs/webhook-events — inbound webhook payloads (not in OpenAPI; dummy /your-webhook-url/ is stripped on sync), HMAC-SHA512, /webhooks/ hmac_secret`;
+}
 
 export function createServer(config: AppConfig): McpServer {
   const server = new McpServer(
@@ -55,7 +76,7 @@ export function createServer(config: AppConfig): McpServer {
       version: '0.3.1',
     },
     {
-      instructions: SERVER_INSTRUCTIONS,
+      instructions: buildServerInstructions(config),
     },
   );
 

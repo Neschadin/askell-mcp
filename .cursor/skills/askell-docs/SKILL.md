@@ -53,7 +53,8 @@ Live Swagger JSON (`askell.is/api/swagger/*.json`) is **upstream only** — inpu
 - Embedded checkout: secret key creates a scoped session server-side; browser gets only the session token + `askell.js`.
 - `checkout_url` on V2 checkout objects is the API URL, not a hosted payment page.
 - Webhook body **is the event object**, not `{ event, data }`. HMAC-SHA512 of raw body (`Hook-HMAC`). Details: `askell://docs/webhook-events` / `src/resources/register.ts`.
-- No separate sandbox host. Test via Áskell Test Gateway acquirer.
+- Two API hosts, same v1/v2 surface: production `https://askell.is/api` and sandbox `https://sandbox.askell.is/api` (isolated tenant; keys from that dashboard). Official prose still documents Test Gateway and may omit the sandbox host.
+- Test Gateway is a payment acquirer (fake cards) on either host, not a separate API. Point MCP at sandbox with a second `mcp.json` entry (`askell-sandbox`) + `ASKELL_ENV=sandbox`.
 
 ## Do not
 

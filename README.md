@@ -19,16 +19,27 @@ In the Askell dashboard, copy your **private (secret)** API key. Optionally also
 
 ### 2. Add to your MCP client
 
+Prefer **two server entries** if you have both production and sandbox keys. Tool names are the same on both; the client distinguishes them by the `mcp.json` key (`askell-prod` vs `askell-sandbox`). Set `ASKELL_ENV` — the server picks the host. Each instance's instructions include the environment it is talking to.
+
 **With Bun** (`bunx`):
 
 ```json
 {
   "mcpServers": {
-    "askell": {
+    "askell-prod": {
       "command": "bunx",
       "args": ["-y", "askell-mcp"],
       "env": {
-        "ASKELL_PRIVATE_API_KEY": "your_secret_api_key"
+        "ASKELL_ENV": "production",
+        "ASKELL_PRIVATE_API_KEY": "your_production_secret_api_key"
+      }
+    },
+    "askell-sandbox": {
+      "command": "bunx",
+      "args": ["-y", "askell-mcp"],
+      "env": {
+        "ASKELL_ENV": "sandbox",
+        "ASKELL_PRIVATE_API_KEY": "your_sandbox_secret_api_key"
       }
     }
   }
@@ -40,10 +51,11 @@ In the Askell dashboard, copy your **private (secret)** API key. Optionally also
 ```json
 {
   "mcpServers": {
-    "askell": {
+    "askell-prod": {
       "command": "/absolute/path/to/askell-mcp-linux-x64",
       "env": {
-        "ASKELL_PRIVATE_API_KEY": "your_secret_api_key"
+        "ASKELL_ENV": "production",
+        "ASKELL_PRIVATE_API_KEY": "your_production_secret_api_key"
       }
     }
   }
@@ -60,12 +72,18 @@ Restart the client after saving.
 | ---------------------------------- | -------- | ----------------------- | ----------------------------------------------- |
 | `ASKELL_PRIVATE_API_KEY`           | yes\*    | —                       | Secret API key (_or_ `ASKELL_SECRET_API_KEY`)   |
 | `ASKELL_PUBLIC_API_KEY`            | no       | —                       | Public key for a few checkout/payment endpoints |
-| `ASKELL_API_URL`                   | no       | `https://askell.is/api` | API base URL (_or_ `ASKELL_API_BASE_URL`)       |
+| `ASKELL_ENV`                       | no       | `production`            | `production` \| `sandbox` — selects the official API host |
+| `ASKELL_API_URL`                   | no       | —                       | Custom/local API base only (_or_ `ASKELL_API_BASE_URL`). Do not set together with `ASKELL_ENV` unless it matches |
 | `ASKELL_RESPONSE_MAX_BYTES`        | no       | `64000`                 | Max response size returned to the model         |
 | `ASKELL_MUTATION_GATE`             | no       | `auto`                  | `auto` / `elicit` / `off` — see below           |
 | `ASKELL_REQUIRE_MUTATION_APPROVAL` | no       | —                       | Deprecated alias: `true`→`elicit`, `false`→`off` |
 
-Askell has **no separate sandbox host** — production and test traffic use the same URL. Use the **Áskell Test Gateway** acquirer in your dashboard for safe payment testing. See [Askell getting started](https://docs.askell.is/en/getting_started/index.html).
+`ASKELL_ENV` picks a stable host (same v1/v2 surface):
+
+- **production** — `https://askell.is/api`
+- **sandbox** — `https://sandbox.askell.is/api` (isolated tenant; keys from that dashboard)
+
+Point a second MCP server entry at sandbox (`ASKELL_ENV=sandbox`) rather than switching env on one process. Keys do not work across hosts. **Áskell Test Gateway** is a payment acquirer (fake cards) on either host — not the same as the sandbox API. Official prose at [docs.askell.is](https://docs.askell.is/en/getting_started/index.html) still documents Test Gateway and may omit the sandbox host.
 
 `ASKELL_MUTATION_GATE`:
 

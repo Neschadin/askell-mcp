@@ -3,7 +3,7 @@
 import { spawn } from 'bun';
 
 import { AskellClient } from '../src/client/askell-client.ts';
-import { loadConfig, type AppConfig } from '../src/config.ts';
+import { ConfigSchema, loadConfig, type AppConfig } from '../src/config.ts';
 import { operationRegistry } from '../src/openapi/registry.ts';
 import { createServer } from '../src/server.ts';
 
@@ -27,16 +27,18 @@ function buildConfigFromEnv(): AppConfig {
     );
   }
 
-  return {
-    apiBaseUrl:
-      Bun.env.ASKELL_API_URL ??
-      Bun.env.ASKELL_API_BASE_URL ??
-      'https://askell.is/api',
+  return ConfigSchema.parse({
+    ...(Bun.env.ASKELL_ENV?.trim() ? { askellEnv: Bun.env.ASKELL_ENV } : {}),
+    ...(Bun.env.ASKELL_API_URL ?? Bun.env.ASKELL_API_BASE_URL
+      ? {
+          apiBaseUrl: Bun.env.ASKELL_API_URL ?? Bun.env.ASKELL_API_BASE_URL,
+        }
+      : {}),
     secretApiKey,
     publicApiKey,
     responseMaxBytes: 64_000,
     mutationGate: 'auto',
-  };
+  });
 }
 
 async function testConfig(): Promise<AppConfig> {

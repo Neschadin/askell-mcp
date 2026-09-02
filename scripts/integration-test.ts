@@ -228,7 +228,8 @@ async function main(): Promise<void> {
       'initialize',
       init.result?.serverInfo?.name === 'askell-mcp' &&
         (init.result?.instructions?.includes('askell_list_operations') ??
-          false),
+          false) &&
+        (init.result?.instructions?.includes('This instance:') ?? false),
       init.result?.serverInfo?.name,
     );
     session.notify('notifications/initialized');

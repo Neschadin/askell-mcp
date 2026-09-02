@@ -13,16 +13,26 @@ bun run dev
 
 Bun loads `.env` from the project root.
 
-Checkout without publishing (Cursor `mcp.json`):
+Checkout without publishing (Cursor `mcp.json`). Two entries if you use sandbox — keys are per host:
 
 ```json
 {
   "mcpServers": {
-    "askell": {
+    "askell-prod": {
       "command": "bun",
       "args": ["run", "bin/askell-mcp"],
       "cwd": "/absolute/path/to/askell-mcp",
       "env": {
+        "ASKELL_ENV": "production",
+        "ASKELL_PRIVATE_API_KEY": "..."
+      }
+    },
+    "askell-sandbox": {
+      "command": "bun",
+      "args": ["run", "bin/askell-mcp"],
+      "cwd": "/absolute/path/to/askell-mcp",
+      "env": {
+        "ASKELL_ENV": "sandbox",
         "ASKELL_PRIVATE_API_KEY": "..."
       }
     }
