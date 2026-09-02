@@ -6,6 +6,8 @@ import {
   type AppConfig,
 } from './config.ts';
 import { buildServerInstructions } from './server.ts';
+import { PACKAGE_VERSION } from './version.ts';
+import packageJson from '../package.json' with { type: 'json' };
 
 const baseConfig: AppConfig = {
   askellEnv: 'production',
@@ -14,6 +16,12 @@ const baseConfig: AppConfig = {
   responseMaxBytes: 64_000,
   mutationGate: 'auto',
 };
+
+describe('PACKAGE_VERSION', () => {
+  test('matches package.json (MCP initialize version)', () => {
+    expect(PACKAGE_VERSION).toBe(packageJson.version);
+  });
+});
 
 describe('buildServerInstructions', () => {
   test('names the sandbox instance without treating it as production', () => {

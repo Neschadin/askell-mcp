@@ -11,6 +11,7 @@ import { registerResources } from './resources/register.ts';
 import { registerAnalysisTools } from './tools/analysis.ts';
 import { registerCallTools } from './tools/call.ts';
 import { registerDiscoveryTools } from './tools/discovery.ts';
+import { PACKAGE_VERSION } from './version.ts';
 
 export function buildServerInstructions(config: AppConfig): string {
   const apiBase = normalizeBaseUrl(config.apiBaseUrl);
@@ -73,7 +74,7 @@ export function createServer(config: AppConfig): McpServer {
   const server = new McpServer(
     {
       name: 'askell-mcp',
-      version: '0.3.1',
+      version: PACKAGE_VERSION,
     },
     {
       instructions: buildServerInstructions(config),
