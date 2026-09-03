@@ -17,7 +17,7 @@ export function buildServerInstructions(config: AppConfig): string {
   const apiBase = normalizeBaseUrl(config.apiBaseUrl);
   const envLine =
     config.askellEnv === 'custom'
-      ? `This instance: custom API base ${apiBase} (ASKELL_API_URL override)`
+      ? `This instance: custom API base ${apiBase} (ASKELL_API_BASE_URL override)`
       : `This instance: ${config.askellEnv} (${apiBase})`;
 
   return `Askell MCP server for payment and subscription operations.

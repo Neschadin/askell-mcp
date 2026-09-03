@@ -73,7 +73,7 @@ Restart the client after saving.
 | `ASKELL_PRIVATE_API_KEY`           | yes\*    | —                       | Secret API key (_or_ `ASKELL_SECRET_API_KEY`)   |
 | `ASKELL_PUBLIC_API_KEY`            | no       | —                       | Public key for a few checkout/payment endpoints |
 | `ASKELL_ENV`                       | no       | `production`            | `production` \| `sandbox` — selects the official API host |
-| `ASKELL_API_URL`                   | no       | —                       | Custom/local API base only (_or_ `ASKELL_API_BASE_URL`). Do not set together with `ASKELL_ENV` unless it matches |
+| `ASKELL_API_BASE_URL`              | no       | —                       | Custom/local API base only. Do not set together with `ASKELL_ENV` unless it matches |
 | `ASKELL_RESPONSE_MAX_BYTES`        | no       | `64000`                 | Max response size returned to the model         |
 | `ASKELL_MUTATION_GATE`             | no       | `auto`                  | `auto` / `elicit` / `off` — see below           |
 | `ASKELL_REQUIRE_MUTATION_APPROVAL` | no       | —                       | Deprecated alias: `true`→`elicit`, `false`→`off` |

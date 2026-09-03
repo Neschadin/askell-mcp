@@ -67,12 +67,12 @@ export function resolveAskellTarget(input: {
     if (input.askellEnv !== undefined) {
       if (classified === 'custom') {
         throw new Error(
-          `ASKELL_ENV=${input.askellEnv} selects an official Askell host; omit ASKELL_ENV when ASKELL_API_URL is custom (${apiBaseUrl})`,
+          `ASKELL_ENV=${input.askellEnv} selects an official Askell host; omit ASKELL_ENV when ASKELL_API_BASE_URL is custom (${apiBaseUrl})`,
         );
       }
       if (classified !== input.askellEnv) {
         throw new Error(
-          `ASKELL_ENV=${input.askellEnv} does not match ASKELL_API_URL (${apiBaseUrl}). Omit ASKELL_API_URL and let ASKELL_ENV pick the host, or omit ASKELL_ENV.`,
+          `ASKELL_ENV=${input.askellEnv} does not match ASKELL_API_BASE_URL (${apiBaseUrl}). Omit ASKELL_API_BASE_URL and let ASKELL_ENV pick the host, or omit ASKELL_ENV.`,
         );
       }
     }
@@ -132,7 +132,7 @@ const CONFIG_HELP = `Askell MCP credentials missing.
 
 Set ASKELL_PRIVATE_API_KEY (or ASKELL_SECRET_API_KEY), optionally ASKELL_PUBLIC_API_KEY.
 Set ASKELL_ENV=production|sandbox (default production) — the server picks the host.
-Keys are per host. ASKELL_API_URL is only for a custom/local API.
+Keys are per host. ASKELL_API_BASE_URL is only for a custom/local API.
 
   Local dev — create .env in the project root (Bun loads it automatically):
     ASKELL_ENV=sandbox
@@ -172,7 +172,7 @@ function loadConfigFromEnv(): unknown {
   }
 
   const askellEnv = env.ASKELL_ENV?.trim() || undefined;
-  const apiBaseUrl = env.ASKELL_API_URL ?? env.ASKELL_API_BASE_URL;
+  const apiBaseUrl = env.ASKELL_API_BASE_URL;
   const responseMaxBytes = env.ASKELL_RESPONSE_MAX_BYTES;
   const mutationGateRaw =
     env.ASKELL_MUTATION_GATE ?? env.ASKELL_REQUIRE_MUTATION_APPROVAL;

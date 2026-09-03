@@ -84,7 +84,7 @@ describe('ConfigSchema', () => {
     expect(loopback.apiBaseUrl).toBe('http://127.0.0.1:8000');
   });
 
-  test('classifies ASKELL_API_URL of an official host when ASKELL_ENV is omitted', () => {
+  test('classifies ASKELL_API_BASE_URL of an official host when ASKELL_ENV is omitted', () => {
     const parsed = ConfigSchema.parse({
       secretApiKey: 'secret.key',
       apiBaseUrl: `${SANDBOX_API_BASE_URL}/`,
@@ -93,7 +93,7 @@ describe('ConfigSchema', () => {
     expect(parsed.apiBaseUrl).toBe(SANDBOX_API_BASE_URL);
   });
 
-  test('rejects ASKELL_ENV that disagrees with ASKELL_API_URL', () => {
+  test('rejects ASKELL_ENV that disagrees with ASKELL_API_BASE_URL', () => {
     const result = ConfigSchema.safeParse({
       secretApiKey: 'secret.key',
       askellEnv: 'sandbox',
@@ -102,7 +102,7 @@ describe('ConfigSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  test('rejects ASKELL_ENV together with a custom ASKELL_API_URL', () => {
+  test('rejects ASKELL_ENV together with a custom ASKELL_API_BASE_URL', () => {
     const result = ConfigSchema.safeParse({
       secretApiKey: 'secret.key',
       askellEnv: 'sandbox',

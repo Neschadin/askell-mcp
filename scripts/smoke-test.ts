@@ -29,11 +29,7 @@ function buildConfigFromEnv(): AppConfig {
 
   return ConfigSchema.parse({
     ...(Bun.env.ASKELL_ENV?.trim() ? { askellEnv: Bun.env.ASKELL_ENV } : {}),
-    ...(Bun.env.ASKELL_API_URL ?? Bun.env.ASKELL_API_BASE_URL
-      ? {
-          apiBaseUrl: Bun.env.ASKELL_API_URL ?? Bun.env.ASKELL_API_BASE_URL,
-        }
-      : {}),
+    ...(Bun.env.ASKELL_API_BASE_URL ? { apiBaseUrl: Bun.env.ASKELL_API_BASE_URL } : {}),
     secretApiKey,
     publicApiKey,
     responseMaxBytes: 64_000,
