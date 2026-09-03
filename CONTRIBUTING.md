@@ -6,35 +6,30 @@ Maintainer notes. End users: see [README.md](./README.md).
 
 ```bash
 cp .env.example .env
-# set ASKELL_PRIVATE_API_KEY
+# production keys → .env
+# sandbox keys → .env.sandbox  (gitignored; Bun does **not** auto-load this file)
 bun install
-bun run dev
 ```
 
-Bun loads `.env` from the project root.
+`.env.sandbox` is the right split. Do **not** put `ASKELL_ENV=sandbox` in `.env` if you also run prod from this cwd. Bun auto-loads only `.env` / `.env.local` / `.env.$NODE_ENV` — never `.env.sandbox`. Parallel processes:
 
-Checkout without publishing (Cursor `mcp.json`). Two entries if you use sandbox — keys are per host:
+```bash
+bun run dev:prod      # --no-env-file --env-file=.env
+bun run dev:sandbox   # --no-env-file --env-file=.env.sandbox
+```
+
+Checkout without publishing (this repo's Cursor `mcp.json` already does this — no keys in JSON):
 
 ```json
 {
   "mcpServers": {
     "askell-prod": {
       "command": "bun",
-      "args": ["run", "bin/askell-mcp"],
-      "cwd": "/absolute/path/to/askell-mcp",
-      "env": {
-        "ASKELL_ENV": "production",
-        "ASKELL_PRIVATE_API_KEY": "..."
-      }
+      "args": ["--no-env-file", "--env-file=.env", "run", "bin/askell-mcp@latest"]
     },
     "askell-sandbox": {
       "command": "bun",
-      "args": ["run", "bin/askell-mcp"],
-      "cwd": "/absolute/path/to/askell-mcp",
-      "env": {
-        "ASKELL_ENV": "sandbox",
-        "ASKELL_PRIVATE_API_KEY": "..."
-      }
+      "args": ["--no-env-file", "--env-file=.env.sandbox", "run", "bin/askell-mcp@latest"]
     }
   }
 }

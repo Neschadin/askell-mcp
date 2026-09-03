@@ -8,7 +8,9 @@ try {
 
   void serveStdio(() => createServer(config));
 
-  console.error('askell-mcp running on stdio');
+  console.error(
+    `askell-mcp running on stdio (${config.askellEnv} ${config.apiBaseUrl})`,
+  );
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`askell-mcp failed to start: ${message}`);

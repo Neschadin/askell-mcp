@@ -28,7 +28,7 @@ Prefer **two server entries** if you have both production and sandbox keys. Tool
   "mcpServers": {
     "askell-prod": {
       "command": "bunx",
-      "args": ["-y", "askell-mcp"],
+      "args": ["-y", "askell-mcp@latest"],
       "env": {
         "ASKELL_ENV": "production",
         "ASKELL_PRIVATE_API_KEY": "your_production_secret_api_key"
@@ -36,7 +36,7 @@ Prefer **two server entries** if you have both production and sandbox keys. Tool
     },
     "askell-sandbox": {
       "command": "bunx",
-      "args": ["-y", "askell-mcp"],
+      "args": ["-y", "askell-mcp@latest"],
       "env": {
         "ASKELL_ENV": "sandbox",
         "ASKELL_PRIVATE_API_KEY": "your_sandbox_secret_api_key"

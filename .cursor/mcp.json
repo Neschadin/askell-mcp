@@ -5,6 +5,24 @@
     },
     "mcp-protocol-docs": {
       "url": "https://modelcontextprotocol.io/mcp"
+    },
+    "askell-prod": {
+      "command": "bun",
+      "args": [
+        "--no-env-file",
+        "--env-file=.env",
+        "run",
+        "bin/askell-mcp"
+      ]
+    },
+    "askell-sandbox": {
+      "command": "bun",
+      "args": [
+        "--no-env-file",
+        "--env-file=.env.sandbox",
+        "run",
+        "bin/askell-mcp"
+      ]
     }
   }
 }

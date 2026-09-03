@@ -144,7 +144,7 @@ Keys are per host. ASKELL_API_URL is only for a custom/local API.
       "mcpServers": {
         "askell-prod": {
           "command": "bunx",
-          "args": ["-y", "askell-mcp"],
+          "args": ["-y", "askell-mcp@latest"],
           "env": {
             "ASKELL_ENV": "production",
             "ASKELL_PRIVATE_API_KEY": "...",
@@ -153,7 +153,7 @@ Keys are per host. ASKELL_API_URL is only for a custom/local API.
         },
         "askell-sandbox": {
           "command": "bunx",
-          "args": ["-y", "askell-mcp"],
+          "args": ["-y", "askell-mcp@latest"],
           "env": {
             "ASKELL_ENV": "sandbox",
             "ASKELL_PRIVATE_API_KEY": "...",

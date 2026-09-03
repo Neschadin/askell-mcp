@@ -1,6 +1,6 @@
 {
   "name": "askell-mcp",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "MCP server for the Askell payment and subscription API (Bun + stdio)",
   "author": "Neschadin Oleksandr",
   "license": "MIT",
@@ -43,6 +43,8 @@
   },
   "scripts": {
     "dev": "bun run src/index.ts",
+    "dev:prod": "bun --no-env-file --env-file=.env run src/index.ts",
+    "dev:sandbox": "bun --no-env-file --env-file=.env.sandbox run src/index.ts",
     "start": "bun run bin/askell-mcp",
     "test": "bun test",
     "smoke": "bun run scripts/smoke-test.ts",
