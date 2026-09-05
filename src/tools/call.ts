@@ -171,7 +171,7 @@ export function registerCallTools(
     {
       title: 'Call Askell API (read)',
       description:
-        'Read-only Askell API call (GET, HEAD) for any v1/v2 path. For POST/PUT/PATCH/DELETE use askell_mutate. Discover paths with askell_list_operations and askell_describe_operation first.',
+        'Read-only Askell API call (GET, HEAD) for any v1/v2 path. For POST/PUT/PATCH/DELETE use askell_mutate. Discover paths with askell_list_operations and askell_describe_operation first. Webhook hmac_secret is redacted in the response.',
       inputSchema: callInputSchema,
       annotations: {
         readOnlyHint: true,
@@ -190,7 +190,7 @@ export function registerCallTools(
     {
       title: 'Mutate Askell API',
       description:
-        'Mutating Askell API call (POST, PUT, PATCH, DELETE). Clients that declared form elicitation get a confirmation form; others rely on the client tool-approval UI. Use askell_call for GET. Discover paths with askell_list_operations and askell_describe_operation first.',
+        'Mutating Askell API call (POST, PUT, PATCH, DELETE). Clients that declared form elicitation get a confirmation form; others rely on the client tool-approval UI. Use askell_call for GET. Discover paths with askell_list_operations and askell_describe_operation first. Webhook hmac_secret is redacted in the response (including POST /webhooks/ create).',
       inputSchema: mutateInputSchema,
       annotations: {
         readOnlyHint: false,

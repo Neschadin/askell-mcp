@@ -113,7 +113,7 @@ Typical agent workflow:
 | `askell_customer_overview`  | v1 customer + subscriptions              |
 | `askell_contract_overview`  | v2 subscription contract + billing runs  |
 | `askell_billing_run_triage` | v2 billing run (+ optional contract)     |
-| `askell_list_webhooks`      | List configured webhooks                 |
+| `askell_list_webhooks`      | List configured webhooks (`hmac_secret` redacted) |
 
 ### Resources
 

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   buildBoundedListPayload,
+  formatApiResponse,
   isMutatingMethod,
   limitText,
   truncateUtf8,
@@ -157,6 +158,56 @@ describe('buildBoundedListPayload', () => {
     expect(parsed.meta.returnedCount).toBe(502);
     expect(parsed.meta.truncatedByMaxBytes).toBe(false);
     expect(parsed.body).toHaveLength(502);
+  });
+});
+
+describe('formatApiResponse', () => {
+  test('redacts hmac_secret in JSON bodies', () => {
+    const secret = 'live-hmac-secret-value';
+    const result = formatApiResponse(
+      200,
+      new Headers({ 'content-type': 'application/json' }),
+      JSON.stringify([
+        {
+          id: 1,
+          event: 'payment.*',
+          hmac_digest: 'SHA512',
+          hmac_secret: secret,
+        },
+      ]),
+      64_000,
+    );
+
+    expect(result.text).not.toContain(secret);
+    const parsed = JSON.parse(result.text) as {
+      body: Array<{ hmac_secret: string; hmac_digest: string }>;
+    };
+    expect(parsed.body[0]?.hmac_digest).toBe('SHA512');
+    expect(parsed.body[0]?.hmac_secret).toBe(
+      `<redacted len=${secret.length}>`,
+    );
+  });
+});
+
+describe('buildBoundedListPayload secrets', () => {
+  test('redacts hmac_secret before compacting', () => {
+    const secret = 'paginate-hmac-secret';
+    const result = buildBoundedListPayload({
+      status: 200,
+      meta: { path: '/webhooks/' },
+      items: [
+        { id: 1, event: 'checkout.*', hmac_secret: secret, uuid: 'u1' },
+      ],
+      maxBytes: 64_000,
+    });
+
+    expect(result.text).not.toContain(secret);
+    const parsed = JSON.parse(result.text) as {
+      body: Array<{ hmac_secret: string }>;
+    };
+    expect(parsed.body[0]?.hmac_secret).toBe(
+      `<redacted len=${secret.length}>`,
+    );
   });
 });
 

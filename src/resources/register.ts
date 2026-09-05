@@ -21,9 +21,10 @@ Rare historical payloads used \`{ event, data, ref?, sender? }\`. If both \`even
 
 ## Registering endpoints (v1 management API)
 
-- GET/POST \`/webhooks/\` · GET/PUT/PATCH/DELETE \`/webhooks/{id}/\` (secret key)
+- GET/POST \`/webhooks/\` · GET/PUT/PATCH/DELETE \`/webhooks/{id}/\` (secret key). Live GET \`/webhooks/{id}/\` exists even if OpenAPI omits it.
 - Create body: \`{ url, event }\` (\`event\` may be a specific type or a family wildcard like \`payment.*\`)
-- Create/get response includes \`hmac_secret\` (store it; Askell will not show it again in a useful way if you lose it) and \`hmac_digest\` (typically \`SHA512\`)
+- Askell returns plaintext \`hmac_secret\` on list, get, and create (it is re-readable, not create-only), plus \`hmac_digest\` (typically \`SHA512\`)
+- MCP tool output redacts \`hmac_secret\` to \`<redacted len=N>\`. Do not treat that placeholder as the real secret. Copy the secret from the Askell dashboard or a direct API call outside MCP.
 
 Tools: \`askell_list_webhooks\`, \`askell_call\` (GET), \`askell_mutate\` (POST/PUT/PATCH/DELETE).
 

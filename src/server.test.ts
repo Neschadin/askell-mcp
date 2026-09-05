@@ -38,6 +38,8 @@ describe('buildServerInstructions', () => {
     );
     expect(sandbox).toContain('ASKELL_ENV=production|sandbox');
     expect(sandbox).toContain('askell_list_operations');
+    expect(sandbox).toContain('hmac_secret');
+    expect(sandbox).toContain('<redacted len=N>');
     expect(sandbox).not.toContain(
       `This instance: production (${PRODUCTION_API_BASE_URL})`,
     );

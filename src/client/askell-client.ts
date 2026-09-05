@@ -1,5 +1,6 @@
 import { normalizeBaseUrl, type AppConfig } from '../config.ts';
 import { normalizeApiPath } from './paths.ts';
+import { redactSecretsInText } from './redact.ts';
 import {
   buildBoundedListPayload,
   formatApiResponse,
@@ -182,10 +183,11 @@ export class AskellClient {
       try {
         parsed = JSON.parse(bodyText);
       } catch {
+        const text = redactSecretsInText(bodyText);
         return {
-          text: bodyText,
+          text,
           truncated: false,
-          byteLength: Buffer.byteLength(bodyText, 'utf8'),
+          byteLength: Buffer.byteLength(text, 'utf8'),
           ok: false,
           status: lastStatus,
         };

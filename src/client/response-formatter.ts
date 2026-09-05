@@ -1,3 +1,8 @@
+import {
+  redactSensitiveFields,
+  redactSecretsInText,
+} from './redact.ts';
+
 export interface FormattedResponse {
   text: string;
   truncated: boolean;
@@ -203,7 +208,8 @@ export function buildBoundedListPayload(input: {
   items: unknown[];
   maxBytes: number;
 }): FormattedResponse {
-  const { status, meta, items, maxBytes } = input;
+  const { status, meta, maxBytes } = input;
+  const items = input.items.map((item) => redactSensitiveFields(item));
 
   const attempts: Array<{
     items: unknown[];
@@ -334,13 +340,14 @@ export function formatApiResponse(
 ): FormattedResponse {
   const byteLength = Buffer.byteLength(bodyText, 'utf8');
   const truncated = byteLength > maxBytes;
-  const visibleBody = truncated ? truncateUtf8(bodyText, maxBytes) : bodyText;
+  const safeText = redactSecretsInText(bodyText);
+  const visibleBody = truncated ? truncateUtf8(safeText, maxBytes) : safeText;
 
   let parsedBody: unknown = visibleBody;
   try {
     parsedBody = JSON.parse(visibleBody);
   } catch {
-    // keep raw text
+    // keep redacted raw text
   }
 
   const payload = {

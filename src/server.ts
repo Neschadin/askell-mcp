@@ -64,6 +64,7 @@ Safety:
 - Writes go through askell_mutate (destructiveHint). Reads go through askell_call (readOnlyHint).
 - mutationGate=auto (default): confirmation form only if this request's envelope declared form elicitation; otherwise the client's own tool-allow UI is the gate. elicit always returns a form (SDK refuses if the client cannot fulfil it). off never asks.
 - Large list responses are compacted (index of id/dates/plan/customer) to fit responseMaxBytes before dropping rows; check meta.truncatedByMaxBytes, meta.compacted, and meta.compactedMode.
+- Tool output redacts webhook hmac_secret to \`<redacted len=N>\` (Askell list/get/create return the plaintext secret).
 
 Resources:
 - askell://spec/v1 and askell://spec/v2 — bundled OpenAPI

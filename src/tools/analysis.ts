@@ -278,7 +278,7 @@ export function registerAnalysisTools(
     {
       title: 'List configured webhooks (v1)',
       description:
-        'List Askell webhook endpoints configured for the account (management API only).',
+        'List Askell webhook endpoints configured for the account (management API only). hmac_secret is redacted in the tool output (`<redacted len=N>`); copy the real secret from the dashboard or a non-MCP API call.',
       inputSchema: z.object({
         page_size: z
           .int()

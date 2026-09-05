@@ -126,6 +126,23 @@ async function callTool(
   };
 }
 
+function hmacSecretsRedacted(text: string): boolean {
+  for (const match of text.matchAll(
+    /"hmac_secret"\s*:\s*"((?:\\.|[^"\\])*)"/g,
+  )) {
+    let value: string;
+    try {
+      value = JSON.parse(`"${match[1]}"`) as string;
+    } catch {
+      return false;
+    }
+    if (!value.startsWith('<redacted')) {
+      return false;
+    }
+  }
+  return true;
+}
+
 async function readResource(
   session: McpSession,
   uri: string,
@@ -380,8 +397,10 @@ async function main(): Promise<void> {
     const webhooksParsed = webhooks.parsed as { ok?: boolean; data?: unknown };
     record(
       'tool:askell_list_webhooks',
-      !webhooks.isError && webhooks.parsed != null,
-      `ok=${webhooksParsed?.ok}`,
+      !webhooks.isError &&
+        webhooks.parsed != null &&
+        hmacSecretsRedacted(webhooks.text),
+      `ok=${webhooksParsed?.ok}, secretsRedacted=${hmacSecretsRedacted(webhooks.text)}`,
     );
 
     // askell_customer_overview
