@@ -62,4 +62,19 @@ describe('buildServerInstructions', () => {
       'This instance: custom API base http://localhost:8000/api',
     );
   });
+
+  test('encodes v2 quote combo, finalize PM, and shipping traps', () => {
+    const text = buildServerInstructions(baseConfig);
+
+    expect(text).toContain('pass customer (numeric id)');
+    expect(text).toContain('combo_discounts[]');
+    expect(text).toContain('Combo is automatic, not apply-code');
+    expect(text).toContain(
+      'recurring offer needs a verified payment method even when due-now/total is 0',
+    );
+    expect(text).toContain('Live docs still say "unless 0 ISK"');
+    expect(text).toContain('shipping {option, location_id?}');
+    expect(text).toContain('No shipping-options list in OpenAPI');
+    expect(text).toContain('contract.shipping_selection');
+  });
 });

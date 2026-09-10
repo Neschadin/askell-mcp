@@ -127,7 +127,7 @@ Typical agent workflow:
 
 - **v1** — legacy paths like `/customers/`, `/subscriptions/` (no `/v2` prefix)
 - **v2** — current model: catalogs, quotes, checkouts, contracts, billing runs under `/v2/`
-- **v2 coupons** — `GET/POST /v2/subscription-contracts/{id}/discount|apply-code|remove-discount` (one active coupon). Quotes take `promotion_code`. Not the v1 `discount` 0–100 field.
+- **v2 discounts** — coupons: `GET/POST /v2/subscription-contracts/{id}/discount|apply-code|remove-discount` (one active). Quotes take `promotion_code` and, for an existing buyer, `customer` (id) so combo discounts + promo restrictions apply. Totals already include both. Recurring `finalize` needs a verified payment method even when due-now is 0. Not the v1 `discount` 0–100 field.
 - Paths use **trailing slashes**
 - Prefer **v2** for new integrations; v1 remains for existing ones
 - Docs: [docs.askell.is](https://docs.askell.is/) · OpenAPI: [v1](https://askell.is/api/swagger/swagger.json) · [v2](https://askell.is/api/swagger/v2/swagger.json)

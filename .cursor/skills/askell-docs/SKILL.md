@@ -42,7 +42,7 @@ Live Swagger JSON (`askell.is/api/swagger/*.json`) is **upstream only** — inpu
 
 1. Fetch https://docs.askell.is/llms.txt if the index may have changed.
 2. Fetch the **specific page** for the flow you are implementing (not the whole site).
-3. Path/method/schema: bundled `spec/openapi-v*.json`, then overlays in this repo. Prose page + live captured payloads beat OpenAPI when they disagree (embedded checkout sessions, 3DS, webhook bodies).
+3. Path/method/schema: bundled `spec/openapi-v*.json`, then overlays in this repo. Prose + captured payloads beat OpenAPI for flows swagger omits (embedded session sub-paths, 3DS iframe, webhook bodies). Bundled spec beats prose when swagger moved first: finalize payment-method rules, quote `customer` / `combo_discounts`, hosted checkout `shipping`.
 4. Cite the page URL. Do not dump the whole page into chat.
 
 ## Known traps (docs vs OpenAPI)
@@ -50,6 +50,9 @@ Live Swagger JSON (`askell.is/api/swagger/*.json`) is **upstream only** — inpu
 - Auth: `Authorization: Api-Key <key>`. Public key is browser-safe for a few endpoints only.
 - New integrations: V2 (`/v2/`). v1 is PlanVariant + Subscription.
 - Typical V2: catalog → quote → payment-processor-options → checkout → finalize → poll billing run.
+- Quotes: pass `customer` (numeric id) when the buyer already exists, else combo discounts from their other active contracts and promo-code customer restrictions are skipped. Totals already include coupon + combo (`combo_discounts[]` on the quote response). Combo is automatic, not `apply-code`.
+- `finalize`: recurring offer needs a verified payment method even when due-now is 0 (trial / 100% off first period). Only a free one-time purchase finalizes without one. Live V2 page still says “unless 0 ISK” — bundled OpenAPI is right.
+- Hosted `POST /v2/checkouts/`: `shipping` is required when the offer has physical products and the account has shipping options. No shipping-options list in OpenAPI (option ids are account config). Snapshot is `contract.shipping_selection`, not `V2Checkout`. Embedded widget collects address/shipping.
 - Embedded checkout: secret key creates a scoped session server-side; browser gets only the session token + `askell.js`.
 - `checkout_url` on V2 checkout objects is the API URL, not a hosted payment page.
 - Webhook body **is the event object**, not `{ event, data }`. HMAC-SHA512 of raw body (`Hook-HMAC`). Details: `askell://docs/webhook-events` / `src/resources/register.ts`.
@@ -61,4 +64,4 @@ Live Swagger JSON (`askell.is/api/swagger/*.json`) is **upstream only** — inpu
 
 - Copy the docs site into `spec/` or `src/resources/` as a snapshot of every HTML page.
 - Put Askell prose into `mcp-docs` (that skill is protocol/SDK only).
-- Invent coupon/checkout/webhook shapes from training data.
+- Invent coupon/checkout/webhook/shipping shapes from training data. There is no shipping-options list in OpenAPI.

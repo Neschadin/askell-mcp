@@ -1,6 +1,6 @@
 {
   "name": "askell-mcp",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "MCP server for the Askell payment and subscription API (Bun + stdio)",
   "author": "Neschadin Oleksandr",
   "license": "MIT",
@@ -62,11 +62,11 @@
     "build:all": "bun run build && bun run build:linux-x64 && bun run build:linux-arm64 && bun run build:darwin-arm64 && bun run build:darwin-x64"
   },
   "devDependencies": {
-    "@types/bun": "1.4.1",
+    "@types/bun": "1.4.2",
     "typescript": "7.0.2"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
-    "zod": "4.5.4"
+    "zod": "4.6.1"
   }
 }

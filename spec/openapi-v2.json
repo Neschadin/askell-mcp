@@ -1455,7 +1455,7 @@
           "V2 Checkouts"
         ],
         "summary": "Finalize a V2 checkout",
-        "description": "Creates the subscription contract and initial billing run, then executes payment. The contract is activated only after successful payment. Requires a secret key.",
+        "description": "Creates the subscription contract and initial billing run, then executes payment. The contract is activated only after successful payment. An offer with recurring items requires a verified payment method for the customer even when the initial total is zero (trial period or fully discounted first period); the card is charged when the first paid period arrives. Only a free one-time purchase finalizes without one. Requires a secret key.",
         "parameters": [
           {
             "$ref": "#/components/parameters/V2CheckoutToken"
@@ -2369,6 +2369,11 @@
             "type": "string",
             "nullable": true,
             "description": "Optional promotion code. When valid, the resulting discount is folded into the offer totals; on contract creation the code is redeemed and a discount is attached to the contract."
+          },
+          "customer": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Optional customer id. When given, the quote also reflects combo discounts earned through the customer's other active contracts, and promotion-code restrictions are checked against this customer."
           }
         }
       },
@@ -3079,10 +3084,92 @@
               "delivery_address": {
                 "$ref": "#/components/schemas/V2Address",
                 "description": "Optional delivery-address snapshot for physical products or alternate delivery."
+              },
+              "shipping": {
+                "$ref": "#/components/schemas/V2ShippingSelectionInput",
+                "description": "The shipping option the customer chose. Required when the offer contains physical products and the account has active shipping options."
               }
             }
           }
         ]
+      },
+      "V2ShippingSelectionInput": {
+        "type": "object",
+        "required": [
+          "option"
+        ],
+        "properties": {
+          "option": {
+            "type": "integer",
+            "description": "Id of one of the account's active shipping options."
+          },
+          "location_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "Provider id of the chosen pickup location. Required for options with `requires_location`."
+          },
+          "location_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "location_address": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "V2ShippingSelection": {
+        "type": "object",
+        "nullable": true,
+        "description": "Snapshot of the shipping option chosen at checkout.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "option_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "handler": {
+            "type": "string",
+            "enum": [
+              "dropp",
+              "posturinn",
+              "store_pickup"
+            ]
+          },
+          "delivery_mode": {
+            "type": "string",
+            "enum": [
+              "home_delivery",
+              "pickup_point",
+              "post_office",
+              "store_pickup",
+              "freight"
+            ]
+          },
+          "option_name": {
+            "type": "string"
+          },
+          "service_code": {
+            "type": "string"
+          },
+          "price_amount": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "location_id": {
+            "type": "string"
+          },
+          "location_name": {
+            "type": "string"
+          },
+          "location_address": {
+            "type": "string"
+          }
+        }
       },
       "V2Address": {
         "type": "object",
@@ -3914,6 +4001,77 @@
               }
             }
           },
+          "combo_discounts": {
+            "type": "array",
+            "description": "Automatic combo discounts applied to this quote: one entry per discounted recurring line. The quoted totals already include the first-period amounts, and the recurring_* totals already include the renewal amounts. Rules are evaluated against the products in the offer plus, when a customer is given, the products of the customer's other active contracts.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "The combo discount rule id."
+                },
+                "name": {
+                  "type": "string"
+                },
+                "line_key": {
+                  "type": "string",
+                  "description": "Key of the discounted line in recurring_items."
+                },
+                "product_id": {
+                  "type": "integer"
+                },
+                "product_name": {
+                  "type": "string"
+                },
+                "required_product_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "percent_off": {
+                  "type": "string",
+                  "format": "decimal",
+                  "nullable": true
+                },
+                "amount_off": {
+                  "type": "string",
+                  "format": "decimal",
+                  "nullable": true
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "discount_subtotal_amount": {
+                  "type": "string",
+                  "format": "decimal",
+                  "description": "First-period (prorated) discount, already reflected in subtotal_amount."
+                },
+                "discount_tax_amount": {
+                  "type": "string",
+                  "format": "decimal"
+                },
+                "discount_total_amount": {
+                  "type": "string",
+                  "format": "decimal"
+                },
+                "renewal_discount_subtotal_amount": {
+                  "type": "string",
+                  "format": "decimal",
+                  "description": "Full-period discount applied on each renewal while the customer holds the required products."
+                },
+                "renewal_discount_tax_amount": {
+                  "type": "string",
+                  "format": "decimal"
+                },
+                "renewal_discount_total_amount": {
+                  "type": "string",
+                  "format": "decimal"
+                }
+              }
+            }
+          },
           "recurring_items": {
             "type": "array",
             "items": {
@@ -4629,6 +4787,9 @@
           },
           "customer_reference": {
             "type": "string"
+          },
+          "shipping_selection": {
+            "$ref": "#/components/schemas/V2ShippingSelection"
           },
           "discount": {
             "allOf": [

@@ -53,6 +53,43 @@ describe('askell_describe_operation payload', () => {
     }
   });
 
+  test('quote create accepts customer for combo/promo context', () => {
+    const operation = operationRegistry.getById(
+      'v2:POST:/v2/subscription-offer-quotes/',
+    );
+    expect(operation).toBeDefined();
+
+    const payload = operationDetailSchema.parse(operation);
+    const schema = payload.requestBody?.schema as {
+      properties?: Record<string, unknown>;
+    };
+    expect(schema.properties).toHaveProperty('customer');
+    expect(schema.properties).toHaveProperty('promotion_code');
+  });
+
+  test('hosted checkout create includes shipping selection', () => {
+    const operation = operationRegistry.getById('v2:POST:/v2/checkouts/');
+    expect(operation).toBeDefined();
+
+    const payload = operationDetailSchema.parse(operation);
+    const schema = payload.requestBody?.schema as {
+      allOf?: Array<{ properties?: Record<string, unknown> }>;
+    };
+    const hasShipping = schema.allOf?.some(
+      (part) => part.properties && 'shipping' in part.properties,
+    );
+    expect(hasShipping).toBe(true);
+  });
+
+  test('finalize describes verified PM for zero-total recurring', () => {
+    const operation = operationRegistry.getById(
+      'v2:POST:/v2/checkouts/{token}/finalize/',
+    );
+    expect(operation?.description).toMatch(/verified payment method/i);
+    expect(operation?.description).toMatch(/trial period/i);
+    expect(operation?.description).toMatch(/free one-time/i);
+  });
+
   test('every bundled operation parses as describe output', () => {
     for (const operation of operationRegistry.operations) {
       const result = operationDetailSchema.safeParse(operation);

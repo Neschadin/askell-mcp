@@ -47,14 +47,15 @@ API layout:
 - V2 list endpoints paginate only when page_size is provided (default 10, max 1000).
 - GET /v2/customer-entitlements/ requires customer_reference query param.
 
-V2 discounts (coupons / promotion codes) — not the same as v1:
-- v2 contracts: one active coupon at a time. GET /v2/subscription-contracts/{id}/discount/ (also nested as contract.discount). Apply with POST .../apply-code/ {promotion_code}. Remove with POST .../remove-discount/.
-- Quotes: pass promotion_code on POST /v2/subscription-offer-quotes/; totals already include the discount when set.
-- v1 Subscription.discount is a 0-100 percent override on a PlanVariant subscription. Do not send it to v2 contract endpoints.
+V2 discounts — two systems, not v1 Subscription.discount (0-100 on a PlanVariant; never send that to v2):
+- Coupons: one active per contract. GET /v2/subscription-contracts/{id}/discount/ (also nested as contract.discount). Apply with POST .../apply-code/ {promotion_code}. Remove with POST .../remove-discount/.
+- Quotes (POST /v2/subscription-offer-quotes/): pass promotion_code for coupons. When quoting an existing customer, pass customer (numeric id) or combo discounts from their other active contracts and promo-code customer restrictions are skipped. Quoted totals already include coupon + combo; do not subtract again. combo_discounts[] is on the quote response (askell_describe_operation omits response schemas). Combo is automatic, not apply-code.
 
 V2 checkout notes:
-- checkout_url on V2 checkouts points to the API object URL, not a browser payment page.
-- Embedded checkout uses POST /v2/checkout-sessions/ plus browser session-token sub-paths (see docs, not all in OpenAPI).
+- checkout_url on V2 checkouts points to the API object URL, not a hosted payment page.
+- finalize: a recurring offer needs a verified payment method even when due-now/total is 0 (trial or fully discounted first period). Only a free one-time purchase finalizes without one. Live docs still say "unless 0 ISK" — ignore that; bundled OpenAPI is right.
+- Hosted POST /v2/checkouts/: shipping {option, location_id?} is required when the offer has physical products and the account has active shipping options. No shipping-options list in OpenAPI (ids are account config). Pickup options need location_id. Snapshot is contract.shipping_selection, not on V2Checkout.
+- Embedded checkout uses POST /v2/checkout-sessions/ plus browser session-token sub-paths (widget collects address/shipping; see docs, not all in OpenAPI).
 
 Auth:
 - Most endpoints need the secret API key.
