@@ -76,5 +76,7 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('shipping {option, location_id?}');
     expect(text).toContain('No shipping-options list in OpenAPI');
     expect(text).toContain('contract.shipping_selection');
+    expect(text).toContain('GET contract.subscriber_page');
+    expect(text).toContain('Not checkout_url, not v1 /public/payments/{id}/');
   });
 });

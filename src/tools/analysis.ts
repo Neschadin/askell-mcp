@@ -141,7 +141,7 @@ export function registerAnalysisTools(
     {
       title: 'Subscription contract overview (v2)',
       description:
-        'Fetch a v2 subscription contract and recent billing runs filtered by contract id. The contract payload includes `discount` (active coupon) when one is applied, and `shipping_selection` when shipping was chosen at checkout.',
+        'Fetch a v2 subscription contract and recent billing runs filtered by contract id. The contract payload includes `discount` (active coupon) when one is applied, `shipping_selection` when shipping was chosen at checkout, and `subscriber_page` (customer-facing management URL, read-only).',
       inputSchema: z.object({
         contractId: z
           .union([z.string().min(1), z.int()])

@@ -55,6 +55,7 @@ Live Swagger JSON (`askell.is/api/swagger/*.json`) is **upstream only** — inpu
 - Hosted `POST /v2/checkouts/`: `shipping` is required when the offer has physical products and the account has shipping options. No shipping-options list in OpenAPI (option ids are account config). Snapshot is `contract.shipping_selection`, not `V2Checkout`. Embedded widget collects address/shipping.
 - Embedded checkout: secret key creates a scoped session server-side; browser gets only the session token + `askell.js`.
 - `checkout_url` on V2 checkout objects is the API URL, not a hosted payment page.
+- `subscriber_page` on `V2SubscriptionContract` is the customer-facing management URL (readOnly, nullable). Not `checkout_url`, not v1 `/public/payments/{id}/`. Live V2 page does not document it yet; bundled spec is right. Do not POST it.
 - Webhook body **is the event object**, not `{ event, data }`. HMAC-SHA512 of raw body (`Hook-HMAC`). Details: `askell://docs/webhook-events` / `src/resources/register.ts`.
 - `GET /webhooks/` returns plaintext `hmac_secret` on every list/get/create (not create-only). MCP tool output redacts it; do not trust the old “Askell will not show it again” line.
 - Two API hosts, same v1/v2 surface: production `https://askell.is/api` and sandbox `https://sandbox.askell.is/api` (isolated tenant; keys from that dashboard). Official prose still documents Test Gateway and may omit the sandbox host.

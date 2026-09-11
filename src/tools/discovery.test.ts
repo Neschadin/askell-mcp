@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import * as z from 'zod';
 
-import { operationRegistry } from '../openapi/registry.ts';
+import { getBundledSpec, operationRegistry } from '../openapi/registry.ts';
 import { operationDetailSchema } from './discovery.ts';
 
 describe('askell_describe_operation payload', () => {
@@ -88,6 +88,17 @@ describe('askell_describe_operation payload', () => {
     expect(operation?.description).toMatch(/verified payment method/i);
     expect(operation?.description).toMatch(/trial period/i);
     expect(operation?.description).toMatch(/free one-time/i);
+  });
+
+  test('v2 contract schema includes read-only subscriber_page', () => {
+    const spec = getBundledSpec('v2');
+    const schema = spec.components?.schemas?.V2SubscriptionContract as {
+      properties?: {
+        subscriber_page?: { readOnly?: boolean; nullable?: boolean };
+      };
+    };
+    expect(schema.properties?.subscriber_page?.readOnly).toBe(true);
+    expect(schema.properties?.subscriber_page?.nullable).toBe(true);
   });
 
   test('every bundled operation parses as describe output', () => {

@@ -4915,6 +4915,13 @@
           "metadata": {
             "$ref": "#/components/schemas/V2Metadata"
           },
+          "subscriber_page": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "readOnly": true,
+            "description": "Absolute URL of the customer-facing subscription management page for this contract."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
