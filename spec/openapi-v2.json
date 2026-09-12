@@ -3088,6 +3088,10 @@
               "shipping": {
                 "$ref": "#/components/schemas/V2ShippingSelectionInput",
                 "description": "The shipping option the customer chose. Required when the offer contains physical products and the account has active shipping options."
+              },
+              "allowed_origin": {
+                "type": "string",
+                "description": "Origin allowed to embed the hosted card form for this checkout in an iframe, for example `https://shop.example`. A single http(s) origin with no path; http is accepted only for `localhost` and loopback addresses (`127.0.0.0/8`, `[::1]`). When set it replaces the account-level checkout origins in the hosted page's `frame-ancestors` policy. Not accepted on checkout-session endpoints, where the sales channel's allowed origins apply."
               }
             }
           }
@@ -3638,6 +3642,10 @@
           },
           "metadata": {
             "$ref": "#/components/schemas/V2Metadata"
+          },
+          "allowed_origin": {
+            "type": "string",
+            "description": "Origin allowed to embed this hosted card form in an iframe, for example `https://shop.example`. A single http(s) origin with no path; http is accepted only for `localhost` and loopback addresses (`127.0.0.0/8`, `[::1]`). Defaults to the checkout's `allowed_origin`, and when set it replaces the account-level checkout origins in the hosted page's `frame-ancestors` policy. Not accepted on checkout-session endpoints, where the sales channel's allowed origins apply."
           }
         }
       },
@@ -3689,6 +3697,10 @@
           },
           "metadata": {
             "$ref": "#/components/schemas/V2Metadata"
+          },
+          "allowed_origin": {
+            "type": "string",
+            "description": "Origin allowed to embed this hosted card form, or an empty string when the account-level checkout origins apply."
           },
           "error_message": {
             "type": "string"
@@ -3766,6 +3778,10 @@
           },
           "metadata": {
             "$ref": "#/components/schemas/V2Metadata"
+          },
+          "allowed_origin": {
+            "type": "string",
+            "description": "Origin allowed to embed hosted pages for this checkout, or an empty string when the account-level checkout origins apply."
           },
           "created_at": {
             "type": "string",
@@ -3998,6 +4014,21 @@
               "original_total_amount": {
                 "type": "string",
                 "format": "decimal"
+              },
+              "recurring_original_amount": {
+                "type": "string",
+                "format": "decimal",
+                "description": "What a renewal bills without the coupon. The recurring_* totals of the quote do not include the promotion code discount."
+              },
+              "recurring_discount_amount": {
+                "type": "string",
+                "format": "decimal",
+                "description": "The coupon's discount applied to a renewal's recurring lines. Computed regardless of duration: a once coupon lapses after the first payment and a repeating coupon after duration_in_months, so only treat this as the renewal discount while the coupon is active."
+              },
+              "recurring_final_amount": {
+                "type": "string",
+                "format": "decimal",
+                "description": "What a renewal bills with the coupon's discount applied. Only meaningful while the coupon is still active (see duration and duration_in_months)."
               }
             }
           },

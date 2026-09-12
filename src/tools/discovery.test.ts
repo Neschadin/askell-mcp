@@ -67,7 +67,7 @@ describe('askell_describe_operation payload', () => {
     expect(schema.properties).toHaveProperty('promotion_code');
   });
 
-  test('hosted checkout create includes shipping selection', () => {
+  test('hosted checkout create includes shipping selection and allowed_origin', () => {
     const operation = operationRegistry.getById('v2:POST:/v2/checkouts/');
     expect(operation).toBeDefined();
 
@@ -78,7 +78,11 @@ describe('askell_describe_operation payload', () => {
     const hasShipping = schema.allOf?.some(
       (part) => part.properties && 'shipping' in part.properties,
     );
+    const hasAllowedOrigin = schema.allOf?.some(
+      (part) => part.properties && 'allowed_origin' in part.properties,
+    );
     expect(hasShipping).toBe(true);
+    expect(hasAllowedOrigin).toBe(true);
   });
 
   test('finalize describes verified PM for zero-total recurring', () => {
@@ -99,6 +103,24 @@ describe('askell_describe_operation payload', () => {
     };
     expect(schema.properties?.subscriber_page?.readOnly).toBe(true);
     expect(schema.properties?.subscriber_page?.nullable).toBe(true);
+  });
+
+  test('quote discount exposes recurring amounts without coupon in recurring_*', () => {
+    const spec = getBundledSpec('v2');
+    const quote = spec.components?.schemas?.V2SubscriptionOfferQuote as {
+      properties?: {
+        discount?: {
+          properties?: Record<string, { description?: string }>;
+        };
+      };
+    };
+    const discount = quote.properties?.discount?.properties;
+    expect(discount).toHaveProperty('recurring_original_amount');
+    expect(discount).toHaveProperty('recurring_discount_amount');
+    expect(discount).toHaveProperty('recurring_final_amount');
+    expect(discount?.recurring_original_amount?.description).toMatch(
+      /recurring_\* totals of the quote do not include the promotion code discount/i,
+    );
   });
 
   test('every bundled operation parses as describe output', () => {

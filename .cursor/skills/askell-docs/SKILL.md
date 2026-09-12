@@ -42,7 +42,7 @@ Live Swagger JSON (`askell.is/api/swagger/*.json`) is **upstream only** — inpu
 
 1. Fetch https://docs.askell.is/llms.txt if the index may have changed.
 2. Fetch the **specific page** for the flow you are implementing (not the whole site).
-3. Path/method/schema: bundled `spec/openapi-v*.json`, then overlays in this repo. Prose + captured payloads beat OpenAPI for flows swagger omits (embedded session sub-paths, 3DS iframe, webhook bodies). Bundled spec beats prose when swagger moved first: finalize payment-method rules, quote `customer` / `combo_discounts`, hosted checkout `shipping`.
+3. Path/method/schema: bundled `spec/openapi-v*.json`, then overlays in this repo. Prose + captured payloads beat OpenAPI for flows swagger omits (embedded session sub-paths, 3DS iframe, webhook bodies). Bundled spec beats prose when swagger moved first: finalize payment-method rules, quote `customer` / `combo_discounts` / coupon vs `recurring_*`, hosted checkout `shipping` / `allowed_origin`.
 4. Cite the page URL. Do not dump the whole page into chat.
 
 ## Known traps (docs vs OpenAPI)
@@ -50,9 +50,10 @@ Live Swagger JSON (`askell.is/api/swagger/*.json`) is **upstream only** — inpu
 - Auth: `Authorization: Api-Key <key>`. Public key is browser-safe for a few endpoints only.
 - New integrations: V2 (`/v2/`). v1 is PlanVariant + Subscription.
 - Typical V2: catalog → quote → payment-processor-options → checkout → finalize → poll billing run.
-- Quotes: pass `customer` (numeric id) when the buyer already exists, else combo discounts from their other active contracts and promo-code customer restrictions are skipped. Totals already include coupon + combo (`combo_discounts[]` on the quote response). Combo is automatic, not `apply-code`.
+- Quotes: pass `customer` (numeric id) when the buyer already exists, else combo discounts from their other active contracts and promo-code customer restrictions are skipped. First-period totals already include coupon + combo. `quote.recurring_*` include combo, **not** the coupon — renewal-with-coupon is `discount.recurring_final_amount` while duration still applies (`once` → after first payment use `recurring_*`). Combo is automatic, not `apply-code`.
 - `finalize`: recurring offer needs a verified payment method even when due-now is 0 (trial / 100% off first period). Only a free one-time purchase finalizes without one. Live V2 page still says “unless 0 ISK” — bundled OpenAPI is right.
 - Hosted `POST /v2/checkouts/`: `shipping` is required when the offer has physical products and the account has shipping options. No shipping-options list in OpenAPI (option ids are account config). Snapshot is `contract.shipping_selection`, not `V2Checkout`. Embedded widget collects address/shipping.
+- Hosted iframe (not `askell.js`): `allowed_origin` on `POST /v2/checkouts/` and payment-method-registrations (one origin, no path; `http` only localhost/loopback). Replaces account-level `frame-ancestors`. Rejected on `/v2/checkout-sessions/` — that uses sales-channel `allowed_origins[]`.
 - Embedded checkout: secret key creates a scoped session server-side; browser gets only the session token + `askell.js`.
 - `checkout_url` on V2 checkout objects is the API URL, not a hosted payment page.
 - `subscriber_page` on `V2SubscriptionContract` is the customer-facing management URL (readOnly, nullable). Not `checkout_url`, not v1 `/public/payments/{id}/`. Live V2 page does not document it yet; bundled spec is right. Do not POST it.

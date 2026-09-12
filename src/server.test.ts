@@ -78,5 +78,12 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('contract.shipping_selection');
     expect(text).toContain('GET contract.subscriber_page');
     expect(text).toContain('Not checkout_url, not v1 /public/payments/{id}/');
+    expect(text).toContain(
+      'First-period subtotal/tax/total already include coupon + combo',
+    );
+    expect(text).toContain('quote.recurring_* include combo, not the coupon');
+    expect(text).toContain('discount.recurring_final_amount');
+    expect(text).toContain('allowed_origin');
+    expect(text).toContain('Rejected on /v2/checkout-sessions/');
   });
 });

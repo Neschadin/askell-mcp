@@ -49,13 +49,14 @@ API layout:
 
 V2 discounts — two systems, not v1 Subscription.discount (0-100 on a PlanVariant; never send that to v2):
 - Coupons: one active per contract. GET /v2/subscription-contracts/{id}/discount/ (also nested as contract.discount). Apply with POST .../apply-code/ {promotion_code}. Remove with POST .../remove-discount/.
-- Quotes (POST /v2/subscription-offer-quotes/): pass promotion_code for coupons. When quoting an existing customer, pass customer (numeric id) or combo discounts from their other active contracts and promo-code customer restrictions are skipped. Quoted totals already include coupon + combo; do not subtract again. combo_discounts[] is on the quote response (askell_describe_operation omits response schemas). Combo is automatic, not apply-code.
+- Quotes (POST /v2/subscription-offer-quotes/): pass promotion_code for coupons. When quoting an existing customer, pass customer (numeric id) or combo discounts from their other active contracts and promo-code customer restrictions are skipped. First-period subtotal/tax/total already include coupon + combo. quote.recurring_* include combo, not the coupon — renewal-with-coupon is discount.recurring_final_amount, and only while duration still applies (once → after first payment use recurring_*). combo_discounts[] and discount.recurring_* are on the quote response (askell_describe_operation omits response schemas). Combo is automatic, not apply-code.
 
 V2 checkout notes:
 - checkout_url on V2 checkouts points to the API object URL, not a hosted payment page.
 - GET contract.subscriber_page is the customer-facing subscription management URL (readOnly, nullable). Not checkout_url, not v1 /public/payments/{id}/ (hosted signup). Do not send it on create/patch.
 - finalize: a recurring offer needs a verified payment method even when due-now/total is 0 (trial or fully discounted first period). Only a free one-time purchase finalizes without one. Live docs still say "unless 0 ISK" — ignore that; bundled OpenAPI is right.
 - Hosted POST /v2/checkouts/: shipping {option, location_id?} is required when the offer has physical products and the account has active shipping options. No shipping-options list in OpenAPI (ids are account config). Pickup options need location_id. Snapshot is contract.shipping_selection, not on V2Checkout.
+- Hosted iframe (not askell.js): POST /v2/checkouts/ and POST .../payment-method-registrations/ take allowed_origin (one origin, no path; http only localhost/loopback). Replaces account-level frame-ancestors; GET empty string = account-level. Rejected on /v2/checkout-sessions/ (sales-channel allowed_origins[]).
 - Embedded checkout uses POST /v2/checkout-sessions/ plus browser session-token sub-paths (widget collects address/shipping; see docs, not all in OpenAPI).
 
 Auth:
