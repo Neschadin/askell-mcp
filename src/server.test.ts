@@ -85,5 +85,10 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('discount.recurring_final_amount');
     expect(text).toContain('allowed_origin');
     expect(text).toContain('Rejected on /v2/checkout-sessions/');
+    expect(text).toContain('GET /v2/fulfillment-orders/');
+    expect(text).toContain('fulfillment_order.* webhooks');
+    expect(text).toContain('shipping_code shipping_not_available');
+    expect(text).toContain('shipping_fee');
+    expect(text).toContain('cannot mark shipped via the API');
   });
 });

@@ -9,13 +9,15 @@ Askell POSTs signed JSON to each URL you register. Verify \`Hook-HMAC\` before p
 Headers:
 - Hook-HMAC: base64 HMAC-SHA512 of the **raw body** (secret = \`hmac_secret\` from webhook create)
 - Hook-Event: event type (\`subscription.renewed\`, \`payment.changed\`, or a family wildcard \`subscription.*\`)
-- Hook-API-Version: \`v1\` for plan/subscription/customer/payment/checkout, \`v2\` for subscription_contract / billing_run
+- Hook-API-Version: \`v1\` for plan/subscription/customer/payment/checkout, \`v2\` for subscription_contract / billing_run / fulfillment_order
 
-## Body shape (not in OpenAPI)
+## Body shape
 
 JSON body **is the event object**. It is **not** \`{ event, data }\`.
 
-Upstream swagger used to document a dummy \`POST /your-webhook-url/\` with \`SubscriptionMultiLite\` (\`{ customer, subscriptions[] }\`). \`sync-specs\` strips that path. Inbound payloads are still undocumented in OpenAPI — this resource is the overlay.
+Upstream swagger used to document a dummy \`POST /your-webhook-url/\` with \`SubscriptionMultiLite\` (\`{ customer, subscriptions[] }\`). \`sync-specs\` strips that path.
+
+Most inbound families are still undocumented in OpenAPI — this resource is the overlay. Exception: \`fulfillment_order.*\` body **is** \`V2FulfillmentOrder\` (same as \`GET /v2/fulfillment-orders/{id}/\`). Live https://docs.askell.is/en/api/webhooks.html does not list this family yet.
 
 Rare historical payloads used \`{ event, data, ref?, sender? }\`. If both \`event\` and \`data\` are objects, use \`data\`.
 
@@ -59,6 +61,13 @@ V2 migration: \`subscription.*\` is **not** aliased onto the new contract (paylo
 
 ### checkout.* (v1)
 \`created\`, \`changed\` — \`token\`, \`checkout_url\`, \`status\`.
+
+### fulfillment_order.* (v2)
+Family wildcard \`fulfillment_order.*\`. Concrete event names beyond the family are not listed in swagger or live webhook docs — do not invent \`created\`/\`changed\`.
+
+Body = \`V2FulfillmentOrder\` = \`GET /v2/fulfillment-orders/{fulfillmentOrderId}/\` (list items are the same object). Physical order from a paid billing run (\`billing_run_id\`; at most one order per run). \`delivery_address\` is a snapshot (later contract address edits do not change it). \`shipping_selection\` is the checkout snapshot. \`fulfillments[]\` are booked shipments (empty until booked / if no shipping providers). Status: \`open\` | \`partially_fulfilled\` | \`fulfilled\` | \`cancelled\`.
+
+Register \`fulfillment_order.*\` on \`POST /webhooks/\`. REST backfill: \`GET /v2/fulfillment-orders/?updated_since=\` (secret; newest first; \`403\` if the account has no subscription contracts or shipping is disabled). Read-only — no mark-shipped mutate.
 `;
 
 export function registerResources(server: McpServer): void {

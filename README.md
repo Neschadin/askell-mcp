@@ -126,7 +126,7 @@ Typical agent workflow:
 ## API notes (short)
 
 - **v1** — legacy paths like `/customers/`, `/subscriptions/` (no `/v2` prefix)
-- **v2** — current model: catalogs, quotes, checkouts, contracts, billing runs under `/v2/`
+- **v2** — current model: catalogs, quotes, checkouts, contracts, billing runs, fulfillment orders under `/v2/`
 - **v2 discounts** — coupons: `GET/POST /v2/subscription-contracts/{id}/discount|apply-code|remove-discount` (one active). Quotes take `promotion_code` and, for an existing buyer, `customer` (id) so combo discounts + promo restrictions apply. First-period totals already include coupon + combo; `quote.recurring_*` include combo but not the coupon (`discount.recurring_final_amount` while the coupon is active). Recurring `finalize` needs a verified payment method even when due-now is 0. Not the v1 `discount` 0–100 field.
 - Paths use **trailing slashes**
 - Prefer **v2** for new integrations; v1 remains for existing ones

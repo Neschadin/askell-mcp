@@ -37,7 +37,7 @@ Workflow:
 
 API models:
 - v1 (legacy): PlanVariant + Subscription at paths like /subscriptions/, /customers/. Still supported for existing integrations.
-- v2 (current): Catalog, bundles, quotes, checkouts, subscription contracts, billing runs under /v2/. Prefer v2 for new integrations.
+- v2 (current): Catalog, bundles, quotes, checkouts, subscription contracts, billing runs, fulfillment orders under /v2/. Prefer v2 for new integrations.
 - Prose docs at https://docs.askell.is/api/ may describe flows (embedded checkout, 3D Secure, wallet passes) not fully listed in OpenAPI.
 
 API layout:
@@ -55,9 +55,12 @@ V2 checkout notes:
 - checkout_url on V2 checkouts points to the API object URL, not a hosted payment page.
 - GET contract.subscriber_page is the customer-facing subscription management URL (readOnly, nullable). Not checkout_url, not v1 /public/payments/{id}/ (hosted signup). Do not send it on create/patch.
 - finalize: a recurring offer needs a verified payment method even when due-now/total is 0 (trial or fully discounted first period). Only a free one-time purchase finalizes without one. Live docs still say "unless 0 ISK" — ignore that; bundled OpenAPI is right.
-- Hosted POST /v2/checkouts/: shipping {option, location_id?} is required when the offer has physical products and the account has active shipping options. No shipping-options list in OpenAPI (ids are account config). Pickup options need location_id. Snapshot is contract.shipping_selection, not on V2Checkout.
+- Hosted POST /v2/checkouts/: shipping {option, location_id?} is required when the offer has physical products and the account has active shipping options. No shipping-options list in OpenAPI (ids are account config). Pickup options need location_id. Snapshot is contract.shipping_selection (plus location / zone_name / weight_band), not on V2Checkout. Rate-table option with no zip/weight rate: 400, shipping_code shipping_not_available. Quote/checkout totals already include shipping_fee when present.
 - Hosted iframe (not askell.js): POST /v2/checkouts/ and POST .../payment-method-registrations/ take allowed_origin (one origin, no path; http only localhost/loopback). Replaces account-level frame-ancestors; GET empty string = account-level. Rejected on /v2/checkout-sessions/ (sales-channel allowed_origins[]).
 - Embedded checkout uses POST /v2/checkout-sessions/ plus browser session-token sub-paths (widget collects address/shipping; see docs, not all in OpenAPI).
+
+V2 fulfillment (warehouse, read-only):
+- GET /v2/fulfillment-orders/ and GET /v2/fulfillment-orders/{id}/. Same body as fulfillment_order.* webhooks (V2FulfillmentOrder). Secret key. 403 if the account has no subscription contracts or shipping is disabled. Poll updated_since after a missed webhook (newest first). No POST/PATCH — cannot mark shipped via the API.
 
 Auth:
 - Most endpoints need the secret API key.
@@ -71,7 +74,7 @@ Safety:
 
 Resources:
 - askell://spec/v1 and askell://spec/v2 — bundled OpenAPI
-- askell://docs/webhook-events — inbound webhook payloads (not in OpenAPI; dummy /your-webhook-url/ is stripped on sync), HMAC-SHA512, /webhooks/ hmac_secret`;
+- askell://docs/webhook-events — inbound webhook payloads (most families not in OpenAPI; fulfillment_order.* is V2FulfillmentOrder), HMAC-SHA512, /webhooks/ hmac_secret`;
 }
 
 export function createServer(config: AppConfig): McpServer {

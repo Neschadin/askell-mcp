@@ -123,6 +123,33 @@ describe('askell_describe_operation payload', () => {
     );
   });
 
+  test('v2 fulfillment order list and get are registered', () => {
+    const list = operationRegistry.getById('v2:GET:/v2/fulfillment-orders/');
+    expect(list).toMatchObject({
+      method: 'GET',
+      apiKeyKind: 'secret',
+      tags: ['V2 Fulfillment'],
+    });
+    expect(list?.description).toMatch(/fulfillment_order\.\*/);
+    expect(
+      operationRegistry.getById(
+        'v2:GET:/v2/fulfillment-orders/{fulfillmentOrderId}/',
+      ),
+    ).toBeDefined();
+  });
+
+  test('fulfillment order schema is the webhook body', () => {
+    const spec = getBundledSpec('v2');
+    const schema = spec.components?.schemas?.V2FulfillmentOrder as {
+      description?: string;
+      properties?: Record<string, unknown>;
+    };
+    expect(schema.description).toMatch(/fulfillment_order\.\*/);
+    expect(schema.properties).toHaveProperty('billing_run_id');
+    expect(schema.properties).toHaveProperty('fulfillments');
+    expect(schema.properties).toHaveProperty('shipping_selection');
+  });
+
   test('every bundled operation parses as describe output', () => {
     for (const operation of operationRegistry.operations) {
       const result = operationDetailSchema.safeParse(operation);

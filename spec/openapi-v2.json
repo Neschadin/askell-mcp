@@ -55,6 +55,10 @@
     {
       "name": "V2 Billing Runs",
       "description": "Subscription V2 billing-run read and retry APIs, requires secret api key."
+    },
+    {
+      "name": "V2 Fulfillment",
+      "description": "Subscription V2 fulfillment order read APIs for warehouse integrations, requires secret api key."
     }
   ],
   "paths": {
@@ -1672,6 +1676,119 @@
           }
         ]
       }
+    },
+    "/v2/fulfillment-orders/": {
+      "get": {
+        "tags": [
+          "V2 Fulfillment"
+        ],
+        "summary": "List fulfillment orders",
+        "description": "Returns the authenticated account's fulfillment orders, newest first, with the same body the `fulfillment_order.*` webhooks carry. Intended for backfill and for polling-based reconciliation after a missed webhook delivery. Read-only. Requires a secret key, that the account uses subscription contracts, and that shipping is enabled for the account.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "partially_fulfilled",
+                "fulfilled",
+                "cancelled"
+              ]
+            },
+            "description": "Filter by fulfillment status."
+          },
+          {
+            "in": "query",
+            "name": "contract",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Filter by subscription contract id."
+          },
+          {
+            "in": "query",
+            "name": "customer",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Filter by customer id."
+          },
+          {
+            "in": "query",
+            "name": "customer_reference",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by customer reference."
+          },
+          {
+            "in": "query",
+            "name": "updated_since",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Only orders changed at or after this ISO 8601 timestamp. A bare date means the start of that day. This is the reconciliation filter: poll it with the `updated_at` of the last order you processed."
+          },
+          {
+            "in": "query",
+            "name": "created_since",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Only orders created at or after this ISO 8601 timestamp. A bare date means the start of that day."
+          },
+          {
+            "$ref": "#/components/parameters/PageSizeFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2FulfillmentOrderList"
+          },
+          "403": {
+            "$ref": "#/components/responses/V2PermissionDenied"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/fulfillment-orders/{fulfillmentOrderId}/": {
+      "get": {
+        "tags": [
+          "V2 Fulfillment"
+        ],
+        "summary": "Get a fulfillment order",
+        "description": "Returns one fulfillment order belonging to the authenticated account, with its lines, delivery address, shipping selection and booked shipments. Orders belonging to another account return `404`. Read-only. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2FulfillmentOrderId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2FulfillmentOrder"
+          },
+          "403": {
+            "$ref": "#/components/responses/V2PermissionDenied"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -3105,7 +3222,7 @@
         "properties": {
           "option": {
             "type": "integer",
-            "description": "Id of one of the account's active shipping options."
+            "description": "Id of one of the account's active shipping options. An option with a rate table is priced for the delivery address's zip code (the request's `delivery_address`, else the customer's address) and the weight of the goods; when the table has no rate for that delivery the request fails with `400`, `shipping` describing why and `shipping_code` `shipping_not_available`."
           },
           "location_id": {
             "type": "string",
@@ -3164,6 +3281,14 @@
           "currency": {
             "type": "string"
           },
+          "zone_name": {
+            "type": "string",
+            "description": "The shipping zone that priced the selection, or an empty string when the option is flat-priced or the rate applied to every zip code."
+          },
+          "weight_band": {
+            "type": "string",
+            "description": "The weight band that priced the selection as `min-max` in grams (`max` empty for an open-ended band), or an empty string for a flat-priced option."
+          },
           "location_id": {
             "type": "string"
           },
@@ -3172,6 +3297,51 @@
           },
           "location_address": {
             "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/V2PickupLocation"
+          }
+        }
+      },
+      "V2PickupLocation": {
+        "type": "object",
+        "nullable": true,
+        "description": "The chosen pickup location as a structured block an external fulfillment system can book against, or null when the selection has none (home delivery, freight, store pickup without an address). Derived from the shipping provider's own payload, with the flat `location_*` values as the fallback.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The provider's id for the location."
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "description": "One-line address, composed from street, zip code and town when the provider does not supply one."
+          },
+          "street": {
+            "type": "string"
+          },
+          "zip_code": {
+            "type": "string"
+          },
+          "town": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "The location's id in the provider's upstream system, when it exposes one."
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         }
       },
@@ -3765,6 +3935,25 @@
             "type": "string",
             "format": "decimal"
           },
+          "shipping_fee": {
+            "type": "object",
+            "nullable": true,
+            "description": "Sendingargjald sem er hluti af checkout-samtölunum, eða null.",
+            "properties": {
+              "amount": {
+                "type": "string"
+              },
+              "subtotal_amount": {
+                "type": "string"
+              },
+              "tax_amount": {
+                "type": "string"
+              },
+              "total_amount": {
+                "type": "string"
+              }
+            }
+          },
           "contract_id": {
             "type": "integer",
             "nullable": true
@@ -3931,6 +4120,25 @@
           "total_amount": {
             "type": "string",
             "format": "decimal"
+          },
+          "shipping_fee": {
+            "type": "object",
+            "nullable": true,
+            "description": "Sendingargjald sem er hluti af tilboðinu (samtölur innihalda það), eða null.",
+            "properties": {
+              "amount": {
+                "type": "string"
+              },
+              "subtotal_amount": {
+                "type": "string"
+              },
+              "tax_amount": {
+                "type": "string"
+              },
+              "total_amount": {
+                "type": "string"
+              }
+            }
           },
           "first_period_recurring_subtotal_amount": {
             "type": "string",
@@ -4582,6 +4790,211 @@
           }
         }
       },
+      "V2FulfillmentAddress": {
+        "type": "object",
+        "nullable": true,
+        "description": "The delivery address as it stood when the order was created. This is the order's own snapshot, so editing the contract's address afterwards does not change it.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "delivery_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_1": {
+            "type": "string"
+          },
+          "address_2": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_3": {
+            "type": "string",
+            "nullable": true
+          },
+          "zip_code": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code."
+          }
+        }
+      },
+      "V2FulfillmentOrderLine": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "product_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "product_reference": {
+            "type": "string",
+            "nullable": true,
+            "description": "The seller's own product reference, i.e. the SKU a warehouse picks by. Null when the catalog product has been deleted."
+          },
+          "product_name": {
+            "type": "string",
+            "description": "Product name at the time the order was created."
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "quantity_fulfilled": {
+            "type": "integer",
+            "description": "How many units have been included in a shipment."
+          }
+        }
+      },
+      "V2Fulfillment": {
+        "type": "object",
+        "description": "A shipment booked for (part of) an order.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "order_id": {
+            "type": "integer"
+          },
+          "handler": {
+            "type": "string",
+            "enum": [
+              "dropp",
+              "posturinn",
+              "store_pickup"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "booked",
+              "failed",
+              "shipped",
+              "delivered",
+              "cancelled"
+            ]
+          },
+          "provider_order_id": {
+            "type": "string",
+            "description": "The provider's own identifier for the shipment, such as a Dropp order UUID or a Pósturinn shipment id."
+          },
+          "tracking_number": {
+            "type": "string"
+          },
+          "weight_grams": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Package weight used for the booking."
+          },
+          "error": {
+            "type": "string",
+            "description": "The last booking error, empty when the booking succeeded."
+          },
+          "booked_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2FulfillmentOrder": {
+        "type": "object",
+        "description": "A physical order generated by a paid billing run. This is also the body of the `fulfillment_order.*` webhooks.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "number": {
+            "type": "integer",
+            "description": "Per-account sequential order number."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "partially_fulfilled",
+              "fulfilled",
+              "cancelled"
+            ]
+          },
+          "contract_id": {
+            "type": "integer"
+          },
+          "billing_run_id": {
+            "type": "integer",
+            "description": "The successful billing run that generated this order. Each run generates at most one order."
+          },
+          "customer_id": {
+            "type": "integer"
+          },
+          "customer_reference": {
+            "type": "string"
+          },
+          "customer_name": {
+            "type": "string"
+          },
+          "customer_email": {
+            "type": "string",
+            "nullable": true
+          },
+          "delivery_address": {
+            "$ref": "#/components/schemas/V2FulfillmentAddress"
+          },
+          "shipping_selection": {
+            "$ref": "#/components/schemas/V2ShippingSelection"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2FulfillmentOrderLine"
+            }
+          },
+          "fulfillments": {
+            "type": "array",
+            "description": "Shipments booked for this order. Empty until one is booked, and always empty for an account with no shipping providers configured.",
+            "items": {
+              "$ref": "#/components/schemas/V2Fulfillment"
+            }
+          },
+          "estimated_weight_grams": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Sum of the products' chargeable unit weights, or null when any line lacks weight data, so a partial estimate is never mistaken for a total."
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "V2SubscriptionContractCustomer": {
         "type": "object",
         "properties": {
@@ -5108,6 +5521,17 @@
           "type": "integer"
         }
       },
+      "V2FulfillmentOrderId": {
+        "name": "fulfillmentOrderId",
+        "in": "path",
+        "description": "Fulfillment order id. This is the order's `id`, not its per-account `number`.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "integer"
+        }
+      },
       "V2CustomerReference": {
         "name": "customerReference",
         "in": "path",
@@ -5461,6 +5885,70 @@
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/V2SubscriptionContract"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "V2PermissionDenied": {
+        "description": "The account may not use this endpoint, for example because it does not use subscription contracts or does not have shipping enabled",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "V2FulfillmentOrder": {
+        "description": "V2 fulfillment order",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2FulfillmentOrder"
+            }
+          }
+        }
+      },
+      "V2FulfillmentOrderList": {
+        "description": "V2 fulfillment order list",
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/V2FulfillmentOrder"
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/V2FulfillmentOrder"
                       }
                     }
                   }
