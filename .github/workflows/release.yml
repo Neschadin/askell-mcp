@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  BUN_VERSION: '1.4.0'
+  BUN_VERSION: '1.4.2'
 
 jobs:
   validate:
@@ -111,6 +111,22 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: write
+
+    steps:
+      # No files: published immediately. (files= on this step would draft until uploads finish)
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+  assets:
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
 
@@ -128,11 +144,13 @@ jobs:
           cat SHA256SUMS
           ls -la
 
-      - name: Create GitHub release
+      - name: Upload release assets
+        continue-on-error: true
         uses: softprops/action-gh-release@v3
         with:
           files: dist/*
-          generate_release_notes: true
+          preserve_order: true
+          overwrite_files: true
           fail_on_unmatched_files: true
           prerelease: ${{ contains(github.ref_name, '-') }}
 
