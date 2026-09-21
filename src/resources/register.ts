@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/server';
 
 import { getBundledSpec } from '../openapi/registry.ts';
 
-const WEBHOOK_EVENTS_DOC = `# Askell webhook events (reference)
+export const WEBHOOK_EVENTS_DOC = `# Askell webhook events (reference)
 
 Askell POSTs signed JSON to each URL you register. Verify \`Hook-HMAC\` before parsing.
 
@@ -63,11 +63,11 @@ V2 migration: \`subscription.*\` is **not** aliased onto the new contract (paylo
 \`created\`, \`changed\` — \`token\`, \`checkout_url\`, \`status\`.
 
 ### fulfillment_order.* (v2)
-Family wildcard \`fulfillment_order.*\`. Concrete event names beyond the family are not listed in swagger or live webhook docs — do not invent \`created\`/\`changed\`.
+Family wildcard \`fulfillment_order.*\`. Bundled swagger names \`fulfillment_order.fulfilled\` (\`POST .../fulfill/\` or dashboard ship) and \`fulfillment_order.cancelled\` (\`POST .../cancel/\`). Do not invent \`created\`/\`changed\`. Live https://docs.askell.is/en/api/webhooks.html still omits this family.
 
-Body = \`V2FulfillmentOrder\` = \`GET /v2/fulfillment-orders/{fulfillmentOrderId}/\` (list items are the same object). Physical order from a paid billing run (\`billing_run_id\`; at most one order per run). \`delivery_address\` is a snapshot (later contract address edits do not change it). \`shipping_selection\` is the checkout snapshot. \`fulfillments[]\` are booked shipments (empty until booked / if no shipping providers). Status: \`open\` | \`partially_fulfilled\` | \`fulfilled\` | \`cancelled\`.
+Body = \`V2FulfillmentOrder\` = \`GET /v2/fulfillment-orders/{fulfillmentOrderId}/\` (list items are the same object). Physical order from a paid billing run (\`billing_run_id\`; at most one order per run). \`delivery_address\` is a snapshot (later contract address edits do not change it). \`shipping_selection\` is the checkout snapshot. \`fulfillments[]\` are booked shipments (empty until booked / if no shipping providers). Status: \`open\` | \`partially_fulfilled\` | \`fulfilled\` | \`cancelled\`. External carrier with no Askell integration: shipment \`handler\` is \`""\` — read \`carrier\`.
 
-Register \`fulfillment_order.*\` on \`POST /webhooks/\`. REST backfill: \`GET /v2/fulfillment-orders/?updated_since=\` (secret; newest first; \`403\` if the account has no subscription contracts or shipping is disabled). Read-only — no mark-shipped mutate.
+Register \`fulfillment_order.*\` on \`POST /webhooks/\`. REST backfill: \`GET /v2/fulfillment-orders/?updated_since=\` (secret; newest first; \`403\` if the account has no subscription contracts or shipping is disabled). Mutate via \`askell_mutate\`: \`POST /v2/fulfillment-orders/{id}/fulfill/\` (optional body) and \`POST .../cancel/\` (no body). Both idempotent \`200\` if already in that state (webhook/email not replayed). \`409\` codes: \`order_cancelled\`, \`order_fulfilled\`, \`booking_in_progress\`.
 `;
 
 export function registerResources(server: McpServer): void {

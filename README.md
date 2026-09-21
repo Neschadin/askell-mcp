@@ -126,8 +126,9 @@ Typical agent workflow:
 ## API notes (short)
 
 - **v1** — legacy paths like `/customers/`, `/subscriptions/` (no `/v2` prefix)
-- **v2** — current model: catalogs, quotes, checkouts, contracts, billing runs, fulfillment orders under `/v2/`
-- **v2 discounts** — coupons: `GET/POST /v2/subscription-contracts/{id}/discount|apply-code|remove-discount` (one active). Quotes take `promotion_code` and, for an existing buyer, `customer` (id) so combo discounts + promo restrictions apply. First-period totals already include coupon + combo; `quote.recurring_*` include combo but not the coupon (`discount.recurring_final_amount` while the coupon is active). Recurring `finalize` needs a verified payment method even when due-now is 0. Not the v1 `discount` 0–100 field.
+- **v2** — current model: catalogs, quotes, checkouts, contracts, billing runs, coupons/promotion codes, fulfillment orders under `/v2/`
+- **v2 discounts** — catalog CRUD `/v2/coupons/` + `/v2/promotion-codes/` (coupon = definition, promotion code = what the customer types). Contract: `GET/POST /v2/subscription-contracts/{id}/discount|apply-code|remove-discount` (one active). Quotes take `promotion_code` and, for an existing buyer, `customer` (id) so combo discounts + promo restrictions apply. First-period totals already include coupon + combo; `quote.recurring_*` include combo but not the coupon (`discount.recurring_final_amount` while the coupon is active). Recurring `finalize` needs a verified payment method even when due-now is 0. Not the v1 `discount` 0–100 field.
+- **v2 fulfillment** — `GET /v2/fulfillment-orders/` for backfill; `POST .../{id}/fulfill/` (optional tracking body) and `POST .../{id}/cancel/` mark shipped/cancelled. Same body as `fulfillment_order.*` webhooks.
 - Paths use **trailing slashes**
 - Prefer **v2** for new integrations; v1 remains for existing ones
 - Docs: [docs.askell.is](https://docs.askell.is/) · OpenAPI: [v1](https://askell.is/api/swagger/swagger.json) · [v2](https://askell.is/api/swagger/v2/swagger.json)

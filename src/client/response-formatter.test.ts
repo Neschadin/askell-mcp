@@ -159,6 +159,80 @@ describe('buildBoundedListPayload', () => {
     expect(parsed.meta.truncatedByMaxBytes).toBe(false);
     expect(parsed.body).toHaveLength(502);
   });
+
+  test('summary compact keeps coupon and promotion-code fields', () => {
+    const items = Array.from({ length: 30 }, (_, i) => ({
+      id: `promo_${i}`,
+      code: `SUMMER${i}`,
+      coupon: 'coupon_summer',
+      valid: i % 2 === 0,
+      duration: 'once',
+      active: true,
+      created_at: '2026-01-01T00:00:00Z',
+      metadata: { blob: 'x'.repeat(800) },
+      restrictions: { minimum_amount: '1000', note: 'y'.repeat(400) },
+    }));
+
+    const result = buildBoundedListPayload({
+      status: 200,
+      meta: { path: '/v2/promotion-codes/' },
+      items,
+      maxBytes: 8_000,
+    });
+
+    const parsed = JSON.parse(result.text) as {
+      meta: { compacted?: boolean; compactedMode?: string };
+      body: Array<{
+        id?: string;
+        code?: string;
+        coupon?: string;
+        valid?: boolean;
+        duration?: string;
+        metadata?: unknown;
+      }>;
+    };
+
+    expect(parsed.meta.compacted).toBe(true);
+    expect(parsed.body.length).toBeGreaterThan(0);
+    expect(parsed.body[0]).toMatchObject({
+      id: 'promo_0',
+      code: 'SUMMER0',
+      coupon: 'coupon_summer',
+      valid: true,
+      duration: 'once',
+    });
+    expect(parsed.body[0]).not.toHaveProperty('metadata');
+    expect(parsed.body[0]).not.toHaveProperty('restrictions');
+  });
+
+  test('index compact keeps customer-facing promotion code', () => {
+    const items = Array.from({ length: 200 }, (_, i) => ({
+      id: `promo_${i}`,
+      code: `WINTER${i}`,
+      coupon: 'coupon_winter',
+      valid: true,
+      active: true,
+      created_at: '2026-01-01T00:00:00Z',
+      name: `Promo ${i}`,
+      metadata: { blob: 'z'.repeat(200) },
+    }));
+
+    const result = buildBoundedListPayload({
+      status: 200,
+      meta: { path: '/v2/promotion-codes/' },
+      items,
+      maxBytes: 6_000,
+    });
+
+    const parsed = JSON.parse(result.text) as {
+      meta: { compacted?: boolean; compactedMode?: string };
+      body: Array<{ id?: string; code?: string; coupon?: unknown }>;
+    };
+
+    expect(parsed.meta.compacted).toBe(true);
+    expect(parsed.body[0]?.code).toBe('WINTER0');
+    expect(parsed.body[0]?.id).toBe('promo_0');
+  });
 });
 
 describe('formatApiResponse', () => {

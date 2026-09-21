@@ -123,7 +123,7 @@ describe('askell_describe_operation payload', () => {
     );
   });
 
-  test('v2 fulfillment order list and get are registered', () => {
+  test('v2 fulfillment order list, get, fulfill, and cancel are registered', () => {
     const list = operationRegistry.getById('v2:GET:/v2/fulfillment-orders/');
     expect(list).toMatchObject({
       method: 'GET',
@@ -136,6 +136,32 @@ describe('askell_describe_operation payload', () => {
         'v2:GET:/v2/fulfillment-orders/{fulfillmentOrderId}/',
       ),
     ).toBeDefined();
+
+    const fulfill = operationRegistry.getById(
+      'v2:POST:/v2/fulfillment-orders/{fulfillmentOrderId}/fulfill/',
+    );
+    expect(fulfill).toMatchObject({
+      method: 'POST',
+      apiKeyKind: 'secret',
+      tags: ['V2 Fulfillment'],
+    });
+    expect(fulfill?.description).toMatch(/idempotent/i);
+    expect(fulfill?.requestBody?.required).toBe(false);
+    const fulfillSchema = fulfill?.requestBody?.schema as {
+      properties?: Record<string, unknown>;
+    };
+    expect(fulfillSchema.properties).toHaveProperty('tracking_number');
+    expect(fulfillSchema.properties).toHaveProperty('carrier');
+
+    const cancel = operationRegistry.getById(
+      'v2:POST:/v2/fulfillment-orders/{fulfillmentOrderId}/cancel/',
+    );
+    expect(cancel).toMatchObject({
+      method: 'POST',
+      apiKeyKind: 'secret',
+    });
+    expect(cancel?.requestBody).toBeUndefined();
+    expect(cancel?.description).toMatch(/fulfillment_order\.cancelled/);
   });
 
   test('fulfillment order schema is the webhook body', () => {
@@ -148,6 +174,102 @@ describe('askell_describe_operation payload', () => {
     expect(schema.properties).toHaveProperty('billing_run_id');
     expect(schema.properties).toHaveProperty('fulfillments');
     expect(schema.properties).toHaveProperty('shipping_selection');
+  });
+
+  test('fulfillment shipment exposes external carrier fields', () => {
+    const spec = getBundledSpec('v2');
+    const schema = spec.components?.schemas?.V2Fulfillment as {
+      properties?: {
+        handler?: { enum?: string[] };
+        carrier?: unknown;
+        tracking_url?: unknown;
+      };
+    };
+    expect(schema.properties?.handler?.enum).toContain('');
+    expect(schema.properties).toHaveProperty('carrier');
+    expect(schema.properties).toHaveProperty('tracking_url');
+  });
+
+  test('v2 coupon and promotion-code catalog ops are registered', () => {
+    const couponList = operationRegistry.getById('v2:GET:/v2/coupons/');
+    expect(couponList).toMatchObject({
+      method: 'GET',
+      apiKeyKind: 'secret',
+      tags: ['V2 Coupons'],
+    });
+    expect(
+      operationRegistry.getById('v2:POST:/v2/coupons/'),
+    ).toBeDefined();
+    expect(
+      operationRegistry.getById('v2:GET:/v2/coupons/{couponId}/'),
+    ).toBeDefined();
+    expect(
+      operationRegistry.getById('v2:PATCH:/v2/coupons/{couponId}/'),
+    ).toBeDefined();
+    expect(
+      operationRegistry.getById('v2:DELETE:/v2/coupons/{couponId}/'),
+    ).toBeDefined();
+
+    const create = operationRegistry.getById('v2:POST:/v2/coupons/');
+    const createSchema = create?.requestBody?.schema as {
+      required?: string[];
+      properties?: Record<string, unknown>;
+    };
+    expect(createSchema.required).toEqual(['duration']);
+    expect(createSchema.properties).toHaveProperty('amount_off');
+    expect(createSchema.properties).toHaveProperty('percent_off');
+
+    expect(
+      operationRegistry.getById('v2:GET:/v2/promotion-codes/'),
+    ).toMatchObject({
+      method: 'GET',
+      apiKeyKind: 'secret',
+      tags: ['V2 Coupons'],
+    });
+    const promoCreate = operationRegistry.getById(
+      'v2:POST:/v2/promotion-codes/',
+    );
+    const promoSchema = promoCreate?.requestBody?.schema as {
+      required?: string[];
+      properties?: Record<string, unknown>;
+    };
+    expect(promoSchema.required).toEqual(['coupon']);
+    expect(promoSchema.properties).toHaveProperty('code');
+    expect(promoSchema.properties).toHaveProperty('customer');
+    expect(promoSchema.properties).toHaveProperty('customer_reference');
+    expect(
+      operationRegistry.getById(
+        'v2:GET:/v2/promotion-codes/{promotionCodeId}/',
+      ),
+    ).toBeDefined();
+    expect(
+      operationRegistry.getById(
+        'v2:PATCH:/v2/promotion-codes/{promotionCodeId}/',
+      ),
+    ).toBeDefined();
+    expect(
+      operationRegistry.getById(
+        'v2:DELETE:/v2/promotion-codes/{promotionCodeId}/',
+      ),
+    ).toBeDefined();
+  });
+
+  test('coupon and promotion-code schemas are in the bundled spec', () => {
+    const spec = getBundledSpec('v2');
+    const coupon = spec.components?.schemas?.V2Coupon as {
+      properties?: Record<string, unknown>;
+    };
+    expect(coupon.properties).toHaveProperty('amount_off');
+    expect(coupon.properties).toHaveProperty('percent_off');
+    expect(coupon.properties).toHaveProperty('duration');
+    expect(coupon.properties).toHaveProperty('valid');
+
+    const promo = spec.components?.schemas?.V2PromotionCode as {
+      properties?: Record<string, unknown>;
+    };
+    expect(promo.properties).toHaveProperty('code');
+    expect(promo.properties).toHaveProperty('coupon');
+    expect(promo.properties).toHaveProperty('valid');
   });
 
   test('every bundled operation parses as describe output', () => {

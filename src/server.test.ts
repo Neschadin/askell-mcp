@@ -89,6 +89,15 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('fulfillment_order.* webhooks');
     expect(text).toContain('shipping_code shipping_not_available');
     expect(text).toContain('shipping_fee');
-    expect(text).toContain('cannot mark shipped via the API');
+    expect(text).toContain('POST .../{id}/fulfill/');
+    expect(text).toContain('POST .../{id}/cancel/');
+    expect(text).toContain('order_cancelled | order_fulfilled | booking_in_progress');
+    expect(text).toContain('shipment.handler is ""');
+    expect(text).toContain('CRUD /v2/coupons/');
+    expect(text).toContain('/v2/promotion-codes/');
+    expect(text).toContain('exactly one of amount_off+currency or percent_off');
+    expect(text).toContain('active=false');
+    expect(text).not.toContain('cannot mark shipped via the API');
+    expect(text).not.toContain('warehouse, read-only');
   });
 });

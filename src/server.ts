@@ -37,7 +37,7 @@ Workflow:
 
 API models:
 - v1 (legacy): PlanVariant + Subscription at paths like /subscriptions/, /customers/. Still supported for existing integrations.
-- v2 (current): Catalog, bundles, quotes, checkouts, subscription contracts, billing runs, fulfillment orders under /v2/. Prefer v2 for new integrations.
+- v2 (current): Catalog, bundles, quotes, checkouts, subscription contracts, billing runs, coupons/promotion codes, fulfillment orders under /v2/. Prefer v2 for new integrations.
 - Prose docs at https://docs.askell.is/api/ may describe flows (embedded checkout, 3D Secure, wallet passes) not fully listed in OpenAPI.
 
 API layout:
@@ -47,8 +47,9 @@ API layout:
 - V2 list endpoints paginate only when page_size is provided (default 10, max 1000).
 - GET /v2/customer-entitlements/ requires customer_reference query param.
 
-V2 discounts — two systems, not v1 Subscription.discount (0-100 on a PlanVariant; never send that to v2):
-- Coupons: one active per contract. GET /v2/subscription-contracts/{id}/discount/ (also nested as contract.discount). Apply with POST .../apply-code/ {promotion_code}. Remove with POST .../remove-discount/.
+V2 discounts — not v1 Subscription.discount (0-100 on a PlanVariant; never send that to v2). Coupon = discount definition; promotion code = customer-facing code:
+- Catalog (secret): CRUD /v2/coupons/ and /v2/promotion-codes/. Create coupon: exactly one of amount_off+currency or percent_off; duration_in_months required iff duration=repeating (omit otherwise); redeem_by must be future. PATCH type switch: send the old field as null. Redeemed coupon/code cannot DELETE — retire coupon with redeem_by/max_redemptions, promo with active=false (frees code for reuse). List/get hide soft-deletes. Promo code is uppercased and generated if omitted; unique among active; restrict with customer xor customer_reference.
+- Contract: one active discount. GET /v2/subscription-contracts/{id}/discount/ (also nested as contract.discount). Apply with POST .../apply-code/ {promotion_code}. Remove with POST .../remove-discount/.
 - Quotes (POST /v2/subscription-offer-quotes/): pass promotion_code for coupons. When quoting an existing customer, pass customer (numeric id) or combo discounts from their other active contracts and promo-code customer restrictions are skipped. First-period subtotal/tax/total already include coupon + combo. quote.recurring_* include combo, not the coupon — renewal-with-coupon is discount.recurring_final_amount, and only while duration still applies (once → after first payment use recurring_*). combo_discounts[] and discount.recurring_* are on the quote response (askell_describe_operation omits response schemas). Combo is automatic, not apply-code.
 
 V2 checkout notes:
@@ -59,8 +60,9 @@ V2 checkout notes:
 - Hosted iframe (not askell.js): POST /v2/checkouts/ and POST .../payment-method-registrations/ take allowed_origin (one origin, no path; http only localhost/loopback). Replaces account-level frame-ancestors; GET empty string = account-level. Rejected on /v2/checkout-sessions/ (sales-channel allowed_origins[]).
 - Embedded checkout uses POST /v2/checkout-sessions/ plus browser session-token sub-paths (widget collects address/shipping; see docs, not all in OpenAPI).
 
-V2 fulfillment (warehouse, read-only):
-- GET /v2/fulfillment-orders/ and GET /v2/fulfillment-orders/{id}/. Same body as fulfillment_order.* webhooks (V2FulfillmentOrder). Secret key. 403 if the account has no subscription contracts or shipping is disabled. Poll updated_since after a missed webhook (newest first). No POST/PATCH — cannot mark shipped via the API.
+V2 fulfillment (warehouse):
+- GET /v2/fulfillment-orders/ and GET /v2/fulfillment-orders/{id}/. Same body as fulfillment_order.* webhooks (V2FulfillmentOrder). Secret key. 403 if contracts/shipping off. Poll updated_since after a missed webhook (newest first).
+- POST .../{id}/fulfill/ marks shipped (body optional: tracking_number, tracking_url, provider_order_id, carrier, weight_grams). POST .../{id}/cancel/ (no body). Both idempotent 200 if already in that state (no second webhook/email). 409: order_cancelled | order_fulfilled | booking_in_progress (retry shortly). 403 if fulfillment is switched off. External carrier with no Askell integration: shipment.handler is "" — read carrier.
 
 Auth:
 - Most endpoints need the secret API key.

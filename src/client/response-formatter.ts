@@ -67,6 +67,10 @@ function summarizeListItem(item: unknown): unknown {
     'currency',
     'amount',
     'total_amount',
+    'code',
+    'valid',
+    'duration',
+    'coupon',
   ] as const;
 
   for (const key of scalarKeys) {
@@ -125,6 +129,10 @@ function indexListItem(item: unknown): unknown {
     out.plan = (plan as { name: unknown }).name;
   } else if ('name' in obj && typeof obj.name === 'string') {
     out.name = obj.name;
+  }
+
+  if (typeof obj.code === 'string') {
+    out.code = obj.code;
   }
 
   const customerRef =

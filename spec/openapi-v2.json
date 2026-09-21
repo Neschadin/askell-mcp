@@ -58,7 +58,11 @@
     },
     {
       "name": "V2 Fulfillment",
-      "description": "Subscription V2 fulfillment order read APIs for warehouse integrations, requires secret api key."
+      "description": "Subscription V2 fulfillment order APIs for warehouse integrations: read the orders, and report back when your own system has shipped or cancelled one. Requires secret api key."
+    },
+    {
+      "name": "V2 Coupons",
+      "description": "Coupon and promotion code management APIs, requires secret api key."
     }
   ],
   "paths": {
@@ -1789,6 +1793,474 @@
           }
         ]
       }
+    },
+    "/v2/fulfillment-orders/{fulfillmentOrderId}/fulfill/": {
+      "post": {
+        "tags": [
+          "V2 Fulfillment"
+        ],
+        "summary": "Report a fulfillment order as shipped",
+        "description": "Records a shipment your own system made and completes the order: every line is marked fulfilled, the order moves to `fulfilled`, the customer is sent the shipped notification and the `fulfillment_order.fulfilled` webhook fires, exactly as when an order is fulfilled from the dashboard. The body is optional — a seller who delivers by hand has no tracking details to report. Idempotent: an order that is already fulfilled comes back unchanged with `200` and nothing is created, emailed or dispatched again. Available whether the account fulfills in Áskell or in an external system, but not while fulfillment is switched off for the account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2FulfillmentOrderId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2FulfillmentOrderFulfill"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2FulfillmentOrder"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/V2PermissionDenied"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/V2FulfillmentOrderConflict"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/fulfillment-orders/{fulfillmentOrderId}/cancel/": {
+      "post": {
+        "tags": [
+          "V2 Fulfillment"
+        ],
+        "summary": "Cancel a fulfillment order",
+        "description": "Cancels an order that is not going to be shipped. A booking that has not left the provider's hands is retired on the Áskell side and flagged for you to cancel with the carrier itself. Takes no body. Idempotent: an order that is already cancelled comes back with `200` and the `fulfillment_order.cancelled` webhook is not sent again. Requires a secret key and that fulfillment is enabled for the account.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2FulfillmentOrderId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2FulfillmentOrder"
+          },
+          "403": {
+            "$ref": "#/components/responses/V2PermissionDenied"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/V2FulfillmentOrderConflict"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/coupons/": {
+      "get": {
+        "tags": [
+          "V2 Coupons"
+        ],
+        "summary": "List V2 coupons",
+        "description": "Lists coupons for the authenticated account. Soft-deleted resources are never returned. Requires a secret key.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "valid",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Filter by whether the coupon can currently be redeemed (live, not expired, redemptions left)."
+          },
+          {
+            "in": "query",
+            "name": "duration",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "forever",
+                "once",
+                "repeating"
+              ]
+            },
+            "description": "Filter by duration."
+          },
+          {
+            "in": "query",
+            "name": "currency",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter amount-off coupons by three-letter ISO currency code."
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive substring match on the coupon name."
+          },
+          {
+            "$ref": "#/components/parameters/PageSizeFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2CouponList"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "V2 Coupons"
+        ],
+        "summary": "Create a V2 coupon",
+        "description": "Creates a coupon. Exactly one of `amount_off` (with `currency`) or `percent_off` must be set. `duration_in_months` is required when `duration` is `repeating` and must be omitted otherwise. `redeem_by` must be in the future. Requires a secret key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2CouponCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/V2Coupon"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/coupons/{couponId}/": {
+      "get": {
+        "tags": [
+          "V2 Coupons"
+        ],
+        "summary": "Get a V2 coupon",
+        "description": "Returns a single coupon for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CouponId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2Coupon"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "V2 Coupons"
+        ],
+        "summary": "Update a V2 coupon",
+        "description": "Partially updates a coupon. To switch from `percent_off` to `amount_off` (or back) send the old field as `null` in the same request. `id` and `times_redeemed` cannot be changed. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CouponId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2CouponPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2Coupon"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "V2 Coupons"
+        ],
+        "summary": "Delete a V2 coupon",
+        "description": "Soft-deletes a coupon so it can no longer be redeemed and is hidden from list and detail responses. Coupons that have already been redeemed cannot be deleted; retire them with `redeem_by` or `max_redemptions` instead. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2CouponId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/promotion-codes/": {
+      "get": {
+        "tags": [
+          "V2 Coupons"
+        ],
+        "summary": "List V2 promotion codes",
+        "description": "Lists promotion codes for the authenticated account. Soft-deleted resources are never returned. Requires a secret key.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Exact, case-insensitive match on the customer-facing code."
+          },
+          {
+            "in": "query",
+            "name": "coupon",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by coupon id."
+          },
+          {
+            "in": "query",
+            "name": "active",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Filter by the active flag."
+          },
+          {
+            "in": "query",
+            "name": "valid",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Filter by whether the code can currently be redeemed (active, not expired, redemptions left, and coupon valid)."
+          },
+          {
+            "in": "query",
+            "name": "customer_reference",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter codes restricted to the customer with this reference."
+          },
+          {
+            "$ref": "#/components/parameters/PageSizeFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2PromotionCodeList"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "V2 Coupons"
+        ],
+        "summary": "Create a V2 promotion code",
+        "description": "Creates a promotion code for a coupon owned by the authenticated account. `code` is normalised to upper case and generated when omitted; it must be unique among active codes for the account. Restrict the code to one customer with either `customer` (id) or `customer_reference`. Requires a secret key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2PromotionCodeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/V2PromotionCode"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/promotion-codes/{promotionCodeId}/": {
+      "get": {
+        "tags": [
+          "V2 Coupons"
+        ],
+        "summary": "Get a V2 promotion code",
+        "description": "Returns a single promotion code for the authenticated account. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2PromotionCodeId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2PromotionCode"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "V2 Coupons"
+        ],
+        "summary": "Update a V2 promotion code",
+        "description": "Partially updates a promotion code. Send `customer` or `customer_reference` as `null` to remove a customer restriction. Set `active` to `false` to retire a code without deleting it; the code can then be reused by a new promotion code. `id` and `times_redeemed` cannot be changed. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2PromotionCodeId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2PromotionCodePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2PromotionCode"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "V2 Coupons"
+        ],
+        "summary": "Delete a V2 promotion code",
+        "description": "Soft-deletes a promotion code, freeing its code for reuse. Promotion codes that have already been redeemed cannot be deleted; set `active` to `false` instead. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2PromotionCodeId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -3288,6 +3760,11 @@
           "weight_band": {
             "type": "string",
             "description": "The weight band that priced the selection as `min-max` in grams (`max` empty for an open-ended band), or an empty string for a flat-priced option."
+          },
+          "provider_quote": {
+            "type": "object",
+            "description": "The carrier quote that priced the selection, for an option priced by the carrier's own live quote; an empty object for every other option. Keys: `service_id` (the carrier's delivery service, such as `DPP108`), `booked_service_id` (the delivery service the shipment is booked under, which need not be spelled the same as the quoted one, and is empty when the selection has no service code to build it from), `name`, `gross_price` and `net_price` as decimal strings, and `request` with the `country_code`, `zip_code` and `weight_grams` the quote answered.",
+            "additionalProperties": true
           },
           "location_id": {
             "type": "string"
@@ -4790,6 +5267,44 @@
           }
         }
       },
+      "V2FulfillmentOrderFulfill": {
+        "type": "object",
+        "description": "What an external fulfillment system reports back when it has shipped an order. Every field is optional; an empty object just closes the order.",
+        "properties": {
+          "tracking_number": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Tracking number for the parcel. Included in the shipped notification sent to the customer.",
+            "example": "PP123456789"
+          },
+          "tracking_url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 512,
+            "description": "A URL the shipment can be tracked at. Stored with the shipment and served back as the shipment's `tracking_url`.",
+            "example": "https://posturinn.is/track/PP123456789"
+          },
+          "provider_order_id": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "The carrier's own identifier for the shipment.",
+            "example": "shp_8812"
+          },
+          "carrier": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "The carrier that took the parcel. `dropp` and `posturinn` are recognised and file the shipment under that handler; anything else is kept as free text.",
+            "example": "posturinn"
+          },
+          "weight_grams": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true,
+            "description": "Parcel weight in grams.",
+            "example": 1000
+          }
+        }
+      },
       "V2FulfillmentAddress": {
         "type": "object",
         "nullable": true,
@@ -4870,11 +5385,17 @@
           },
           "handler": {
             "type": "string",
+            "description": "The shipping handler the shipment was booked with. Empty when an external fulfillment system shipped the order with a carrier Áskell has no integration for — read `carrier` for the name it reported.",
             "enum": [
               "dropp",
               "posturinn",
-              "store_pickup"
+              "store_pickup",
+              ""
             ]
+          },
+          "carrier": {
+            "type": "string",
+            "description": "What carried the parcel: the carrier an external system reported, or the handler that booked it. Empty only when neither is known."
           },
           "status": {
             "type": "string",
@@ -4893,6 +5414,11 @@
           },
           "tracking_number": {
             "type": "string"
+          },
+          "tracking_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "A URL the shipment can be tracked at, as reported through the fulfill endpoint. Empty when none was reported."
           },
           "weight_grams": {
             "type": "integer",
@@ -5433,6 +5959,455 @@
             "$ref": "#/components/schemas/V2BillingRunSummary"
           }
         }
+      },
+      "V2Coupon": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "coup_5f3a1c2b9d8e4f6a7b8c9d0e"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount_off": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true,
+            "description": "Fixed amount taken off. Mutually exclusive with `percent_off`.",
+            "example": "500.00"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true,
+            "description": "Three-letter ISO 4217 currency code. Required with `amount_off`.",
+            "example": "ISK"
+          },
+          "percent_off": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true,
+            "description": "Percentage taken off (0.01-100). Mutually exclusive with `amount_off`.",
+            "example": "10.00"
+          },
+          "discount_display": {
+            "type": "string",
+            "example": "10.00%"
+          },
+          "duration": {
+            "type": "string",
+            "enum": [
+              "forever",
+              "once",
+              "repeating"
+            ]
+          },
+          "duration_in_months": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Required when `duration` is `repeating`."
+          },
+          "skip_trial_period": {
+            "type": "boolean",
+            "description": "Bypass the plan trial period when the coupon is applied at checkout."
+          },
+          "max_redemptions": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "times_redeemed": {
+            "type": "integer"
+          },
+          "redeem_by": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the coupon can currently be redeemed."
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2CouponCreate": {
+        "type": "object",
+        "required": [
+          "duration"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "coup_5f3a1c2b9d8e4f6a7b8c9d0e",
+            "description": "Optional custom id (letters, digits, underscores, hyphens and dots, max 128 characters; `.` and `..` are not allowed). Generated when omitted.",
+            "pattern": "^(?!\\.{1,2}$)[A-Za-z0-9_.-]{1,128}$"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount_off": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true,
+            "description": "Fixed amount taken off. Mutually exclusive with `percent_off`.",
+            "example": "500.00"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true,
+            "description": "Three-letter ISO 4217 currency code. Required with `amount_off`.",
+            "example": "ISK"
+          },
+          "percent_off": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true,
+            "description": "Percentage taken off (0.01-100). Mutually exclusive with `amount_off`.",
+            "example": "10.00"
+          },
+          "duration": {
+            "type": "string",
+            "enum": [
+              "forever",
+              "once",
+              "repeating"
+            ]
+          },
+          "duration_in_months": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Required when `duration` is `repeating`."
+          },
+          "skip_trial_period": {
+            "type": "boolean",
+            "description": "Bypass the plan trial period when the coupon is applied at checkout."
+          },
+          "max_redemptions": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "redeem_by": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "metadata": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2Metadata"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2CouponPatch": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount_off": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true,
+            "description": "Fixed amount taken off. Mutually exclusive with `percent_off`.",
+            "example": "500.00"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true,
+            "description": "Three-letter ISO 4217 currency code. Required with `amount_off`.",
+            "example": "ISK"
+          },
+          "percent_off": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true,
+            "description": "Percentage taken off (0.01-100). Mutually exclusive with `amount_off`.",
+            "example": "10.00"
+          },
+          "duration": {
+            "type": "string",
+            "enum": [
+              "forever",
+              "once",
+              "repeating"
+            ]
+          },
+          "duration_in_months": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Required when `duration` is `repeating`."
+          },
+          "skip_trial_period": {
+            "type": "boolean",
+            "description": "Bypass the plan trial period when the coupon is applied at checkout."
+          },
+          "max_redemptions": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "redeem_by": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "metadata": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2Metadata"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2PromotionCode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "promo_5f3a1c2b9d8e4f6a7b8c9d0e"
+          },
+          "code": {
+            "type": "string",
+            "description": "Customer-facing code (4-50 letters, digits, hyphens or underscores). Stored in upper case.",
+            "example": "SUMMER20"
+          },
+          "coupon": {
+            "type": "string",
+            "description": "Coupon id.",
+            "example": "coup_5f3a1c2b9d8e4f6a7b8c9d0e"
+          },
+          "coupon_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "coupon_discount_display": {
+            "type": "string",
+            "example": "10.00%"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "customer_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "customer_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "max_redemptions": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "times_redeemed": {
+            "type": "integer"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "restrictions": {
+            "type": "object",
+            "description": "Redemption restrictions. Only a minimum order amount is supported; `minimum_amount` and `minimum_amount_currency` must be provided together, or send an empty object to remove the restriction.",
+            "properties": {
+              "minimum_amount": {
+                "type": "string",
+                "format": "decimal",
+                "description": "Minimum amount the code can be applied to. Must be greater than zero.",
+                "example": "1000"
+              },
+              "minimum_amount_currency": {
+                "type": "string",
+                "description": "Three-letter ISO 4217 code of `minimum_amount`.",
+                "example": "ISK"
+              }
+            },
+            "additionalProperties": false
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the code can currently be redeemed."
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/V2Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2PromotionCodeCreate": {
+        "type": "object",
+        "required": [
+          "coupon"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "promo_5f3a1c2b9d8e4f6a7b8c9d0e",
+            "description": "Optional custom id (letters, digits, underscores, hyphens and dots, max 128 characters; `.` and `..` are not allowed). Generated when omitted.",
+            "pattern": "^(?!\\.{1,2}$)[A-Za-z0-9_.-]{1,128}$"
+          },
+          "code": {
+            "type": "string",
+            "description": "Customer-facing code (4-50 letters, digits, hyphens or underscores). Stored in upper case. Generated when omitted.",
+            "example": "SUMMER20"
+          },
+          "coupon": {
+            "type": "string",
+            "description": "Coupon id.",
+            "example": "coup_5f3a1c2b9d8e4f6a7b8c9d0e"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "customer": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Customer id to restrict the code to. Mutually exclusive with `customer_reference`."
+          },
+          "customer_reference": {
+            "type": "string",
+            "nullable": true,
+            "description": "Customer reference to restrict the code to. Mutually exclusive with `customer`."
+          },
+          "max_redemptions": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "restrictions": {
+            "type": "object",
+            "nullable": true,
+            "description": "Redemption restrictions. Only a minimum order amount is supported; `minimum_amount` and `minimum_amount_currency` must be provided together, or send an empty object to remove the restriction.",
+            "properties": {
+              "minimum_amount": {
+                "type": "string",
+                "format": "decimal",
+                "description": "Minimum amount the code can be applied to. Must be greater than zero.",
+                "example": "1000"
+              },
+              "minimum_amount_currency": {
+                "type": "string",
+                "description": "Three-letter ISO 4217 code of `minimum_amount`.",
+                "example": "ISK"
+              }
+            },
+            "additionalProperties": false
+          },
+          "metadata": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2Metadata"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2PromotionCodePatch": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Customer-facing code (4-50 letters, digits, hyphens or underscores). Stored in upper case.",
+            "example": "SUMMER20"
+          },
+          "coupon": {
+            "type": "string",
+            "description": "Coupon id.",
+            "example": "coup_5f3a1c2b9d8e4f6a7b8c9d0e"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "customer": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Customer id to restrict the code to. Mutually exclusive with `customer_reference`."
+          },
+          "customer_reference": {
+            "type": "string",
+            "nullable": true,
+            "description": "Customer reference to restrict the code to. Mutually exclusive with `customer`."
+          },
+          "max_redemptions": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "restrictions": {
+            "type": "object",
+            "nullable": true,
+            "description": "Redemption restrictions. Only a minimum order amount is supported; `minimum_amount` and `minimum_amount_currency` must be provided together, or send an empty object to remove the restriction.",
+            "properties": {
+              "minimum_amount": {
+                "type": "string",
+                "format": "decimal",
+                "description": "Minimum amount the code can be applied to. Must be greater than zero.",
+                "example": "1000"
+              },
+              "minimum_amount_currency": {
+                "type": "string",
+                "description": "Three-letter ISO 4217 code of `minimum_amount`.",
+                "example": "ISK"
+              }
+            },
+            "additionalProperties": false
+          },
+          "metadata": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2Metadata"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       }
     },
     "parameters": {
@@ -5588,6 +6563,28 @@
         "schema": {
           "type": "string",
           "format": "uuid"
+        }
+      },
+      "V2CouponId": {
+        "name": "couponId",
+        "in": "path",
+        "description": "Coupon id.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "V2PromotionCodeId": {
+        "name": "promotionCodeId",
+        "in": "path",
+        "description": "Promotion code id.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string"
         }
       }
     },
@@ -5949,6 +6946,127 @@
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/V2FulfillmentOrder"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "V2FulfillmentOrderConflict": {
+        "description": "The order has already moved somewhere the action cannot take it from, or is moving there right now: `order_cancelled` when fulfilling a cancelled order, `order_fulfilled` when cancelling a fulfilled one, `booking_in_progress` when a shipment is being booked in Áskell for it — retry shortly",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "order_cancelled",
+                    "order_fulfilled",
+                    "booking_in_progress"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "V2Coupon": {
+        "description": "V2 coupon",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2Coupon"
+            }
+          }
+        }
+      },
+      "V2CouponList": {
+        "description": "V2 coupon list",
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/V2Coupon"
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/V2Coupon"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "V2PromotionCode": {
+        "description": "V2 promotion code",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2PromotionCode"
+            }
+          }
+        }
+      },
+      "V2PromotionCodeList": {
+        "description": "V2 promotion code list",
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/V2PromotionCode"
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/V2PromotionCode"
                       }
                     }
                   }
