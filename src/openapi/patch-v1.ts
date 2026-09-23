@@ -5,6 +5,8 @@
  * Idempotent: safe to run on an already-patched document.
  */
 
+import { isRecord } from '../is-record.ts';
+
 type JsonSchema = Record<string, unknown>;
 type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
@@ -49,14 +51,7 @@ const RESPONSE_BODIES = [
   readonly [string, HttpMethod, string, string]
 >;
 
-const HTTP_METHODS = [
-  'get',
-  'post',
-  'put',
-  'patch',
-  'delete',
-  'head',
-] as const;
+const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head'] as const;
 
 const nullableString = (maxLength?: number): JsonSchema => ({
   type: 'string',
@@ -135,10 +130,6 @@ const CUSTOMER_READ_SCHEMA: JsonSchema = {
     },
   },
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function dropWebhookCallOperations(doc: OpenApiDocument): void {
   const paths = doc.paths;

@@ -3,6 +3,7 @@
 import { spawn } from 'bun';
 
 import { AskellClient } from '../src/client/askell-client.ts';
+import { readJsonRpcLine } from './stdio-session.ts';
 import { ConfigSchema, loadConfig, type AppConfig } from '../src/config.ts';
 import { operationRegistry } from '../src/openapi/registry.ts';
 import { createServer } from '../src/server.ts';
@@ -29,7 +30,9 @@ function buildConfigFromEnv(): AppConfig {
 
   return ConfigSchema.parse({
     ...(Bun.env.ASKELL_ENV?.trim() ? { askellEnv: Bun.env.ASKELL_ENV } : {}),
-    ...(Bun.env.ASKELL_API_BASE_URL ? { apiBaseUrl: Bun.env.ASKELL_API_BASE_URL } : {}),
+    ...(Bun.env.ASKELL_API_BASE_URL
+      ? { apiBaseUrl: Bun.env.ASKELL_API_BASE_URL }
+      : {}),
     secretApiKey,
     publicApiKey,
     responseMaxBytes: 64_000,
@@ -89,32 +92,6 @@ async function testLiveApi(config: AppConfig): Promise<void> {
   if (payload.body == null) {
     fail('GET /hello/ response had no parsed body');
   }
-}
-
-async function readJsonRpcLine(
-  stream: ReadableStream<Uint8Array>,
-): Promise<unknown> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-
-    buffer += decoder.decode(value, { stream: true });
-    const newline = buffer.indexOf('\n');
-    if (newline !== -1) {
-      const line = buffer.slice(0, newline).trim();
-      reader.releaseLock();
-      return JSON.parse(line);
-    }
-  }
-
-  reader.releaseLock();
-  fail(`no JSON-RPC line received (buffer=${buffer.slice(0, 200)})`);
 }
 
 async function testStdioMcp(): Promise<void> {

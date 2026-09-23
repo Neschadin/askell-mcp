@@ -2,6 +2,7 @@ import type { CallToolResult, McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod';
 
 import { AskellClient } from '../client/askell-client.ts';
+import { isRecord } from '../is-record.ts';
 
 /** Minimal shape of the handler `ctx` param needed here — avoids depending on the SDK's internal context type name. */
 type ToolContext = { mcpReq: { signal: AbortSignal } };
@@ -10,15 +11,10 @@ type SafeResult = { ok: boolean; data: unknown; error?: string };
 
 const ERROR_DETAIL_MAX = 200;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object' && !Array.isArray(value);
-}
-
 function clip(text: string): string {
   const oneLine = text.replace(/\s+/g, ' ').trim();
-  if (oneLine.length <= ERROR_DETAIL_MAX) {
-    return oneLine;
-  }
+  if (oneLine.length <= ERROR_DETAIL_MAX) return oneLine;
+
   return `${oneLine.slice(0, ERROR_DETAIL_MAX - 1)}…`;
 }
 
@@ -80,9 +76,8 @@ async function safeRequest(
     const response = await client.request(request);
     const parsed = JSON.parse(response.text) as { body?: unknown };
     const data = parsed.body ?? parsed;
-    if (response.ok) {
-      return { ok: true, data };
-    }
+    if (response.ok) return { ok: true, data };
+
     return {
       ok: false,
       data,

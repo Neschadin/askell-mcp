@@ -1,7 +1,5 @@
-import {
-  redactSensitiveFields,
-  redactSecretsInText,
-} from './redact.ts';
+import { isRecord } from '../is-record.ts';
+import { redactSensitiveFields, redactSecretsInText } from './redact.ts';
 
 export interface FormattedResponse {
   text: string;
@@ -41,11 +39,8 @@ export function limitText(
 }
 
 function summarizeListItem(item: unknown): unknown {
-  if (item == null || typeof item !== 'object' || Array.isArray(item)) {
-    return item;
-  }
+  if (!isRecord(item)) return item;
 
-  const obj = item as Record<string, unknown>;
   const out: Record<string, unknown> = {};
   const scalarKeys = [
     'id',
@@ -74,13 +69,13 @@ function summarizeListItem(item: unknown): unknown {
   ] as const;
 
   for (const key of scalarKeys) {
-    if (key in obj) {
-      out[key] = obj[key];
+    if (key in item) {
+      out[key] = item[key];
     }
   }
 
-  if (obj.customer && typeof obj.customer === 'object') {
-    const customer = obj.customer as Record<string, unknown>;
+  if (item.customer && typeof item.customer === 'object') {
+    const customer = item.customer as Record<string, unknown>;
     out.customer = {
       id: customer.id,
       customer_reference:
@@ -88,66 +83,63 @@ function summarizeListItem(item: unknown): unknown {
     };
   }
 
-  if (obj.plan && typeof obj.plan === 'object') {
-    const plan = obj.plan as Record<string, unknown>;
+  if (item.plan && typeof item.plan === 'object') {
+    const plan = item.plan as Record<string, unknown>;
     out.plan = {
       id: plan.id,
       name: plan.name,
     };
   }
 
-  return Object.keys(out).length > 0 ? out : obj;
+  return Object.keys(out).length > 0 ? out : item;
 }
 
 /** Tight projection for analytical list queries (dates, plan name, customer). */
 function indexListItem(item: unknown): unknown {
-  if (item == null || typeof item !== 'object' || Array.isArray(item)) {
-    return item;
-  }
+  if (!isRecord(item)) return item;
 
-  const obj = item as Record<string, unknown>;
   const out: Record<string, unknown> = {};
 
-  if ('id' in obj) {
-    out.id = obj.id;
+  if ('id' in item) {
+    out.id = item.id;
   }
 
-  if ('start_date' in obj) {
-    out.start_date = obj.start_date;
-  } else if ('created_at' in obj) {
-    out.created_at = obj.created_at;
+  if ('start_date' in item) {
+    out.start_date = item.start_date;
+  } else if ('created_at' in item) {
+    out.created_at = item.created_at;
   }
 
-  if ('ended_at' in obj && obj.ended_at != null) {
-    out.ended_at = obj.ended_at;
+  if ('ended_at' in item && item.ended_at != null) {
+    out.ended_at = item.ended_at;
   }
 
-  const plan = obj.plan;
+  const plan = item.plan;
   if (typeof plan === 'string' || typeof plan === 'number') {
     out.plan = plan;
   } else if (plan && typeof plan === 'object' && 'name' in plan) {
     out.plan = (plan as { name: unknown }).name;
-  } else if ('name' in obj && typeof obj.name === 'string') {
-    out.name = obj.name;
+  } else if ('name' in item && typeof item.name === 'string') {
+    out.name = item.name;
   }
 
-  if (typeof obj.code === 'string') {
-    out.code = obj.code;
+  if (typeof item.code === 'string') {
+    out.code = item.code;
   }
 
   const customerRef =
-    obj.customer_reference ??
-    (obj.customer && typeof obj.customer === 'object'
-      ? ((obj.customer as Record<string, unknown>).customer_reference ??
-        (obj.customer as Record<string, unknown>).reference ??
-        (obj.customer as Record<string, unknown>).id)
+    item.customer_reference ??
+    (item.customer && typeof item.customer === 'object'
+      ? ((item.customer as Record<string, unknown>).customer_reference ??
+        (item.customer as Record<string, unknown>).reference ??
+        (item.customer as Record<string, unknown>).id)
       : undefined);
   if (customerRef !== undefined) {
     out.customer_reference = customerRef;
   }
 
-  if (typeof obj.email === 'string') {
-    out.email = obj.email;
+  if (typeof item.email === 'string') {
+    out.email = item.email;
   }
 
   return Object.keys(out).length > 0 ? out : summarizeListItem(item);
@@ -172,9 +164,7 @@ function serializeListPayload(
     body: items.slice(0, returnedCount),
   };
 
-  return pretty
-    ? JSON.stringify(payload, null, 2)
-    : JSON.stringify(payload);
+  return pretty ? JSON.stringify(payload, null, 2) : JSON.stringify(payload);
 }
 
 function maxFittingCount(
@@ -304,11 +294,7 @@ export function buildBoundedListPayload(input: {
 
   const text = serializeListPayload(
     status,
-    compactMeta(
-      meta,
-      'index',
-      'Response too large; returning metadata only',
-    ),
+    compactMeta(meta, 'index', 'Response too large; returning metadata only'),
     [],
     0,
     true,
@@ -375,12 +361,7 @@ export function formatApiResponse(
 }
 
 function pickHeaders(headers: Headers): Record<string, string> {
-  const interesting = [
-    'content-type',
-    'date',
-    'x-request-id',
-    'retry-after',
-  ];
+  const interesting = ['content-type', 'date', 'x-request-id', 'retry-after'];
   const out: Record<string, string> = {};
 
   for (const name of interesting) {

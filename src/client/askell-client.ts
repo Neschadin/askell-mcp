@@ -27,7 +27,27 @@ export class AskellClient {
     this.baseUrl = normalizeBaseUrl(config.apiBaseUrl);
   }
 
-  async request(input: AskellRequest): Promise<FormattedResponse & { ok: boolean; status: number }> {
+  private apiKeyFor(kind: ApiKeyKind | undefined): string {
+    const apiKeyKind = kind ?? 'secret';
+    const apiKey =
+      apiKeyKind === 'public'
+        ? this.config.publicApiKey
+        : this.config.secretApiKey;
+
+    if (!apiKey) {
+      throw new Error(
+        apiKeyKind === 'public'
+          ? 'publicApiKey is not configured'
+          : 'secretApiKey is not configured',
+      );
+    }
+
+    return apiKey;
+  }
+
+  async request(
+    input: AskellRequest,
+  ): Promise<FormattedResponse & { ok: boolean; status: number }> {
     const method = input.method.toUpperCase();
     const path = normalizeApiPath(input.path);
     const url = new URL(`${this.baseUrl}${path}`);
@@ -49,19 +69,7 @@ export class AskellClient {
       }
     }
 
-    const apiKeyKind = input.apiKeyKind ?? 'secret';
-    const apiKey =
-      apiKeyKind === 'public'
-        ? this.config.publicApiKey
-        : this.config.secretApiKey;
-
-    if (!apiKey) {
-      throw new Error(
-        apiKeyKind === 'public'
-          ? 'publicApiKey is not configured'
-          : 'secretApiKey is not configured',
-      );
-    }
+    const apiKey = this.apiKeyFor(input.apiKeyKind);
 
     const started = performance.now();
     const response = await fetch(url, {
@@ -74,8 +82,7 @@ export class AskellClient {
           : {}),
         ...input.headers,
       },
-      body:
-        input.body !== undefined ? JSON.stringify(input.body) : undefined,
+      body: input.body !== undefined ? JSON.stringify(input.body) : undefined,
       signal: input.signal,
     });
 
@@ -108,19 +115,7 @@ export class AskellClient {
     signal?: AbortSignal;
   }): Promise<FormattedResponse & { ok: boolean; status: number }> {
     const maxPages = input.maxPages ?? 20;
-    const apiKeyKind = input.apiKeyKind ?? 'secret';
-    const apiKey =
-      apiKeyKind === 'public'
-        ? this.config.publicApiKey
-        : this.config.secretApiKey;
-
-    if (!apiKey) {
-      throw new Error(
-        apiKeyKind === 'public'
-          ? 'publicApiKey is not configured'
-          : 'secretApiKey is not configured',
-      );
-    }
+    const apiKey = this.apiKeyFor(input.apiKeyKind);
 
     const collected: unknown[] = [];
     let nextUrl: URL | null = null;

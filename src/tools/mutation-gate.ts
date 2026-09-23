@@ -4,12 +4,9 @@ import {
 } from '@modelcontextprotocol/server';
 
 import type { MutationGate } from '../config.ts';
+import { isRecord } from '../is-record.ts';
 
 export type MutationGateDecision = { action: 'execute' } | { action: 'elicit' };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object' && !Array.isArray(value);
-}
 
 /**
  * Per-request client capabilities (protocol 2026-07-28).
@@ -28,9 +25,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function readClientCapabilities(
   envelope: unknown,
 ): ClientCapabilities | undefined {
-  if (!isRecord(envelope)) {
-    return undefined;
-  }
+  if (!isRecord(envelope)) return undefined;
+
   const value = envelope[CLIENT_CAPABILITIES_META_KEY];
   return isRecord(value) ? (value as ClientCapabilities) : undefined;
 }
@@ -40,16 +36,13 @@ export function clientSupportsFormElicitation(
   capabilities: ClientCapabilities | undefined,
 ): boolean {
   const elicitation = capabilities?.elicitation;
-  if (elicitation == null) {
-    return false;
-  }
-  if (elicitation.form != null) {
-    return true;
-  }
+  if (elicitation == null) return false;
+  if (elicitation.form != null) return true;
+
   const keys = Object.keys(elicitation);
-  if (elicitation.url != null && keys.every((key) => key === 'url')) {
+  if (elicitation.url != null && keys.every((key) => key === 'url'))
     return false;
-  }
+
   return true;
 }
 

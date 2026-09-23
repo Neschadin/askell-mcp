@@ -5,18 +5,9 @@
  * Q9–Q10 hit the live account and can drift; everything else is spec/discovery.
  */
 
-import { spawn, type Subprocess } from 'bun';
+import { spawn } from 'bun';
 
-type JsonRpcResponse = {
-  result?: {
-    content?: Array<{ type: string; text?: string }>;
-    structuredContent?: unknown;
-    isError?: boolean;
-    contents?: Array<{ text?: string }>;
-    serverInfo?: { name?: string };
-  };
-  error?: { message?: string };
-};
+import { callTool, McpSession } from './stdio-session.ts';
 
 type QaPair = { question: string; expected: string };
 
@@ -25,94 +16,6 @@ type Solver = {
   live?: boolean;
   solve: (session: McpSession) => Promise<string>;
 };
-
-async function readJsonRpcLine(
-  stream: ReadableStream<Uint8Array>,
-): Promise<unknown> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-    buffer += decoder.decode(value, { stream: true });
-    const newline = buffer.indexOf('\n');
-    if (newline !== -1) {
-      const line = buffer.slice(0, newline).trim();
-      reader.releaseLock();
-      return JSON.parse(line);
-    }
-  }
-
-  reader.releaseLock();
-  throw new Error(`no JSON-RPC line (buffer=${buffer.slice(0, 200)})`);
-}
-
-class McpSession {
-  private nextId = 1;
-
-  constructor(private readonly proc: Subprocess<'pipe', 'pipe', 'pipe'>) {}
-
-  async request(
-    method: string,
-    params: unknown = {},
-  ): Promise<JsonRpcResponse> {
-    const id = this.nextId++;
-    this.proc.stdin.write(
-      `${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`,
-    );
-    return (await readJsonRpcLine(this.proc.stdout)) as JsonRpcResponse;
-  }
-
-  notify(method: string, params: unknown = {}): void {
-    this.proc.stdin.write(
-      `${JSON.stringify({ jsonrpc: '2.0', method, params })}\n`,
-    );
-  }
-
-  async close(): Promise<void> {
-    this.proc.kill();
-    await this.proc.exited;
-  }
-}
-
-async function callTool(
-  session: McpSession,
-  name: string,
-  args: Record<string, unknown> = {},
-): Promise<{
-  text: string;
-  isError: boolean;
-  parsed?: unknown;
-  structured?: unknown;
-}> {
-  const response = await session.request('tools/call', {
-    name,
-    arguments: args,
-  });
-
-  if (response.error) {
-    throw new Error(`${name}: ${response.error.message ?? 'RPC error'}`);
-  }
-
-  const text = response.result?.content?.[0]?.text ?? '';
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    parsed = undefined;
-  }
-
-  return {
-    text,
-    isError: response.result?.isError ?? false,
-    parsed,
-    structured: response.result?.structuredContent,
-  };
-}
 
 function parseEvaluationXml(xml: string): QaPair[] {
   return [
@@ -140,7 +43,9 @@ function requiredBodyFields(schema: unknown): string[] {
 
   const node = schema as { required?: unknown; allOf?: unknown[] };
   const fromRequired = Array.isArray(node.required)
-    ? node.required.filter((value): value is string => typeof value === 'string')
+    ? node.required.filter(
+        (value): value is string => typeof value === 'string',
+      )
     : [];
   const fromAllOf = Array.isArray(node.allOf)
     ? node.allOf.flatMap(requiredBodyFields)
@@ -179,7 +84,11 @@ function inRange(iso: string, start: string, end: string): boolean {
 }
 
 let subscriptionCache:
-  | { items: Array<Record<string, unknown>>; truncated: boolean; itemCount: number }
+  | {
+      items: Array<Record<string, unknown>>;
+      truncated: boolean;
+      itemCount: number;
+    }
   | undefined;
 
 async function loadSubscriptions(session: McpSession): Promise<{
@@ -212,8 +121,7 @@ async function loadSubscriptions(session: McpSession): Promise<{
   const items = (parsed.body ?? []) as Array<Record<string, unknown>>;
   const itemCount = parsed.meta?.itemCount ?? items.length;
   const truncated =
-    parsed.meta?.truncatedByMaxBytes === true ||
-    items.length !== itemCount;
+    parsed.meta?.truncatedByMaxBytes === true || items.length !== itemCount;
 
   subscriptionCache = { items, truncated, itemCount };
   return subscriptionCache;
@@ -227,7 +135,7 @@ const SOLVERS: Solver[] = [
         apiVersion: 'all',
         limit: 200,
       });
-      const payload = (result.structured ?? result.parsed) as {
+      const payload = (result.structuredContent ?? result.parsed) as {
         totalMatched?: number;
       };
       return String(payload.totalMatched ?? 'NOT_FOUND');
@@ -241,7 +149,7 @@ const SOLVERS: Solver[] = [
         apiKeyKind: 'public',
         limit: 200,
       });
-      const payload = (result.structured ?? result.parsed) as {
+      const payload = (result.structuredContent ?? result.parsed) as {
         totalMatched?: number;
       };
       return String(payload.totalMatched ?? 'NOT_FOUND');
@@ -255,11 +163,12 @@ const SOLVERS: Solver[] = [
         search: 'Create a V2 subscription contract',
         limit: 20,
       });
-      const payload = (result.structured ?? result.parsed) as {
+      const payload = (result.structuredContent ?? result.parsed) as {
         operations?: Array<{ id: string; summary: string }>;
       };
       const hit = payload.operations?.find(
-        (operation) => operation.summary === 'Create a V2 subscription contract',
+        (operation) =>
+          operation.summary === 'Create a V2 subscription contract',
       );
       return hit?.id ?? 'NOT_FOUND';
     },
@@ -273,7 +182,7 @@ const SOLVERS: Solver[] = [
       if (result.isError) {
         throw new Error(result.text);
       }
-      const payload = (result.structured ?? result.parsed) as {
+      const payload = (result.structuredContent ?? result.parsed) as {
         requestBody?: { schema?: unknown };
       };
       const required = requiredBodyFields(payload.requestBody?.schema);
@@ -289,7 +198,7 @@ const SOLVERS: Solver[] = [
       if (result.isError) {
         throw new Error(result.text);
       }
-      const payload = (result.structured ?? result.parsed) as {
+      const payload = (result.structuredContent ?? result.parsed) as {
         tags?: string[];
       };
       return payload.tags?.[0] ?? 'NOT_FOUND';
@@ -332,7 +241,7 @@ const SOLVERS: Solver[] = [
       if (result.isError) {
         throw new Error(result.text);
       }
-      const payload = (result.structured ?? result.parsed) as {
+      const payload = (result.structuredContent ?? result.parsed) as {
         parameters?: Array<{ name?: string; in?: string }>;
       };
       const names = (payload.parameters ?? [])
@@ -435,7 +344,7 @@ const SOLVERS: Solver[] = [
         search: 'discount',
         limit: 20,
       });
-      const payload = (result.structured ?? result.parsed) as {
+      const payload = (result.structuredContent ?? result.parsed) as {
         operations?: Array<{ path: string; method: string; summary: string }>;
       };
       const hit = payload.operations?.find(
