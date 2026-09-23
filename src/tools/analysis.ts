@@ -6,17 +6,87 @@ import { AskellClient } from '../client/askell-client.ts';
 /** Minimal shape of the handler `ctx` param needed here — avoids depending on the SDK's internal context type name. */
 type ToolContext = { mcpReq: { signal: AbortSignal } };
 
+type SafeResult = { ok: boolean; data: unknown; error?: string };
+
+const ERROR_DETAIL_MAX = 200;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function clip(text: string): string {
+  const oneLine = text.replace(/\s+/g, ' ').trim();
+  if (oneLine.length <= ERROR_DETAIL_MAX) {
+    return oneLine;
+  }
+  return `${oneLine.slice(0, ERROR_DETAIL_MAX - 1)}…`;
+}
+
+function messageList(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    const text = clip(value);
+    return text.length > 0 ? text : undefined;
+  }
+  if (
+    !Array.isArray(value) ||
+    !value.every((item) => typeof item === 'string')
+  ) {
+    return undefined;
+  }
+  const text = clip(value.filter((item) => item.trim().length > 0).join('; '));
+  return text.length > 0 ? text : undefined;
+}
+
+/**
+ * One line for the model. The Askell body stays in `data`.
+ * DRF `detail` / `non_field_errors` / flat field errors only — a resource
+ * object must not be flattened into the summary.
+ */
+export function summarizeApiFailure(status: number, body: unknown): string {
+  const detail = apiErrorDetail(body);
+  return detail ? `HTTP ${status}: ${detail}` : `HTTP ${status}`;
+}
+
+function apiErrorDetail(body: unknown): string | undefined {
+  if (typeof body === 'string') return messageList(body);
+  if (!isRecord(body)) return undefined;
+
+  if ('detail' in body) {
+    const detail = messageList(body.detail);
+    if (detail) return detail;
+  }
+
+  if ('non_field_errors' in body) {
+    const detail = messageList(body.non_field_errors);
+    if (detail) return detail;
+  }
+
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(body)) {
+    if (key === 'detail' || key === 'non_field_errors') continue;
+    const text = messageList(value);
+    if (!text) return undefined;
+    parts.push(`${key}: ${text}`);
+  }
+
+  return parts.length > 0 ? clip(parts.join('; ')) : undefined;
+}
+
 async function safeRequest(
   client: AskellClient,
   request: Parameters<AskellClient['request']>[0],
-): Promise<{ ok: boolean; data: unknown; error?: string }> {
+): Promise<SafeResult> {
   try {
     const response = await client.request(request);
     const parsed = JSON.parse(response.text) as { body?: unknown };
+    const data = parsed.body ?? parsed;
+    if (response.ok) {
+      return { ok: true, data };
+    }
     return {
-      ok: response.ok,
-      data: parsed.body ?? parsed,
-      error: response.ok ? undefined : response.text,
+      ok: false,
+      data,
+      error: summarizeApiFailure(response.status, data),
     };
   } catch (error) {
     return {
@@ -25,6 +95,13 @@ async function safeRequest(
       error: error instanceof Error ? error.message : 'Request failed',
     };
   }
+}
+
+function failedCalls(
+  calls: Array<[name: string, result: SafeResult]>,
+): string[] | undefined {
+  const names = calls.filter(([, result]) => !result.ok).map(([name]) => name);
+  return names.length > 0 ? names : undefined;
 }
 
 export function registerAnalysisTools(
@@ -74,7 +151,8 @@ export function registerAnalysisTools(
           content: [
             {
               type: 'text',
-              text: error instanceof Error ? error.message : 'Pagination failed',
+              text:
+                error instanceof Error ? error.message : 'Pagination failed',
             },
           ],
           isError: true,
@@ -88,7 +166,7 @@ export function registerAnalysisTools(
     {
       title: 'Customer overview (v1)',
       description:
-        'Fetch a v1 customer and their v1 subscriptions in one call. Useful for support and billing investigations.',
+        'Fetch a v1 customer and their v1 subscriptions in one call. Useful for support and billing investigations. Result is an error when the customer fetch fails; subscriptions are still included. `failures` lists every call that failed.',
       inputSchema: z.object({
         customerReference: z
           .string()
@@ -99,7 +177,10 @@ export function registerAnalysisTools(
         openWorldHint: true,
       },
     },
-    async ({ customerReference }, ctx: ToolContext): Promise<CallToolResult> => {
+    async (
+      { customerReference },
+      ctx: ToolContext,
+    ): Promise<CallToolResult> => {
       const [customer, subscriptions] = await Promise.all([
         safeRequest(client, {
           method: 'GET',
@@ -113,25 +194,26 @@ export function registerAnalysisTools(
         }),
       ]);
 
+      const failures = failedCalls([
+        ['customer', customer],
+        ['subscriptions', subscriptions],
+      ]);
+
       const payload = {
         customerReference,
         customer,
         subscriptions,
+        ...(failures ? { failures } : {}),
+        ...(!customer.ok
+          ? {
+              hint: 'Verify the customerReference with askell_call GET /customers/ or askell_paginate_all.',
+            }
+          : {}),
       };
 
-      const notFoundHint =
-        !customer.ok && !subscriptions.ok
-          ? ' Verify the customerReference with askell_call GET /customers/ or askell_paginate_all.'
-          : '';
-
       return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(payload, null, 2) + notFoundHint,
-          },
-        ],
-        isError: !customer.ok && !subscriptions.ok,
+        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+        isError: !customer.ok,
       };
     },
   );
@@ -141,7 +223,7 @@ export function registerAnalysisTools(
     {
       title: 'Subscription contract overview (v2)',
       description:
-        'Fetch a v2 subscription contract and recent billing runs filtered by contract id. The contract payload includes `discount` (active coupon) when one is applied, `shipping_selection` when shipping was chosen at checkout, and `subscriber_page` (customer-facing management URL, read-only).',
+        'Fetch a v2 subscription contract and recent billing runs filtered by contract id. The contract payload includes `discount` (active coupon) when one is applied, `shipping_selection` when shipping was chosen at checkout, and `subscriber_page` (customer-facing management URL, read-only). Result is an error when the contract fetch fails. `failures` lists every call that failed.',
       inputSchema: z.object({
         contractId: z
           .union([z.string().min(1), z.int()])
@@ -181,23 +263,25 @@ export function registerAnalysisTools(
         }),
       ]);
 
+      const failures = failedCalls([
+        ['contract', contract],
+        ['billingRuns', billingRuns],
+      ]);
+
       const payload = {
         contractId,
         contract,
         billingRuns,
+        ...(failures ? { failures } : {}),
+        ...(!contract.ok
+          ? {
+              hint: 'Verify the contractId with askell_call GET /v2/subscription-contracts/.',
+            }
+          : {}),
       };
 
       return {
-        content: [
-          {
-            type: 'text',
-            text:
-              JSON.stringify(payload, null, 2) +
-              (!contract.ok
-                ? ' Verify the contractId with askell_call GET /v2/subscription-contracts/.'
-                : ''),
-          },
-        ],
+        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
         isError: !contract.ok,
       };
     },
@@ -208,7 +292,7 @@ export function registerAnalysisTools(
     {
       title: 'Billing run triage (v2)',
       description:
-        'Fetch a billing run by id with optional related contract context for failure analysis.',
+        'Fetch a billing run by id with optional related contract context for failure analysis. Result is an error when the billing run fetch fails. A failed related contract stays in the payload and is listed in `failures`.',
       inputSchema: z.object({
         billingRunId: z
           .union([z.string().min(1), z.int()])
@@ -216,7 +300,9 @@ export function registerAnalysisTools(
         includeContract: z
           .boolean()
           .default(true)
-          .describe('Also fetch the related subscription contract when the run has a contract id'),
+          .describe(
+            'Also fetch the related subscription contract when the run has a contract id',
+          ),
       }),
       annotations: {
         readOnlyHint: true,
@@ -251,23 +337,26 @@ export function registerAnalysisTools(
         }
       }
 
+      const calls: [string, SafeResult][] = [['billingRun', billingRun]];
+      if (contract) {
+        calls.push(['contract', contract]);
+      }
+      const failures = failedCalls(calls);
+
       const payload = {
         billingRunId,
         billingRun,
         contract,
+        ...(failures ? { failures } : {}),
+        ...(!billingRun.ok
+          ? {
+              hint: 'Verify the billingRunId with askell_call GET /v2/billing-runs/.',
+            }
+          : {}),
       };
 
       return {
-        content: [
-          {
-            type: 'text',
-            text:
-              JSON.stringify(payload, null, 2) +
-              (!billingRun.ok
-                ? ' Verify the billingRunId with askell_call GET /v2/billing-runs/.'
-                : ''),
-          },
-        ],
+        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
         isError: !billingRun.ok,
       };
     },
@@ -285,7 +374,9 @@ export function registerAnalysisTools(
           .positive()
           .max(1000)
           .optional()
-          .describe('Page size for GET /webhooks/ (Askell default 10, max 1000)'),
+          .describe(
+            'Page size for GET /webhooks/ (Askell default 10, max 1000)',
+          ),
       }),
       annotations: {
         readOnlyHint: true,
