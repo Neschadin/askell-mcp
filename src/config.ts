@@ -139,29 +139,15 @@ Keys are per host. ASKELL_API_BASE_URL is only for a custom/local API.
     ASKELL_PRIVATE_API_KEY=...
     ASKELL_PUBLIC_API_KEY=...
 
-  Published package (requires Bun) — Cursor / Claude mcp.json (two entries if you use sandbox):
-    {
-      "mcpServers": {
-        "askell-prod": {
-          "command": "bunx",
-          "args": ["-y", "askell-mcp@latest"],
-          "env": {
-            "ASKELL_ENV": "production",
-            "ASKELL_PRIVATE_API_KEY": "...",
-            "ASKELL_PUBLIC_API_KEY": "..."
-          }
-        },
-        "askell-sandbox": {
-          "command": "bunx",
-          "args": ["-y", "askell-mcp@latest"],
-          "env": {
-            "ASKELL_ENV": "sandbox",
-            "ASKELL_PRIVATE_API_KEY": "...",
-            "ASKELL_PUBLIC_API_KEY": "..."
-          }
-        }
-      }
-    }`;
+  Cursor (.cursor/mcp.json) — keys in .env / .env.sandbox, not in JSON:
+    "command": "bunx",
+    "args": ["--no-env-file", "x", "askell-mcp"],
+    "envFile": "\${workspaceFolder}/.env"   (sandbox: .env.sandbox)
+
+  Claude Desktop (no envFile; cwd is not the repo — absolute path):
+    "command": "bunx",
+    "args": ["--no-env-file", "--env-file=/absolute/path/.env", "x", "askell-mcp"]
+  Binary on Claude Desktop: put ASKELL_ENV and ASKELL_PRIVATE_API_KEY in "env".`;
 
 function loadConfigFromEnv(): unknown {
   const env = Bun.env;

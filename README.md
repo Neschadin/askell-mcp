@@ -19,34 +19,79 @@ In the Askell dashboard, copy your **private (secret)** API key. Optionally also
 
 ### 2. Add to your MCP client
 
-Prefer **two server entries** if you have both production and sandbox keys. Tool names are the same on both; the client distinguishes them by the `mcp.json` key (`askell-prod` vs `askell-sandbox`). Set `ASKELL_ENV` — the server picks the host. Each instance's instructions include the environment it is talking to.
+Prefer **two server entries** if you have both production and sandbox keys. Tool names are the same on both; the client distinguishes them by the server key (`askell-prod` vs `askell-sandbox`). Each instance's instructions include the environment it is talking to.
 
-**With Bun** (`bunx`):
+Put keys in gitignored dotenv files, not in JSON. Copy [`.env.example`](./.env.example):
+
+- `.env` — production (`ASKELL_ENV=production` and that dashboard's keys)
+- `.env.sandbox` — sandbox (`ASKELL_ENV=sandbox` and that dashboard's keys)
+
+Bun does not auto-load `.env.sandbox`. `--no-env-file` stops the sandbox process from also reading a production `.env` that happens to sit in the cwd.
+
+#### Cursor
+
+Project file: `.cursor/mcp.json`. [`mcp.json.example`](./mcp.json.example) is this shape. `${workspaceFolder}` is the directory that contains that `mcp.json` (the repo root when the file is `.cursor/mcp.json`). In `~/.cursor/mcp.json`, use an absolute `envFile` path.
+
+**With Bun:**
 
 ```json
 {
   "mcpServers": {
     "askell-prod": {
       "command": "bunx",
-      "args": ["-y", "askell-mcp@latest"],
-      "env": {
-        "ASKELL_ENV": "production",
-        "ASKELL_PRIVATE_API_KEY": "your_production_secret_api_key"
-      }
+      "args": ["--no-env-file", "x", "askell-mcp"],
+      "envFile": "${workspaceFolder}/.env"
     },
     "askell-sandbox": {
       "command": "bunx",
-      "args": ["-y", "askell-mcp@latest"],
-      "env": {
-        "ASKELL_ENV": "sandbox",
-        "ASKELL_PRIVATE_API_KEY": "your_sandbox_secret_api_key"
-      }
+      "args": ["--no-env-file", "x", "askell-mcp"],
+      "envFile": "${workspaceFolder}/.env.sandbox"
     }
   }
 }
 ```
 
-**With a binary** (download `askell-mcp-<os>-<arch>` from [Releases](https://github.com/Neschadin/askell-mcp/releases), then `chmod +x`):
+**With a binary** (download `askell-mcp-<os>-<arch>` from [Releases](https://github.com/Neschadin/askell-mcp/releases), then `chmod +x`). Same `envFile`; the binary reads the environment Cursor injects:
+
+```json
+{
+  "mcpServers": {
+    "askell-prod": {
+      "command": "/absolute/path/to/askell-mcp-linux-x64",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  }
+}
+```
+
+Reload the window after saving.
+
+#### Claude Desktop
+
+Config file:
+
+- Linux: `~/.config/Claude/claude_desktop_config.json`
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+No `envFile` field. The desktop process cwd is not your repo, so a relative `.env` path does not resolve. With Bun, pass an absolute `--env-file`:
+
+```json
+{
+  "mcpServers": {
+    "askell-prod": {
+      "command": "bunx",
+      "args": ["--no-env-file", "--env-file=/absolute/path/.env", "x", "askell-mcp"]
+    },
+    "askell-sandbox": {
+      "command": "bunx",
+      "args": ["--no-env-file", "--env-file=/absolute/path/.env.sandbox", "x", "askell-mcp"]
+    }
+  }
+}
+```
+
+A binary has no `--env-file`. Put the keys in `env` (plaintext in that JSON file):
 
 ```json
 {
@@ -55,16 +100,19 @@ Prefer **two server entries** if you have both production and sandbox keys. Tool
       "command": "/absolute/path/to/askell-mcp-linux-x64",
       "env": {
         "ASKELL_ENV": "production",
-        "ASKELL_PRIVATE_API_KEY": "your_production_secret_api_key"
+        "ASKELL_PRIVATE_API_KEY": "your_production_secret_api_key",
+        "ASKELL_PUBLIC_API_KEY": "your_production_public_api_key_optional"
       }
     }
   }
 }
 ```
 
-Example file: [`mcp.json.example`](./mcp.json.example).
+Quit Claude Desktop completely and reopen it. Saving the file is not enough.
 
-Restart the client after saving.
+#### Claude Code
+
+Project `.mcp.json` expands `${VAR}` from the environment of the process that launched `claude`. It does not load a dotenv file. The Bun `--env-file` args from the Desktop section work here as well; a relative path is fine when you start `claude` from the repo. `${ASKELL_PRIVATE_API_KEY}` inside `env` only works when that variable is already exported in that environment. A `.env` file alone is not read.
 
 ## Configuration
 

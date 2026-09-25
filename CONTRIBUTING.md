@@ -18,18 +18,18 @@ bun run dev:prod      # --no-env-file --env-file=.env
 bun run dev:sandbox   # --no-env-file --env-file=.env.sandbox
 ```
 
-Checkout without publishing (this repo's Cursor `mcp.json` already does this — no keys in JSON):
+Checkout without publishing (this repo's Cursor `.cursor/mcp.json` already does this — no keys in JSON). Claude Desktop has no `envFile` and does not start with this repo as cwd: same args, but `--env-file` must be an absolute path. See [README](./README.md).
 
 ```json
 {
   "mcpServers": {
     "askell-prod": {
       "command": "bun",
-      "args": ["--no-env-file", "--env-file=.env", "run", "bin/askell-mcp@latest"]
+      "args": ["--no-env-file", "--env-file=.env", "run", "bin/askell-mcp"]
     },
     "askell-sandbox": {
       "command": "bun",
-      "args": ["--no-env-file", "--env-file=.env.sandbox", "run", "bin/askell-mcp@latest"]
+      "args": ["--no-env-file", "--env-file=.env.sandbox", "run", "bin/askell-mcp"]
     }
   }
 }
