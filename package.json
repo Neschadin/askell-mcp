@@ -1,6 +1,7 @@
 {
   "name": "askell-mcp",
-  "version": "0.4.15",
+  "version": "0.4.16",
+  "mcpName": "io.github.Neschadin/askell-mcp",
   "description": "MCP server for the Askell payment and subscription API (Bun + stdio)",
   "author": "Neschadin Oleksandr",
   "license": "MIT",

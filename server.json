@@ -1,0 +1,50 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Neschadin/askell-mcp",
+  "title": "Askell",
+  "description": "MCP server for the Askell payment and subscription API (Bun + stdio)",
+  "repository": {
+    "url": "https://github.com/Neschadin/askell-mcp",
+    "source": "github"
+  },
+  "version": "0.4.16",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "askell-mcp",
+      "version": "0.4.16",
+      "runtimeHint": "bunx",
+      "runtimeArguments": [
+        {
+          "type": "positional",
+          "value": "--no-env-file"
+        },
+        {
+          "type": "positional",
+          "value": "x"
+        },
+        {
+          "type": "positional",
+          "value": "askell-mcp"
+        }
+      ],
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "ASKELL_PRIVATE_API_KEY",
+          "description": "Secret API key from the Askell dashboard",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "ASKELL_ENV",
+          "description": "production (default) or sandbox",
+          "format": "string",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}

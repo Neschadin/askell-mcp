@@ -46,6 +46,24 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Validate MCP registry metadata
+        run: |
+          bun -e '
+            const pkg = await Bun.file("package.json").json();
+            const server = await Bun.file("server.json").json();
+            const name = "io.github.Neschadin/askell-mcp";
+            if (pkg.mcpName !== name) throw new Error(`package.json mcpName: ${pkg.mcpName}`);
+            if (server.name !== name) throw new Error(`server.json name: ${server.name}`);
+            const entry = server.packages?.[0];
+            if (entry?.registryType !== "npm") throw new Error(`registryType: ${entry?.registryType}`);
+            if (entry?.identifier !== pkg.name) throw new Error(`identifier: ${entry?.identifier}`);
+            if (entry?.transport?.type !== "stdio") throw new Error(`transport: ${entry?.transport?.type}`);
+            if (entry?.runtimeHint !== "bunx") throw new Error(`runtimeHint: ${entry?.runtimeHint}`);
+            if (server.version !== pkg.version || entry?.version !== pkg.version) {
+              throw new Error(`version drift: package.json ${pkg.version}, server.json ${server.version}/${entry?.version}`);
+            }
+          '
+
   build:
     needs: validate
     # Bun cross-compiles -- no macOS runners needed
@@ -187,11 +205,43 @@ jobs:
 
       # Trusted Publishing (OIDC) — do NOT set NODE_AUTH_TOKEN / NPM_TOKEN.
       # Provenance is emitted automatically when publishing via OIDC.
+      # Skip when this tag is already on npm so a registry retry does not die on EPUBLISHCONFLICT.
       - name: Publish to npm
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          if [[ "$TAG" == *-* ]]; then
+          if npm view "askell-mcp@${TAG}" version >/dev/null 2>&1; then
+            echo "askell-mcp@${TAG} already on npm"
+          elif [[ "$TAG" == *-* ]]; then
             npm publish --access public --tag next
           else
             npm publish --access public
+          fi
+
+      # Official MCP Registry (metadata only). Prerelease tags stay on the npm `next` dist-tag.
+      # github-oidc uses this job's id-token: write. Namespace is case-sensitive: io.github.Neschadin/*
+      - name: Install mcp-publisher
+        if: ${{ !contains(github.ref_name, '-') }}
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry
+        if: ${{ !contains(github.ref_name, '-') }}
+        run: ./mcp-publisher login github-oidc
+
+      - name: Set server.json version from tag
+        if: ${{ !contains(github.ref_name, '-') }}
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          export TAG
+          bun -e 'const s=await Bun.file("server.json").json(); s.version=process.env.TAG; s.packages[0].version=process.env.TAG; await Bun.write("server.json", JSON.stringify(s,null,2)+"\n")'
+
+      - name: Publish server to MCP Registry
+        if: ${{ !contains(github.ref_name, '-') }}
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          URL="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.Neschadin%2Faskell-mcp/versions/${TAG}"
+          if curl -fsS "$URL" >/dev/null; then
+            echo "io.github.Neschadin/askell-mcp@${TAG} already in the MCP registry"
+          else
+            ./mcp-publisher publish
           fi
