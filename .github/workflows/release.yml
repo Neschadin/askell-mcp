@@ -205,7 +205,6 @@ jobs:
 
       # Trusted Publishing (OIDC) — do NOT set NODE_AUTH_TOKEN / NPM_TOKEN.
       # Provenance is emitted automatically when publishing via OIDC.
-      # Skip when this tag is already on npm so a registry retry does not die on EPUBLISHCONFLICT.
       - name: Publish to npm
         run: |
           TAG="${GITHUB_REF_NAME#v}"
@@ -217,30 +216,56 @@ jobs:
             npm publish --access public
           fi
 
-      # Official MCP Registry (metadata only). Prerelease tags stay on the npm `next` dist-tag.
+  mcp-registry:
+    needs: npm-publish
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
       # github-oidc uses this job's id-token: write. Namespace is case-sensitive: io.github.Neschadin/*
       - name: Install mcp-publisher
-        if: ${{ !contains(github.ref_name, '-') }}
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
 
       - name: Authenticate to MCP Registry
-        if: ${{ !contains(github.ref_name, '-') }}
         run: ./mcp-publisher login github-oidc
 
       - name: Set server.json version from tag
-        if: ${{ !contains(github.ref_name, '-') }}
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           export TAG
           bun -e 'const s=await Bun.file("server.json").json(); s.version=process.env.TAG; s.packages[0].version=process.env.TAG; await Bun.write("server.json", JSON.stringify(s,null,2)+"\n")'
 
       - name: Publish server to MCP Registry
-        if: ${{ !contains(github.ref_name, '-') }}
         run: |
           TAG="${GITHUB_REF_NAME#v}"
+          NPM_URL="https://registry.npmjs.org/askell-mcp/${TAG}"
+          ready=0
+          for i in $(seq 1 30); do
+            meta="$(curl -fsS "$NPM_URL" || true)"
+            if [[ -n "$meta" ]] && printf '%s' "$meta" | bun -e 'const j=await Bun.stdin.json(); process.exit(j.mcpName==="io.github.Neschadin/askell-mcp"?0:1)'; then
+              ready=1
+              break
+            fi
+            echo "npm askell-mcp@${TAG} not readable yet (${i}/30)"
+            sleep 10
+          done
+          if [[ "$ready" -ne 1 ]]; then
+            echo "timed out waiting for npm askell-mcp@${TAG}" >&2
+            exit 1
+          fi
           URL="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.Neschadin%2Faskell-mcp/versions/${TAG}"
-          if curl -fsS "$URL" >/dev/null; then
+          code="$(curl -sS -o /dev/null -w '%{http_code}' "$URL")"
+          if [[ "$code" == "200" ]]; then
             echo "io.github.Neschadin/askell-mcp@${TAG} already in the MCP registry"
           else
             ./mcp-publisher publish

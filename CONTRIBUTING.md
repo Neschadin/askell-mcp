@@ -59,7 +59,7 @@ Fetches Askell swagger, then **v1 is overlaid** (`src/openapi/patch-v1.ts`: drop
 
 ## Release
 
-Push a `vX.Y.Z` tag. The release workflow publishes GitHub assets, npm (`mcpName` must already be in `package.json`), then the [official MCP Registry](https://modelcontextprotocol.io/registry/quickstart) as `io.github.Neschadin/askell-mcp`. `server.json` `version` is overwritten from the tag. Prerelease tags (`vX.Y.Z-*`) publish to the npm `next` dist-tag only.
+Push a `vX.Y.Z` tag. The release workflow publishes GitHub assets and npm (`mcpName` must already be in `package.json`) in parallel, then job `mcp-registry` publishes to the [official MCP Registry](https://modelcontextprotocol.io/registry/quickstart) as `io.github.Neschadin/askell-mcp`. `server.json` `version` is overwritten from the tag. Prerelease tags (`vX.Y.Z-*`) publish to the npm `next` dist-tag only and skip the registry job.
 
 ## Local binary build
 
