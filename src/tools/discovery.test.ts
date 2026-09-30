@@ -272,6 +272,125 @@ describe('askell_describe_operation payload', () => {
     expect(promo.properties).toHaveProperty('valid');
   });
 
+  test('v2 refund, change-anchor, and scheduled-change cancel are registered', () => {
+    const refund = operationRegistry.getById(
+      'v2:POST:/v2/billing-runs/{billingRunId}/refund/',
+    );
+    expect(refund).toMatchObject({
+      method: 'POST',
+      apiKeyKind: 'secret',
+      tags: ['V2 Billing Runs'],
+    });
+    expect(refund?.requestBody).toBeUndefined();
+    expect(refund?.description).toMatch(/202/);
+    expect(refund?.description).toMatch(/do not immediately resend/i);
+    expect(refund?.description).toMatch(/billing_run_id/);
+
+    const anchor = operationRegistry.getById(
+      'v2:POST:/v2/subscription-contracts/{contractId}/change-anchor/',
+    );
+    expect(anchor).toMatchObject({ method: 'POST', apiKeyKind: 'secret' });
+    const anchorSchema = anchor?.requestBody?.schema as {
+      allOf?: Array<{
+        required?: string[];
+        properties?: Record<string, { description?: string }>;
+      }>;
+    };
+    const anchorFields = anchorSchema.allOf?.find(
+      (part) => part.properties && 'new_billing_anchor_at' in part.properties,
+    );
+    expect(anchorFields?.required).toEqual(['new_billing_anchor_at']);
+    expect(anchorFields?.properties?.new_billing_anchor_at?.description).toMatch(
+      /one billing period/i,
+    );
+    expect(anchor?.description).toMatch(/pending_interval_change/);
+    expect(anchor?.description).toMatch(/does not extend service entitlements/i);
+
+    const cancel = operationRegistry.getById(
+      'v2:POST:/v2/subscription-contracts/{contractId}/scheduled-changes/{scheduledChangeId}/cancel/',
+    );
+    expect(cancel).toMatchObject({ method: 'POST', apiKeyKind: 'secret' });
+    expect(cancel?.requestBody?.required).toBe(false);
+    expect(cancel?.description).toMatch(/replayed: true/);
+    expect(cancel?.description).toMatch(/scheduled_change_not_cancelable/);
+  });
+
+  test('proration preview accepts change_anchor and update apply_at', () => {
+    const preview = operationRegistry.getById(
+      'v2:POST:/v2/subscription-contracts/{contractId}/proration-preview/',
+    );
+    const schema = preview?.requestBody?.schema as {
+      allOf?: Array<{
+        properties?: {
+          operation?: { enum?: string[] };
+          new_billing_anchor_at?: unknown;
+          apply_at?: { enum?: string[] };
+        };
+      }>;
+    };
+    const fields = schema.allOf?.find((part) => part.properties?.operation);
+    expect(fields?.properties?.operation?.enum).toContain('change_anchor');
+    expect(fields?.properties).toHaveProperty('new_billing_anchor_at');
+    expect(fields?.properties?.apply_at?.enum).toEqual(['now', 'period_end']);
+  });
+
+  test('contract patch schema does not include description-only fields', () => {
+    const spec = getBundledSpec('v2');
+    const patch = spec.components?.schemas?.V2SubscriptionContractPatch as {
+      properties?: Record<string, { description?: string; maxLength?: number }>;
+    };
+    expect(Object.keys(patch.properties ?? {}).sort()).toEqual([
+      'metadata',
+      'payment_processor_override',
+      'reference',
+    ]);
+    expect(patch.properties?.reference?.maxLength).toBe(128);
+    expect(patch.properties?.metadata?.description).toMatch(
+      /any of them in the request are ignored/i,
+    );
+
+    const operation = operationRegistry.getById(
+      'v2:PATCH:/v2/subscription-contracts/{contractId}/',
+    );
+    expect(operation?.description).toMatch(/accounting_department/);
+  });
+
+  test('item add/remove 409 is only on the response, and v1 guard is LegacySubscriptionGuardError', () => {
+    const spec = getBundledSpec('v2');
+    const add = spec.paths?.[
+      '/v2/subscription-contracts/{contractId}/items/add/'
+    ]?.post as {
+      description?: string;
+      responses?: Record<string, { $ref?: string }>;
+    };
+    expect(add.description).not.toMatch(/409/);
+    expect(add.responses?.['409']?.$ref).toBe(
+      '#/components/responses/V2ProrationConflict',
+    );
+
+    const v1 = getBundledSpec('v1');
+    const guard = v1.components?.schemas?.LegacySubscriptionGuardError as {
+      required?: string[];
+      properties?: { code?: { enum?: string[] } };
+    };
+    expect(guard.required).toEqual(['error', 'code', 'v2_endpoint']);
+    expect(guard.properties?.code?.enum).toEqual([
+      'legacy_subscriptions_disabled',
+      'subscription_managed_by_contract',
+    ]);
+
+    const cancel = v1.paths?.['/subscriptions/{subscriptionId}/cancel/']
+      ?.post as {
+      responses?: Record<
+        string,
+        { content?: { 'application/json'?: { schema?: { anyOf?: unknown[] } } } }
+      >;
+    };
+    const anyOf =
+      cancel.responses?.['400']?.content?.['application/json']?.schema?.anyOf;
+    expect(JSON.stringify(anyOf)).toContain('LegacySubscriptionGuardError');
+  });
+
   test('every bundled operation parses as describe output', () => {
     for (const operation of operationRegistry.operations) {
       const result = operationDetailSchema.safeParse(operation);

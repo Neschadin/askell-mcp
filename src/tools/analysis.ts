@@ -218,7 +218,7 @@ export function registerAnalysisTools(
     {
       title: 'Subscription contract overview (v2)',
       description:
-        'Fetch a v2 subscription contract and recent billing runs filtered by contract id. The contract payload includes `discount` (active coupon) when one is applied, `shipping_selection` when shipping was chosen at checkout, and `subscriber_page` (customer-facing management URL, read-only). Result is an error when the contract fetch fails. `failures` lists every call that failed.',
+        'Fetch a v2 subscription contract and recent billing runs filtered by contract id. The contract payload includes `discount` (active coupon) when one is applied, `shipping_selection` when shipping was chosen at checkout, `subscriber_page` (customer-facing management URL, read-only), `reference`, `scheduled_changes`, and per-item `scheduled_change` / `pending_interval_change` (status `awaiting_payment` while an interval change waits for its charge). Result is an error when the contract fetch fails. `failures` lists every call that failed.',
       inputSchema: z.object({
         contractId: z
           .union([z.string().min(1), z.int()])

@@ -620,6 +620,14 @@
             "description": "Filter by customer reference."
           },
           {
+            "in": "query",
+            "name": "reference",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by contract reference (exact match)."
+          },
+          {
             "$ref": "#/components/parameters/PageSizeFilter"
           }
         ],
@@ -699,7 +707,7 @@
           "V2 Subscription Contracts"
         ],
         "summary": "Partially update a V2 subscription contract",
-        "description": "Restricted patch endpoint. Only `metadata` and `payment_processor_override` may be updated. Requires a secret key.",
+        "description": "Restricted patch endpoint. Only `metadata`, `reference`, `payment_processor_override`, `delivery_address`, `accounting_department` and `accounting_cost_center` may be updated. Requires a secret key.",
         "parameters": [
           {
             "$ref": "#/components/parameters/V2ContractId"
@@ -739,7 +747,7 @@
           "V2 Subscription Contracts"
         ],
         "summary": "Preview a V2 subscription contract proration",
-        "description": "Previews the proration impact of updating an existing V2 subscription contract item. Requires a secret key.",
+        "description": "Previews the proration impact of updating an existing V2 subscription contract item. With `operation=update_item`, `apply_at` selects when the change takes effect: `now` (default) prorates from `effective_at`, which must not be in the future (a future value returns a 400 with code `future_effective_at_not_supported`); `period_end` previews a change scheduled for the item's next renewal (nothing due now, no lines, `next_billing_estimate` at the new values, and `scheduled_for`). An immediate change to a price with a different billing interval credits the unused current period, charges a full new period from `effective_at` and restarts the item's billing period (single-item contracts only, settled with `invoice_now`). update_item previews also return `next_billing_at_after_change` and `billing_cadence_after_change`. Requires a secret key.",
         "parameters": [
           {
             "$ref": "#/components/parameters/V2ContractId"
@@ -786,7 +794,7 @@
           "V2 Subscription Contracts"
         ],
         "summary": "Update a V2 subscription contract item with proration",
-        "description": "Executes a prorated update for an existing V2 subscription contract item. Requires a secret key.",
+        "description": "Updates an existing V2 subscription contract item. With `apply_at=now` (default) the change applies immediately and `effective_at` only positions the proration window, so it must not be in the future (a future value returns a 400 with code `future_effective_at_not_supported`). With `apply_at=period_end` nothing is changed or charged now: the change is stored as a scheduled change (returned in `scheduled_change`, with `change_id` null) and applied to the item when its next renewal billing run is created. `effective_at`, `settlement_behavior` and `include_pending_adjustments` cannot be combined with `period_end`. An item with a pending scheduled change rejects further updates with a 409 (`scheduled_change_exists`) until it is canceled. An immediate billing-interval change with an amount due only switches the item once its proration run is collected (`applies_on_payment: true`, item `pending_interval_change`); meanwhile other changes to the item return a 409 (`pending_interval_change`). Requires a secret key.",
         "parameters": [
           {
             "$ref": "#/components/parameters/V2ContractId"
@@ -818,6 +826,70 @@
           },
           "404": {
             "$ref": "#/components/responses/V2NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/V2ProrationConflict"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/scheduled-changes/{scheduledChangeId}/cancel/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Cancel a scheduled V2 subscription contract item change",
+        "description": "Cancels an item change scheduled with `apply_at=period_end` that has not been applied yet; the item then renews at its current values. Canceling an already canceled change replays (`replayed: true`); an applied or failed change returns a 409 with code `scheduled_change_not_cancelable`. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          },
+          {
+            "name": "scheduledChangeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SubscriptionContractScheduledChangeCancelResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/V2ProrationConflict"
           }
         },
         "security": [
@@ -865,6 +937,9 @@
           },
           "404": {
             "$ref": "#/components/responses/V2NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/V2ProrationConflict"
           }
         },
         "security": [
@@ -912,6 +987,59 @@
           },
           "404": {
             "$ref": "#/components/responses/V2NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/V2ProrationConflict"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/change-anchor/": {
+      "post": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "Change the billing anchor of a V2 subscription contract with proration",
+        "description": "Moves the next renewal of an active V2 subscription contract, and of all its active items, to new_billing_anchor_at. With proration, the unused part of the paid period is credited and the stretch from effective_at to the new anchor is charged, on the next invoice at the new date (next_invoice) or in a proration billing run now (invoice_now). Does not extend service entitlements. While an immediate billing-interval change on an item awaits its payment (item `pending_interval_change`) it returns a 409 (`pending_interval_change`); an interval change whose payment failed is abandoned, so a later retry of its charge no longer applies it. Requires a secret key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2SubscriptionContractChangeAnchor"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SubscriptionContractItemUpdateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/V2ProrationConflict"
           }
         },
         "security": [
@@ -1666,6 +1794,39 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/V2BillingRun"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/billing-runs/{billingRunId}/refund/": {
+      "post": {
+        "tags": [
+          "V2 Billing Runs"
+        ],
+        "summary": "Refund a V2 billing run",
+        "description": "Refunds the charge a succeeded V2 billing run settled. Full refunds only: the whole settled amount of the run's transaction is returned to the payment method it was charged to; partial refunds are not supported. Only runs in the `succeeded` state with a settled transaction can be refunded, and the payment processor must support refunds. No request body. Requires a secret key (public keys and legacy tokens are rejected).\n\n**200** — the processor refunded the charge and the returned run is `refunded` (with the refund recorded under `metadata.transaction_refund`); a `billing_run.changed` webhook is sent.\n\n**202** — the refund is not reflected on the returned run yet, which is still `succeeded`. Either the processor accepted the refund but has not completed it (for example Teya answering PENDING), or the processor refunded the charge and the run is still being updated. The request is recorded under `metadata.refund_requests`. Wait for the `billing_run.changed` webhook, or re-read the run, to see it move to `refunded`. Do not treat a 202 as a failure and do not immediately resend the request.\n\n**400** — the run is not `succeeded`, has no settled transaction (for example a zero-amount run, or a charge already refunded), its payment processor does not support refunds, or the processor did not complete the refund.\n\nConcurrent refund requests for the same run are serialized, and a request made after an earlier one refunded the charge gets a 400 while the run is `refunded`. If a request gets no response (for example a timeout), read the run with `GET /api/v2/billing-runs/{billingRunId}/` and check its `state` and `metadata.refund_requests` before sending the request again.\n\nThe `billing_run_id` in `payment.*` webhook payloads identifies the run to refund.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2BillingRunId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2BillingRun"
+          },
+          "202": {
+            "$ref": "#/components/responses/V2BillingRunRefundPending"
           },
           "400": {
             "$ref": "#/components/responses/V2ValidationError"
@@ -3011,6 +3172,12 @@
               "metadata": {
                 "$ref": "#/components/schemas/V2Metadata"
               },
+              "reference": {
+                "type": "string",
+                "nullable": true,
+                "maxLength": 128,
+                "description": "The contract's reference in an external system, such as the seller's order number. Must not contain commas. Surrounding whitespace is trimmed and a blank value means no reference."
+              },
               "initial_billing_mode": {
                 "type": "string",
                 "enum": [
@@ -3029,7 +3196,18 @@
         "type": "object",
         "properties": {
           "metadata": {
-            "$ref": "#/components/schemas/V2Metadata"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2Metadata"
+              }
+            ],
+            "description": "Replaces the integration's metadata keys. Keys Askell uses itself (`askell_source`, `billing_anchor_mode`, `activation_failure`, `email_markers`, `copied_legacy_pauses`, `copied_legacy_extra_data`, `migration_source`, `migration_cadence_mode`, `legacy_subscription_ids`, `seed`) keep their current values on the contract; any of them in the request are ignored."
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 128,
+            "description": "The contract's reference in an external system. Must not contain commas. `null` or a blank value clears it."
           },
           "payment_processor_override": {
             "type": "integer",
@@ -3288,7 +3466,8 @@
                   "pause",
                   "resume",
                   "cancel",
-                  "restart"
+                  "restart",
+                  "change_anchor"
                 ],
                 "default": "update_item"
               },
@@ -3335,6 +3514,21 @@
                 "format": "date-time",
                 "nullable": true,
                 "description": "Only applies to pause."
+              },
+              "new_billing_anchor_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "Only applies to change_anchor, where it is required."
+              },
+              "apply_at": {
+                "type": "string",
+                "enum": [
+                  "now",
+                  "period_end"
+                ],
+                "default": "now",
+                "description": "Only applies to update_item. `now` changes the item immediately with proration; `period_end` schedules the change for the item's next renewal (cannot be combined with `effective_at`, `settlement_behavior` or `include_pending_adjustments`)."
               }
             }
           }
@@ -3419,6 +3613,49 @@
           }
         ]
       },
+      "V2SubscriptionContractChangeAnchor": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2SubscriptionContractChangeCommon"
+          },
+          {
+            "type": "object",
+            "required": [
+              "new_billing_anchor_at"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "change_anchor"
+                ],
+                "default": "change_anchor"
+              },
+              "new_billing_anchor_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The contract's new next renewal time. Must be after effective_at and, with proration, no more than one billing period after it."
+              },
+              "settlement_behavior": {
+                "type": "string",
+                "enum": [
+                  "next_invoice",
+                  "invoice_now"
+                ],
+                "nullable": true,
+                "description": "Defaults to invoice_now with always_invoice proration, otherwise next_invoice. Ignored when proration_behavior is none."
+              },
+              "idempotency_key": {
+                "type": "string",
+                "nullable": true
+              },
+              "preview_token": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
       "V2SubscriptionContractItemUpdate": {
         "allOf": [
           {
@@ -3458,6 +3695,15 @@
                 "format": "decimal",
                 "nullable": true,
                 "description": "Fixed per-unit amount for the item, used instead of the catalog price. Omitting the field keeps the item's current override; an explicit null clears it so the item reverts to the catalog price."
+              },
+              "apply_at": {
+                "type": "string",
+                "enum": [
+                  "now",
+                  "period_end"
+                ],
+                "default": "now",
+                "description": "`now` changes the item immediately with proration; `period_end` keeps the current price until the item's current service period ends and applies the change at the next renewal, with no refund or charge now."
               },
               "idempotency_key": {
                 "type": "string",
@@ -3613,6 +3859,155 @@
           },
           "preview_token": {
             "type": "string"
+          },
+          "apply_at": {
+            "type": "string",
+            "enum": [
+              "now",
+              "period_end"
+            ],
+            "description": "update_item only."
+          },
+          "scheduled_for": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "update_item only. When a period_end change takes effect (the item's current service period end); null for now."
+          },
+          "next_billing_at_after_change": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "update_item only. The item's next billing once the change is in effect. For an immediate billing-interval change this is the end of the new period; for period_end it is the renewal the change applies at."
+          },
+          "billing_cadence_after_change": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2SubscriptionContractBillingCadence"
+              }
+            ],
+            "nullable": true,
+            "description": "update_item only. The contract's billing cadence after the change."
+          },
+          "applies_on_payment": {
+            "type": "boolean",
+            "description": "update_item only. True for an immediate billing-interval change with an amount due: the item switches only once that charge is collected."
+          }
+        }
+      },
+      "V2SubscriptionContractScheduledChange": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "contract_item": {
+            "type": "integer"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "update_item"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "applied",
+              "canceled",
+              "failed"
+            ]
+          },
+          "scheduled_for": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "price_id": {
+            "type": "integer"
+          },
+          "price": {
+            "$ref": "#/components/schemas/V2CatalogPrice"
+          },
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "reference": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "discount_percent": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "unit_amount_override": {
+            "type": "string",
+            "format": "decimal",
+            "nullable": true
+          },
+          "from_price_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "from_quantity": {
+            "type": "integer",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "applied_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "canceled_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "applied_change_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "billing_run_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2SubscriptionContractScheduledChangeCancelResponse": {
+        "type": "object",
+        "properties": {
+          "scheduled_change": {
+            "$ref": "#/components/schemas/V2SubscriptionContractScheduledChange"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "contract": {
+            "$ref": "#/components/schemas/V2SubscriptionContract"
           }
         }
       },
@@ -3620,7 +4015,21 @@
         "type": "object",
         "properties": {
           "change_id": {
-            "type": "integer"
+            "type": "integer",
+            "nullable": true,
+            "description": "Null when the change was scheduled with apply_at=period_end."
+          },
+          "scheduled_change": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2SubscriptionContractScheduledChange"
+              }
+            ],
+            "nullable": true
+          },
+          "applies_on_payment": {
+            "type": "boolean",
+            "description": "True when an immediate billing-interval change waits for `billing_run_id` to be collected; until then the item keeps its current price and shows the change in `pending_interval_change`."
           },
           "billing_run_id": {
             "type": "integer",
@@ -3631,6 +4040,13 @@
             "items": {
               "type": "integer"
             }
+          },
+          "consumed_pending_adjustment_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Earlier pending adjustment lines this change pulled into its invoice_now billing run with include_pending_adjustments; empty otherwise."
           },
           "replayed": {
             "type": "boolean"
@@ -3668,7 +4084,12 @@
                 "type": "string"
               },
               "metadata": {
-                "$ref": "#/components/schemas/V2Metadata"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/V2Metadata"
+                  }
+                ],
+                "description": "Stored on the checkout and copied to the created contract's `metadata` when the checkout is finalized. In a checkout session the session's own metadata wins on a shared key, and the sales channel's `metadata_policy.frontend_allowed_keys` limits the keys the browser may send (with no such list any key is accepted, and an empty list accepts none). Keys Askell uses itself (`askell_source`, `billing_anchor_mode`, `activation_failure`, `email_markers`, `copied_legacy_pauses`, `copied_legacy_extra_data`, `migration_source`, `migration_cadence_mode`, `legacy_subscription_ids`, `seed`) are not copied."
               },
               "delivery_address": {
                 "$ref": "#/components/schemas/V2Address",
@@ -4001,7 +4422,12 @@
             "description": "Seller customer reference. If an existing customer has this reference, the session is bound to that customer."
           },
           "metadata": {
-            "$ref": "#/components/schemas/V2Metadata"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2Metadata"
+              }
+            ],
+            "description": "Server-side session metadata. Returned by the session GET and copied to the created contract's `metadata` when the session's checkout is finalized; on a key the browser also sends, this value wins. Keys Askell uses itself (`askell_source`, `billing_anchor_mode`, `activation_failure`, `email_markers`, `copied_legacy_pauses`, `copied_legacy_extra_data`, `migration_source`, `migration_cadence_mode`, `legacy_subscription_ids`, `seed`) are not copied."
           },
           "theme": {
             "$ref": "#/components/schemas/V2Metadata",
@@ -4902,6 +5328,59 @@
           },
           "metadata": {
             "$ref": "#/components/schemas/V2Metadata"
+          },
+          "scheduled_change": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2SubscriptionContractScheduledChange"
+              }
+            ],
+            "nullable": true,
+            "description": "The item's pending change scheduled for its next renewal, if any."
+          },
+          "pending_interval_change": {
+            "type": "object",
+            "nullable": true,
+            "description": "An immediate billing-interval change waiting for its charge to be collected; the item switches when the billing run succeeds.",
+            "properties": {
+              "change_id": {
+                "type": "integer"
+              },
+              "billing_run_id": {
+                "type": "integer",
+                "nullable": true
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "awaiting_payment"
+                ]
+              },
+              "price_id": {
+                "type": "integer"
+              },
+              "quantity": {
+                "type": "integer"
+              },
+              "discount_percent": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true
+              },
+              "unit_amount_override": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true
+              },
+              "effective_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "next_billing_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
           }
         }
       },
@@ -5478,7 +5957,8 @@
             "type": "string"
           },
           "customer_name": {
-            "type": "string"
+            "type": "string",
+            "description": "The customer's first and last name, whichever are set; empty when the customer has neither."
           },
           "customer_email": {
             "type": "string",
@@ -5758,6 +6238,12 @@
           "customer_reference": {
             "type": "string"
           },
+          "reference": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 128,
+            "description": "The contract's reference in an external system, such as the seller's order number. V2 payment pages set it from their `subscription_reference` URL parameter."
+          },
           "shipping_selection": {
             "$ref": "#/components/schemas/V2ShippingSelection"
           },
@@ -5883,7 +6369,12 @@
             }
           },
           "metadata": {
-            "$ref": "#/components/schemas/V2Metadata"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2Metadata"
+              }
+            ],
+            "description": "Integration metadata. A contract created by a checkout carries the checkout session's and the checkout's metadata, and `askell_source` records where the contract came from (`type`: `checkout_session`, `checkout` or `payment_page`, with the ids of that source)."
           },
           "subscriber_page": {
             "type": "string",
@@ -5957,6 +6448,13 @@
           },
           "latest_billing_run": {
             "$ref": "#/components/schemas/V2BillingRunSummary"
+          },
+          "scheduled_changes": {
+            "type": "array",
+            "description": "Pending item changes scheduled for the items' next renewals.",
+            "items": {
+              "$ref": "#/components/schemas/V2SubscriptionContractScheduledChange"
+            }
           }
         }
       },
@@ -7072,6 +7570,34 @@
                   }
                 }
               ]
+            }
+          }
+        }
+      },
+      "V2ProrationConflict": {
+        "description": "Conflict, e.g. `scheduled_change_exists`, `pending_interval_change`, `scheduled_change_not_cancelable`, `idempotency_key_conflict`, `preview_stale`, `billing_run_overlap`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "V2BillingRunRefundPending": {
+        "description": "The refund is not reflected on the returned billing run yet, which is still `succeeded`: either the payment processor accepted the refund but has not completed it, or it refunded the charge and the run is still being updated. The request is recorded under `metadata.refund_requests`. Wait for the `billing_run.changed` webhook, or re-read the run, to see it move to `refunded`; do not treat this as a failure or immediately resend the request.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2BillingRun"
             }
           }
         }

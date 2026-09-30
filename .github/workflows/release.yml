@@ -257,7 +257,7 @@ jobs:
               break
             fi
             echo "npm askell-mcp@${TAG} not readable yet (${i}/30)"
-            sleep 10
+            sleep 15
           done
           if [[ "$ready" -ne 1 ]]; then
             echo "timed out waiting for npm askell-mcp@${TAG}" >&2

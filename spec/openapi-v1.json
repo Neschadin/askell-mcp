@@ -431,11 +431,18 @@
             "description": "Successful operation"
           },
           "400": {
-            "description": "Invalid status value",
+            "description": "Invalid request, or the account uses subscription contracts only and no longer creates legacy subscriptions (`code: legacy_subscriptions_disabled`). Create a subscription contract with `POST /api/v2/subscription-contracts/` instead. The guard error also carries `status: error` on this endpoint.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/inline_response_400"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/inline_response_400"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LegacySubscriptionGuardError"
+                    }
+                  ]
                 }
               }
             }
@@ -727,11 +734,18 @@
             }
           },
           "400": {
-            "description": "Invalid status value",
+            "description": "Invalid request, or the account uses subscription contracts only and no longer creates legacy subscriptions (`code: legacy_subscriptions_disabled`). Create a subscription contract with `POST /api/v2/subscription-contracts/` instead. On that refusal the customer is neither created nor updated.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/inline_response_400"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/inline_response_400"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LegacySubscriptionGuardError"
+                    }
+                  ]
                 }
               }
             }
@@ -812,6 +826,25 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "The request failed validation, or the subscription's billing is managed by a subscription contract (`code: subscription_managed_by_contract`). Manage the contract through `/api/v2/subscription-contracts/{id}/` instead.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "description": "Field validation errors, keyed by field name.",
+                      "additionalProperties": true
+                    },
+                    {
+                      "$ref": "#/components/schemas/LegacySubscriptionGuardError"
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
         "security": [
@@ -852,11 +885,18 @@
             }
           },
           "400": {
-            "description": "Invalid status value",
+            "description": "The subscription is not active, or its billing is managed by a subscription contract (`code: subscription_managed_by_contract`, whatever the legacy state). Cancel the contract with `POST /api/v2/subscription-contracts/{id}/cancel/` instead (see `v2_endpoint`).",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/inline_response_400"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/inline_response_400"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LegacySubscriptionGuardError"
+                    }
+                  ]
                 }
               }
             }
@@ -900,11 +940,18 @@
             }
           },
           "400": {
-            "description": "Invalid status value",
+            "description": "The subscription is already active, expired or over its plan's subscription limit, or the account no longer reactivates legacy subscriptions. Or its billing is managed by a subscription contract (`code: subscription_managed_by_contract`, whatever the legacy state): manage the contract through `/api/v2/subscription-contracts/{id}/` instead (see `v2_endpoint`).",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/inline_response_400"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/inline_response_400"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LegacySubscriptionGuardError"
+                    }
+                  ]
                 }
               }
             }
@@ -952,11 +999,18 @@
             }
           },
           "400": {
-            "description": "Invalid status value",
+            "description": "Invalid date or subscription state, or the subscription's billing is managed by a subscription contract (`code: subscription_managed_by_contract`). Manage the contract through `/api/v2/subscription-contracts/{id}/` instead.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/inline_response_400"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/inline_response_400"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LegacySubscriptionGuardError"
+                    }
+                  ]
                 }
               }
             }
@@ -975,7 +1029,7 @@
           "Checkout"
         ],
         "summary": "Create a hosted checkout card form",
-        "description": "Creates a hosted checkout and returns a `checkout_url` that should be rendered in an iframe. The hosted page collects card details, handles 3D Secure when required, and posts completion messages to the embedding page. The resulting `token` is a reference to a payment method that can be added to a customer after checkout status becomes `tokencreated`.\n\nCreate a checkout either for a `plan` or directly for an account `payment_processor`. When using `payment_processor`, `currency` is required. To capture only the card details, set `capture_only` to `true`; this value is optional and defaults to `false`.\n\nIf supplied, `allowed_origin` must be an origin only, for example `https://merchant.example`, with no path, query string, or credentials. It controls the single parent page origin allowed to frame this checkout and receive checkout postMessage notifications. If omitted, all checkout origins configured for the account are allowed to frame the checkout.",
+        "description": "Creates a hosted checkout and returns a `checkout_url` that should be rendered in an iframe. The hosted page collects card details, handles 3D Secure when required, and posts completion messages to the embedding page. The resulting `token` is a reference to a payment method that can be added to a customer after checkout status becomes `tokencreated`.\n\nCreate a checkout either for a `plan` or directly for an account `payment_processor`. When using `payment_processor`, `currency` is required. A `plan` checkout completes into a legacy subscription, so on an account that uses subscription contracts only it is refused with 400 and `code: legacy_subscriptions_disabled`; a checkout for a `payment_processor` still works there. To capture only the card details, set `capture_only` to `true`; this value is optional and defaults to `false`.\n\nIf supplied, `allowed_origin` must be an origin only, for example `https://merchant.example`, with no path, query string, or credentials. It controls the single parent page origin allowed to frame this checkout and receive checkout postMessage notifications. If omitted, all checkout origins configured for the account are allowed to frame the checkout.",
         "requestBody": {
           "$ref": "#/components/requestBodies/CheckoutCreate"
         },
@@ -991,11 +1045,18 @@
             }
           },
           "400": {
-            "description": "Invalid status value",
+            "description": "Invalid request, or a checkout for a `plan` on an account that uses subscription contracts only (`code: legacy_subscriptions_disabled`). Checkouts without a `plan` are not affected.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/inline_response_400"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/inline_response_400"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LegacySubscriptionGuardError"
+                    }
+                  ]
                 }
               }
             }
@@ -1359,7 +1420,7 @@
           }
         ],
         "summary": "Refund a settled Payment",
-        "description": "If a Payment is in the settled state and the payment processor supports refunds, you can refund it. Requires a secret key.",
+        "description": "If a Payment is in the settled state and the payment processor supports refunds, you can refund it. Requires a secret key. Charges made by V2 billing runs are not Payments: the transaction uuid a V2 `payment.*` webhook carries is answered with a 400 whose body names the run (`billing_run_id`) and points to `POST /api/v2/billing-runs/{billingRunId}/refund/`, which refunds it.",
         "responses": {
           "200": {
             "description": "Successful operation",
@@ -2587,6 +2648,47 @@
             "items": {
               "$ref": "#/components/schemas/SubscriptionCreate"
             }
+          }
+        }
+      },
+      "LegacySubscriptionGuardError": {
+        "type": "object",
+        "description": "Returned with HTTP 400 when the legacy API refuses work that subscription contracts now own. Match on `code` rather than on the message.",
+        "required": [
+          "error",
+          "code",
+          "v2_endpoint"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "What was refused and what to use instead, in English.",
+            "example": "This account uses subscription contracts and no longer creates legacy subscriptions. Use POST /api/v2/subscription-contracts/ instead."
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "legacy_subscriptions_disabled",
+              "subscription_managed_by_contract"
+            ],
+            "description": "`legacy_subscriptions_disabled`: the account's subscription model is `contracts`, so legacy subscriptions are no longer created. `subscription_managed_by_contract`: the subscription was migrated to a subscription contract (its `billing_managed_by` is `subscription_contract`), which must be cancelled or changed through the V2 API instead.",
+            "example": "legacy_subscriptions_disabled"
+          },
+          "migrated_to_contract_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The subscription contract that bills the subscription. Only present with `subscription_managed_by_contract`.",
+            "example": 123
+          },
+          "v2_endpoint": {
+            "type": "string",
+            "description": "The V2 endpoint to use instead: `/api/v2/subscription-contracts/` to create, `/api/v2/subscription-contracts/{id}/cancel/` to cancel, `/api/v2/subscription-contracts/{id}/` for other changes.",
+            "example": "/api/v2/subscription-contracts/"
+          },
+          "status": {
+            "type": "string",
+            "description": "Only on `POST /customers/{customerReference}/subscriptions/add/`, matching that endpoint's other errors.",
+            "example": "error"
           }
         }
       },

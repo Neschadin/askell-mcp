@@ -173,10 +173,12 @@ Typical agent workflow:
 
 ## API notes (short)
 
-- **v1** — legacy paths like `/customers/`, `/subscriptions/` (no `/v2` prefix)
+- **v1** — legacy paths like `/customers/`, `/subscriptions/` (no `/v2` prefix). Contracts-only accounts refuse new legacy subscriptions (`400`, `code: legacy_subscriptions_disabled`). A subscription whose billing moved to a contract refuses cancel/activate/set_expiry/PATCH (`code: subscription_managed_by_contract`, follow `v2_endpoint`).
 - **v2** — current model: catalogs, quotes, checkouts, contracts, billing runs, coupons/promotion codes, fulfillment orders under `/v2/`
+- **v2 contract changes** — `reference` (max 128, no commas) on create/patch/list filter. Item update `apply_at=now|period_end`; cancel a scheduled change with `POST .../scheduled-changes/{id}/cancel/`. Move the billing anchor with `POST .../change-anchor/`, not PATCH. PATCH accepts only `metadata`, `reference`, `payment_processor_override` — ignore the description's `delivery_address` / accounting fields; they are not on `V2SubscriptionContractPatch`.
+- **v2 refunds** — billing-run charges are not Payments. `POST /v2/billing-runs/{id}/refund/` (full amount, no body). `202` means still `succeeded`; do not resend immediately. `POST /payments/{uuid}/refund/` is one-off only. `payment.*` may carry `billing_run_id`.
 - **v2 discounts** — catalog CRUD `/v2/coupons/` + `/v2/promotion-codes/` (coupon = definition, promotion code = what the customer types). Contract: `GET/POST /v2/subscription-contracts/{id}/discount|apply-code|remove-discount` (one active). Quotes take `promotion_code` and, for an existing buyer, `customer` (id) so combo discounts + promo restrictions apply. First-period totals already include coupon + combo; `quote.recurring_*` include combo but not the coupon (`discount.recurring_final_amount` while the coupon is active). Recurring `finalize` needs a verified payment method even when due-now is 0. Not the v1 `discount` 0–100 field.
-- **v2 fulfillment** — `GET /v2/fulfillment-orders/` for backfill; `POST .../{id}/fulfill/` (optional tracking body) and `POST .../{id}/cancel/` mark shipped/cancelled. Same body as `fulfillment_order.*` webhooks.
+- **v2 fulfillment** — `GET /v2/fulfillment-orders/` for backfill; `POST .../{id}/fulfill/` (optional tracking body) and `POST .../{id}/cancel/` mark shipped/cancelled. Webhooks: `fulfillment_order.created`, `shipment_booked` (extra `shipment_id`), `fulfilled`, `cancelled`. Same body as `GET`.
 - Paths use **trailing slashes**
 - Prefer **v2** for new integrations; v1 remains for existing ones
 - Docs: [docs.askell.is](https://docs.askell.is/) · OpenAPI: [v1](https://askell.is/api/swagger/swagger.json) · [v2](https://askell.is/api/swagger/v2/swagger.json)
