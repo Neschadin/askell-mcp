@@ -4091,6 +4091,12 @@
                 ],
                 "description": "Stored on the checkout and copied to the created contract's `metadata` when the checkout is finalized. In a checkout session the session's own metadata wins on a shared key, and the sales channel's `metadata_policy.frontend_allowed_keys` limits the keys the browser may send (with no such list any key is accepted, and an empty list accepts none). Keys Askell uses itself (`askell_source`, `billing_anchor_mode`, `activation_failure`, `email_markers`, `copied_legacy_pauses`, `copied_legacy_extra_data`, `migration_source`, `migration_cadence_mode`, `legacy_subscription_ids`, `seed`) are not copied."
               },
+              "contract_reference": {
+                "type": "string",
+                "nullable": true,
+                "maxLength": 128,
+                "description": "Your reference for the subscription contract this checkout creates, such as your order number. Copied to the contract's `reference` when the contract is created on finalize, so it is in every `subscription_contract.*` webhook, `subscription_contract.created` included, and `GET /api/v2/subscription-contracts/?reference=` finds the contract. Must not contain commas; not unique. Surrounding whitespace is trimmed and a blank value means no reference. Not accepted on checkout-session endpoints: there the seller's backend sets `contract_reference` when it creates the session."
+              },
               "delivery_address": {
                 "$ref": "#/components/schemas/V2Address",
                 "description": "Optional delivery-address snapshot for physical products or alternate delivery."
@@ -4421,6 +4427,12 @@
             "type": "string",
             "description": "Seller customer reference. If an existing customer has this reference, the session is bound to that customer."
           },
+          "contract_reference": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 128,
+            "description": "Your reference for the subscription contract this session creates, such as your order number. Copied to the contract's `reference` when the contract is created on finalize, so it is in every `subscription_contract.*` webhook, `subscription_contract.created` included, and `GET /api/v2/subscription-contracts/?reference=` finds the contract. Must not contain commas; not unique. Surrounding whitespace is trimmed and a blank value means no reference. Only settable here, with a secret key: the browser cannot set it and the public session payload does not include it."
+          },
           "metadata": {
             "allOf": [
               {
@@ -4497,6 +4509,11 @@
           },
           "metadata": {
             "$ref": "#/components/schemas/V2Metadata"
+          },
+          "contract_reference": {
+            "type": "string",
+            "nullable": true,
+            "description": "The reference the contract gets when this session's checkout is finalized; `null` when none was given."
           }
         }
       },
@@ -4870,6 +4887,11 @@
           },
           "metadata": {
             "$ref": "#/components/schemas/V2Metadata"
+          },
+          "contract_reference": {
+            "type": "string",
+            "nullable": true,
+            "description": "The `contract_reference` given when this checkout was created, or `null`. Always `null` for a checkout created in a checkout session, whose contract takes the session's `contract_reference` instead."
           },
           "allowed_origin": {
             "type": "string",
@@ -6242,7 +6264,7 @@
             "type": "string",
             "nullable": true,
             "maxLength": 128,
-            "description": "The contract's reference in an external system, such as the seller's order number. V2 payment pages set it from their `subscription_reference` URL parameter."
+            "description": "The contract's reference in an external system, such as the seller's order number. V2 payment pages set it from their `subscription_reference` URL parameter, and checkouts from the `contract_reference` given when the checkout session, or a checkout without a session, was created."
           },
           "shipping_selection": {
             "$ref": "#/components/schemas/V2ShippingSelection"

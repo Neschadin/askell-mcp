@@ -124,6 +124,9 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('operation=change_anchor');
     expect(text).toContain('Do not PATCH billing_anchor_at');
     expect(text).toContain('max 128, no commas');
+    expect(text).toContain('contract_reference');
+    expect(text).toContain('too late for subscription_contract.created');
+    expect(text).toContain('contract_reference null');
     expect(text).toContain('V2SubscriptionContractPatch does not include them — do not send them');
     expect(text).toContain('On a shared key the session value wins');
     expect(text).toContain('sending them does nothing');
