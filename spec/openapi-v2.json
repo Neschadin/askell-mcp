@@ -747,7 +747,7 @@
           "V2 Subscription Contracts"
         ],
         "summary": "Preview a V2 subscription contract proration",
-        "description": "Previews the proration impact of updating an existing V2 subscription contract item. With `operation=update_item`, `apply_at` selects when the change takes effect: `now` (default) prorates from `effective_at`, which must not be in the future (a future value returns a 400 with code `future_effective_at_not_supported`); `period_end` previews a change scheduled for the item's next renewal (nothing due now, no lines, `next_billing_estimate` at the new values, and `scheduled_for`). An immediate change to a price with a different billing interval credits the unused current period, charges a full new period from `effective_at` and restarts the item's billing period (single-item contracts only, settled with `invoice_now`). update_item previews also return `next_billing_at_after_change` and `billing_cadence_after_change`. Requires a secret key.",
+        "description": "Previews the proration impact of updating an existing V2 subscription contract item. With `operation=update_item`, `apply_at` selects when the change takes effect: `now` (default) prorates from `effective_at`, which must not be in the future (a future value returns a 400 with code `future_effective_at_not_supported`); `period_end` previews a change scheduled for the item's next renewal (nothing due now, no lines, `next_billing_estimate` at the new values, and `scheduled_for`). An immediate change to a price with a different billing interval credits the unused current period, charges a full new period from `effective_at` and restarts the item's billing period (single-item contracts only, settled with `invoice_now`). update_item previews also return `next_billing_at_after_change`, `billing_cadence_after_change` and `applies_on_payment` (send the same `apply_on_payment` as the update: a preview token only validates an update with the same value). Requires a secret key.",
         "parameters": [
           {
             "$ref": "#/components/parameters/V2ContractId"
@@ -794,7 +794,7 @@
           "V2 Subscription Contracts"
         ],
         "summary": "Update a V2 subscription contract item with proration",
-        "description": "Updates an existing V2 subscription contract item. With `apply_at=now` (default) the change applies immediately and `effective_at` only positions the proration window, so it must not be in the future (a future value returns a 400 with code `future_effective_at_not_supported`). With `apply_at=period_end` nothing is changed or charged now: the change is stored as a scheduled change (returned in `scheduled_change`, with `change_id` null) and applied to the item when its next renewal billing run is created. `effective_at`, `settlement_behavior` and `include_pending_adjustments` cannot be combined with `period_end`. An item with a pending scheduled change rejects further updates with a 409 (`scheduled_change_exists`) until it is canceled. An immediate billing-interval change with an amount due only switches the item once its proration run is collected (`applies_on_payment: true`, item `pending_interval_change`); meanwhile other changes to the item return a 409 (`pending_interval_change`). Requires a secret key.",
+        "description": "Updates an existing V2 subscription contract item. With `apply_at=now` (default) the change applies immediately and `effective_at` only positions the proration window, so it must not be in the future (a future value returns a 400 with code `future_effective_at_not_supported`). With `apply_at=period_end` nothing is changed or charged now: the change is stored as a scheduled change (returned in `scheduled_change`, with `change_id` null) and applied to the item when its next renewal billing run is created. `effective_at`, `settlement_behavior` and `include_pending_adjustments` cannot be combined with `period_end`. An item with a pending scheduled change rejects further updates with a 409 (`scheduled_change_exists`) until it is canceled. An immediate billing-interval change with an amount due only switches the item once its proration run is collected (`applies_on_payment: true`, item `pending_interval_change` and `pending_change`); meanwhile other changes to the item return a 409 (`pending_interval_change`). With `apply_on_payment: true` a same-interval change (for example an upgrade) waits for its charge the same way, keeping the item's billing schedule: the item stays on its current values and shows the change in `pending_change`, its renewal is held, other changes to it (and `change-anchor`) return a 409 (`pending_change`), and a terminal payment failure leaves it unchanged. A later manual retry that succeeds still applies it unless the item was changed or its renewal billed in the meantime; the payment is then credited to the contract balance. `apply_on_payment` needs `invoice_now` (400 `apply_on_payment_requires_invoice_now`) and cannot be combined with `period_end` (400 `invalid_apply_at`). Requires a secret key.",
         "parameters": [
           {
             "$ref": "#/components/parameters/V2ContractId"
@@ -3528,7 +3528,12 @@
                   "period_end"
                 ],
                 "default": "now",
-                "description": "Only applies to update_item. `now` changes the item immediately with proration; `period_end` schedules the change for the item's next renewal (cannot be combined with `effective_at`, `settlement_behavior` or `include_pending_adjustments`)."
+                "description": "Only applies to update_item. `now` changes the item immediately with proration; `period_end` schedules the change for the item's next renewal (cannot be combined with `effective_at`, `settlement_behavior`, `include_pending_adjustments` or `apply_on_payment`)."
+              },
+              "apply_on_payment": {
+                "type": "boolean",
+                "default": false,
+                "description": "Only applies to update_item with `apply_at=now`. When true, a same-interval change with an amount due switches the item only once its proration run is collected (`applies_on_payment`), settled with `invoice_now` (the default then; `next_invoice` returns a 400 with code `apply_on_payment_requires_invoice_now`). A change with nothing to collect applies at once. A billing-interval change always waits for its payment."
               }
             }
           }
@@ -3704,6 +3709,11 @@
                 ],
                 "default": "now",
                 "description": "`now` changes the item immediately with proration; `period_end` keeps the current price until the item's current service period ends and applies the change at the next renewal, with no refund or charge now."
+              },
+              "apply_on_payment": {
+                "type": "boolean",
+                "default": false,
+                "description": "With `apply_at=now`, keep the item on its current values until the change's proration run is collected, as a billing-interval change always does: the response returns `applies_on_payment: true` and the item shows the change in `pending_change`, its renewal is held meanwhile, and a terminal payment failure leaves the item unchanged. Settled with `invoice_now` (the default then; `next_invoice` returns a 400 with code `apply_on_payment_requires_invoice_now`); cannot be combined with `apply_at=period_end`. A change with nothing to collect (no proration, a downgrade, or a charge fully covered) applies at once. Defaults to false: the item is switched now and the charge collected afterwards."
               },
               "idempotency_key": {
                 "type": "string",
@@ -3891,7 +3901,7 @@
           },
           "applies_on_payment": {
             "type": "boolean",
-            "description": "update_item only. True for an immediate billing-interval change with an amount due: the item switches only once that charge is collected."
+            "description": "update_item only. True for an immediate billing-interval change, or a change sent with `apply_on_payment`, with an amount due: the item switches only once that charge is collected."
           }
         }
       },
@@ -4029,7 +4039,7 @@
           },
           "applies_on_payment": {
             "type": "boolean",
-            "description": "True when an immediate billing-interval change waits for `billing_run_id` to be collected; until then the item keeps its current price and shows the change in `pending_interval_change`."
+            "description": "True when the change waits for `billing_run_id` to be collected (an immediate billing-interval change, or a change sent with `apply_on_payment`); until then the item keeps its current values and shows the change in `pending_change` (and, for an interval change, in `pending_interval_change`)."
           },
           "billing_run_id": {
             "type": "integer",
@@ -5363,7 +5373,7 @@
           "pending_interval_change": {
             "type": "object",
             "nullable": true,
-            "description": "An immediate billing-interval change waiting for its charge to be collected; the item switches when the billing run succeeds.",
+            "description": "An immediate billing-interval change waiting for its charge to be collected; the item switches when the billing run succeeds. Null for a same-interval change made with `apply_on_payment`, which only shows in `pending_change`.",
             "properties": {
               "change_id": {
                 "type": "integer"
@@ -5401,6 +5411,56 @@
               "next_billing_at": {
                 "type": "string",
                 "format": "date-time"
+              }
+            }
+          },
+          "pending_change": {
+            "type": "object",
+            "nullable": true,
+            "description": "Any change on the item waiting for its charge to be collected: an immediate billing-interval change, or a same-interval change made with `apply_on_payment`. The item keeps its current values (and its renewal is held) until the billing run succeeds; if it fails terminally the item is left unchanged.",
+            "properties": {
+              "change_id": {
+                "type": "integer"
+              },
+              "billing_run_id": {
+                "type": "integer",
+                "nullable": true
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "awaiting_payment"
+                ]
+              },
+              "price_id": {
+                "type": "integer"
+              },
+              "quantity": {
+                "type": "integer"
+              },
+              "discount_percent": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true
+              },
+              "unit_amount_override": {
+                "type": "string",
+                "format": "decimal",
+                "nullable": true
+              },
+              "effective_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "next_billing_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "The item's next billing once the change applies: the end of the new period for an interval change, the current renewal otherwise."
+              },
+              "interval_change": {
+                "type": "boolean",
+                "description": "True for a billing-interval change (also shown in `pending_interval_change`), false for a same-interval change made with `apply_on_payment`."
               }
             }
           }
@@ -7597,7 +7657,7 @@
         }
       },
       "V2ProrationConflict": {
-        "description": "Conflict, e.g. `scheduled_change_exists`, `pending_interval_change`, `scheduled_change_not_cancelable`, `idempotency_key_conflict`, `preview_stale`, `billing_run_overlap`",
+        "description": "Conflict, e.g. `scheduled_change_exists`, `pending_interval_change`, `pending_change`, `scheduled_change_not_cancelable`, `idempotency_key_conflict`, `preview_stale`, `billing_run_overlap`",
         "content": {
           "application/json": {
             "schema": {

@@ -120,6 +120,11 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('scheduled_change_not_cancelable');
     expect(text).toContain('awaiting_payment');
     expect(text).toContain('retrying the run does not apply it');
+    expect(text).toContain('apply_on_payment');
+    expect(text).toContain('pending_change');
+    expect(text).toContain('apply_on_payment_requires_invoice_now');
+    expect(text).toContain('invalid_apply_at');
+    expect(text).toContain('preview token only validates an update with the same value');
     expect(text).toContain('at most one billing period later');
     expect(text).toContain('operation=change_anchor');
     expect(text).toContain('Do not PATCH billing_anchor_at');
