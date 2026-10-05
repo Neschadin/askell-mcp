@@ -13,6 +13,14 @@ import { registerCallTools } from './tools/call.ts';
 import { registerDiscoveryTools } from './tools/discovery.ts';
 import { PACKAGE_VERSION } from './version.ts';
 
+/**
+ * Combined array elements and object members allowed in one `tools/call`
+ * `arguments` payload. Off in the SDK by default; set here so a wide or deep
+ * JSON body cannot be walked before schema validation. Legitimate Askell
+ * writes (checkout, contract, webhook) sit far under this.
+ */
+export const MAX_TOOL_INPUT_ELEMENTS = 10_000;
+
 export function buildServerInstructions(config: AppConfig): string {
   const apiBase = normalizeBaseUrl(config.apiBaseUrl);
   const envLine =
@@ -47,10 +55,17 @@ API layout:
 - V2 list endpoints paginate only when page_size is provided (default 10, max 1000).
 - GET /v2/customer-entitlements/ requires customer_reference query param.
 
-V2 discounts — not v1 Subscription.discount (0-100 on a PlanVariant; never send that to v2). Coupon = discount definition; promotion code = customer-facing code:
+V2 discounts — not the v1 percent field Subscription.discount (0-100 on a PlanVariant; never send that to v2). v1 promotion codes are a separate system, below. Coupon = discount definition; promotion code = customer-facing code:
 - Catalog (secret): CRUD /v2/coupons/ and /v2/promotion-codes/. Create coupon: exactly one of amount_off+currency or percent_off; duration_in_months required iff duration=repeating (omit otherwise); redeem_by must be future. PATCH type switch: send the old field as null. Redeemed coupon/code cannot DELETE — retire coupon with redeem_by/max_redemptions, promo with active=false (frees code for reuse). List/get hide soft-deletes. Promo code is uppercased and generated if omitted; unique among active; restrict with customer xor customer_reference.
 - Contract: one active discount. GET /v2/subscription-contracts/{id}/discount/ (also nested as contract.discount). Apply with POST .../apply-code/ {promotion_code}. Remove with POST .../remove-discount/.
 - Quotes (POST /v2/subscription-offer-quotes/): pass promotion_code for coupons. When quoting an existing customer, pass customer (numeric id) or combo discounts from their other active contracts and promo-code customer restrictions are skipped. First-period subtotal/tax/total already include coupon + combo. quote.recurring_* include combo, not the coupon — renewal-with-coupon is discount.recurring_final_amount, and only while duration still applies (once → after first payment use recurring_*). combo_discounts[] and discount.recurring_* are on the quote response (askell_describe_operation omits response schemas). Combo is automatic, not apply-code.
+
+V1 promotion codes — not Subscription.discount (0-100). Live subscription docs do not describe these yet; bundled OpenAPI is right:
+- First charge: promotion_code on POST /customers/{customerReference}/subscriptions/add/, or on each item of POST /subscriptions/multi/. apply-code does not discount the first charge.
+- POST /checkouts/ promotion_code requires a plan. The checkout redeems nothing. The code is applied only when that checkout's token is payment_method.token on POST /subscriptions/multi/, on the first item for that plan that has no promotion_code of its own (an item's own code wins). POST .../subscriptions/add/ does not carry the checkout code over. Unless capture_only, that item's discounted first charge must equal the amount the checkout quoted, or the request is 400 before the payment method is stored. A customer-restricted code cannot be used at checkout (no customer yet).
+- One discount per subscription, including a pending one from a future start_date. GET /subscriptions/{subscriptionId}/discount/ reports a pending discount as has_discount: false, but apply-code still returns 400 until remove-discount.
+- POST /subscriptions/{subscriptionId}/apply-code/ body {code, subscription_token}. POST .../remove-discount/ body {subscription_token}. GET .../discount/?subscription_token=. subscription_token is Subscription.token. Treat it as a secret. These three paths are apiKeyKind none: do not send Authorization.
+- An invalid code on add, multi, or checkout is 400 before the subscription is created or charged. On multi the customer may already have been created or updated. The same code on several multi items needs a redemption left for each. A coupon that skips the trial charges the discounted first period immediately, unless start_date is in the future. legacy_subscriptions_disabled still refuses add, multi, and a plan checkout.
 
 V2 checkout notes:
 - checkout_url on V2 checkouts points to the API object URL, not a hosted payment page.
@@ -71,6 +86,9 @@ V2 contract changes:
 - apply_on_payment (default false; items/update and proration-preview; apply_at=now only): false switches the item now and collects afterwards. true keeps the current values until the proration run is collected, without moving the billing schedule. Same-interval (an upgrade): pending_interval_change is null; the wait is only pending_change (interval_change false, status awaiting_payment). Renewal is held. Other item edits and change-anchor return 409 pending_change — change-anchor's operation text only names pending_interval_change. Needs invoice_now (400 apply_on_payment_requires_invoice_now). Nothing to collect (no proration, a downgrade, or a charge fully covered) applies at once. A terminal failure leaves the item unchanged; a later manual retry that succeeds still applies the change unless the item was changed or its renewal billed in the meantime, in which case the payment is credited to the contract balance. Send the same apply_on_payment on proration-preview: a preview token only validates an update with the same value.
 - POST .../change-anchor/ moves the next renewal of the contract and every active item. new_billing_anchor_at must be after effective_at and, with proration, at most one billing period later. Does not extend entitlements. Preview with proration-preview operation=change_anchor (new_billing_anchor_at required). Do not PATCH billing_anchor_at.
 
+V2 payment methods:
+- V2CustomerPaymentMethod.card is brand, last4, funding. null for claim and invoice. funding is null for Teya, and for Valitor Pay until the card's first successful charge. Visa Electron is visa.
+
 V2 refunds:
 - A billing-run charge is not a Payment. payment.* for that charge is a flat object (Hook-API-Version v2, subscription_contract_id, billing_run_id, billing_run_attempt_id), not transactions[]; a payment.retry may have a null uuid and state retry_scheduled. Refund with POST /v2/billing-runs/{id}/refund/ (no body, full amount only, secret). 200 → state refunded, metadata.transaction_refund, webhook billing_run.changed (no separate refund event). 202 → run still succeeded (metadata.refund_requests); wait or re-GET; do not resend immediately. 400 if not succeeded, zero amount, already refunded, or the processor cannot refund. No response (timeout): GET the run and check state plus metadata.refund_requests before retrying. POST /payments/{uuid}/refund/ is one-off Payments only.
 
@@ -81,11 +99,13 @@ V2 fulfillment (warehouse):
 Auth:
 - Most endpoints need the secret API key.
 - Only temporary payment method and checkout status endpoints use the public key.
+- v1 subscription discount paths (apply-code, discount, remove-discount) are apiKeyKind none: no Authorization header. Pass subscription_token (Subscription.token) and treat that token as a secret. Omit apiKeyKind on askell_call/askell_mutate to follow the operation.
 
 Safety:
 - Writes go through askell_mutate (destructiveHint). Reads go through askell_call (readOnlyHint).
 - mutationGate=auto (default): confirmation form only if this request's envelope declared form elicitation; otherwise the client's own tool-allow UI is the gate. elicit always returns a form (SDK refuses if the client cannot fulfil it). off never asks.
 - Large list responses are compacted (index of id/dates/plan/customer) to fit responseMaxBytes before dropping rows; check meta.truncatedByMaxBytes, meta.compacted, and meta.compactedMode.
+- Tool arguments are rejected when they contain more than ${MAX_TOOL_INPUT_ELEMENTS} combined array elements and object members. The call returns isError and names the limit; shrink the JSON body or query.
 - Tool output redacts webhook hmac_secret to \`<redacted len=N>\` (Askell list/get/create return the plaintext secret).
 
 Resources:
@@ -101,6 +121,7 @@ export function createServer(config: AppConfig): McpServer {
     },
     {
       instructions: buildServerInstructions(config),
+      maxToolInputElements: MAX_TOOL_INPUT_ELEMENTS,
     },
   );
 

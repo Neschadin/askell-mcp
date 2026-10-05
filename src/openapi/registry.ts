@@ -60,6 +60,83 @@ function resolveSchema(doc: OpenApiDocument, schema: unknown): unknown {
   return schema;
 }
 
+/**
+ * Follow nested `$ref`s in a schema. `seen` is the ancestor chain only, so the
+ * same component used twice as a sibling is inlined twice; a cycle stops.
+ */
+function resolveSchemaDeep(
+  doc: OpenApiDocument,
+  schema: unknown,
+  seen = new Set<string>(),
+): unknown {
+  if (schema == null || typeof schema !== 'object') {
+    return schema;
+  }
+
+  if (Array.isArray(schema)) {
+    return schema.map((item) => resolveSchemaDeep(doc, item, seen));
+  }
+
+  const record = schema as Record<string, unknown>;
+  if (typeof record.$ref === 'string') {
+    if (record.circular === true || seen.has(record.$ref)) {
+      return { $ref: record.$ref, circular: true };
+    }
+
+    const next = new Set(seen);
+    next.add(record.$ref);
+    return resolveSchemaDeep(doc, resolveRef(doc, record.$ref), next);
+  }
+
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record)) {
+    out[key] =
+      value !== null && typeof value === 'object'
+        ? resolveSchemaDeep(doc, value, seen)
+        : value;
+  }
+  return out;
+}
+
+function resolveRequestBody(
+  doc: OpenApiDocument,
+  requestBody: {
+    $ref?: string;
+    required?: boolean;
+    description?: string;
+    content?: Record<string, { schema?: unknown }>;
+  },
+): ApiOperation['requestBody'] {
+  let source = requestBody;
+
+  if (typeof requestBody.$ref === 'string') {
+    const resolved = resolveRef(doc, requestBody.$ref);
+    if (
+      resolved == null ||
+      typeof resolved !== 'object' ||
+      Array.isArray(resolved)
+    ) {
+      return { contentTypes: [] };
+    }
+    source = resolved as typeof requestBody;
+  }
+
+  const content = source.content ?? {};
+  const contentTypes = Object.keys(content);
+  const firstContent = contentTypes[0] ? content[contentTypes[0]] : undefined;
+
+  return {
+    ...(source.required !== undefined ? { required: source.required } : {}),
+    ...(source.description !== undefined
+      ? { description: source.description }
+      : {}),
+    contentTypes,
+    ...(firstContent?.schema !== undefined
+      ? { schema: resolveSchemaDeep(doc, firstContent.schema) }
+      : {}),
+  };
+}
+
 function resolveParameters(
   doc: OpenApiDocument,
   parameters: OpenApiParameter[] | undefined,
@@ -100,8 +177,14 @@ function resolveParameters(
 function inferApiKeyKind(
   security: Array<Record<string, unknown[]>> | undefined,
 ): ApiKeyKind {
-  if (!security?.length) {
+  // Omitted `security` inherits the document default (secret key).
+  // `security: []` opts out of every scheme — no API key.
+  if (security === undefined) {
     return 'secret';
+  }
+
+  if (security.length === 0) {
+    return 'none';
   }
 
   for (const requirement of security) {
@@ -139,11 +222,6 @@ function parseDocument(
       }
 
       const method = methodKey.toUpperCase() as HttpMethod;
-      const content = operation.requestBody?.content ?? {};
-      const contentTypes = Object.keys(content);
-      const firstContent = contentTypes[0]
-        ? content[contentTypes[0]]
-        : undefined;
 
       operations.push({
         id: buildOperationId(apiVersion, method, path),
@@ -155,14 +233,7 @@ function parseDocument(
         description: operation.description,
         parameters: resolveParameters(doc, operation.parameters),
         requestBody: operation.requestBody
-          ? {
-              required: operation.requestBody.required,
-              description: operation.requestBody.description,
-              contentTypes,
-              schema: firstContent
-                ? resolveSchema(doc, firstContent.schema)
-                : undefined,
-            }
+          ? resolveRequestBody(doc, operation.requestBody)
           : undefined,
         apiKeyKind: inferApiKeyKind(operation.security),
         deprecated: operation.deprecated,

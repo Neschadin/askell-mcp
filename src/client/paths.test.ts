@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { normalizeApiPath } from './paths.ts';
+import { normalizeApiPath, openApiPathMatches } from './paths.ts';
 
 describe('normalizeApiPath', () => {
   test('adds leading and trailing slash', () => {
@@ -17,6 +17,24 @@ describe('normalizeApiPath', () => {
 
   test('root stays root', () => {
     expect(normalizeApiPath('/')).toBe('/');
+  });
+
+  test('matches OpenAPI templates to concrete paths', () => {
+    expect(
+      openApiPathMatches(
+        '/subscriptions/{subscriptionId}/apply-code/',
+        '/subscriptions/42/apply-code/',
+      ),
+    ).toBe(true);
+    expect(
+      openApiPathMatches('/subscriptions/', '/subscriptions/42/apply-code/'),
+    ).toBe(false);
+    expect(
+      openApiPathMatches(
+        '/subscriptions/{subscriptionId}/discount/',
+        '/subscriptions/{subscriptionId}/apply-code/',
+      ),
+    ).toBe(false);
   });
 
   test('v2 paths keep prefix', () => {

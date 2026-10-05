@@ -1,11 +1,19 @@
 import { describe, expect, test } from 'bun:test';
+import {
+  InMemoryTransport,
+  type JSONRPCMessage,
+} from '@modelcontextprotocol/server';
 
 import {
   PRODUCTION_API_BASE_URL,
   SANDBOX_API_BASE_URL,
   type AppConfig,
 } from './config.ts';
-import { buildServerInstructions } from './server.ts';
+import {
+  MAX_TOOL_INPUT_ELEMENTS,
+  buildServerInstructions,
+  createServer,
+} from './server.ts';
 import { PACKAGE_VERSION } from './version.ts';
 import packageJson from '../package.json' with { type: 'json' };
 
@@ -16,6 +24,81 @@ const baseConfig: AppConfig = {
   responseMaxBytes: 64_000,
   mutationGate: 'auto',
 };
+
+async function callTool(
+  name: string,
+  args: Record<string, unknown>,
+): Promise<{ isError: boolean; text: string }> {
+  const server = createServer(baseConfig);
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  await server.connect(serverTransport);
+
+  try {
+    const response = await new Promise<JSONRPCMessage>((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error('tools/call timed out')),
+        2000,
+      );
+      clientTransport.onmessage = (message) => {
+        if (
+          message &&
+          typeof message === 'object' &&
+          'id' in message &&
+          message.id === 1
+        ) {
+          clearTimeout(timer);
+          resolve(message);
+        }
+      };
+      void clientTransport.start().then(() =>
+        clientTransport.send({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/call',
+          params: { name, arguments: args },
+        }),
+      );
+    });
+
+    if (!('result' in response) || response.result == null) {
+      throw new Error(`expected tool result, got ${JSON.stringify(response)}`);
+    }
+
+    const result = response.result as {
+      isError?: boolean;
+      content?: Array<{ text?: string }>;
+    };
+    return {
+      isError: result.isError === true,
+      text: result.content?.[0]?.text ?? '',
+    };
+  } finally {
+    await server.close();
+  }
+}
+
+describe('maxToolInputElements', () => {
+  test('rejects a tools/call whose arguments exceed the element cap', async () => {
+    const noise: Record<string, number> = {};
+    for (let index = 0; index < MAX_TOOL_INPUT_ELEMENTS; index += 1) {
+      noise[String(index)] = 1;
+    }
+
+    const result = await callTool('askell_list_operations', { noise });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      `Invalid arguments for tool askell_list_operations: arguments contain more than the maximum of ${MAX_TOOL_INPUT_ELEMENTS} elements`,
+    );
+  });
+
+  test('still runs a small local tool call', async () => {
+    const result = await callTool('askell_list_operations', { limit: 1 });
+
+    expect(result.isError).toBe(false);
+    expect(result.text).toContain('"returned": 1');
+  });
+});
 
 describe('PACKAGE_VERSION', () => {
   test('matches package.json (MCP initialize version)', () => {
@@ -135,5 +218,21 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('V2SubscriptionContractPatch does not include them — do not send them');
     expect(text).toContain('On a shared key the session value wins');
     expect(text).toContain('sending them does nothing');
+  });
+
+  test('encodes v1 promotion codes, keyless discount paths, and v2 card', () => {
+    const text = buildServerInstructions(baseConfig);
+
+    expect(text).toContain('v1 promotion codes are a separate system');
+    expect(text).toContain('not Subscription.discount (0-100)');
+    expect(text).toContain('apply-code does not discount the first charge');
+    expect(text).toContain('payment_method.token on POST /subscriptions/multi/');
+    expect(text).toContain('has_discount: false');
+    expect(text).toContain('apiKeyKind none');
+    expect(text).toContain('Treat it as a secret');
+    expect(text).toContain('no Authorization header');
+    expect(text).toContain('V2CustomerPaymentMethod.card');
+    expect(text).toContain('Visa Electron is visa');
+    expect(text).toContain('legacy_subscriptions_disabled still refuses add');
   });
 });

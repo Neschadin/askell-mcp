@@ -391,6 +391,102 @@ describe('askell_describe_operation payload', () => {
     expect(JSON.stringify(anyOf)).toContain('LegacySubscriptionGuardError');
   });
 
+  test('v1 subscription discounts are keyless and create bodies expose promotion_code', () => {
+    for (const id of [
+      'v1:POST:/subscriptions/{subscriptionId}/apply-code/',
+      'v1:GET:/subscriptions/{subscriptionId}/discount/',
+      'v1:POST:/subscriptions/{subscriptionId}/remove-discount/',
+    ]) {
+      expect(operationRegistry.getById(id)?.apiKeyKind).toBe('none');
+    }
+
+    const apply = operationRegistry.getById(
+      'v1:POST:/subscriptions/{subscriptionId}/apply-code/',
+    );
+    const applySchema = apply?.requestBody?.schema as {
+      required?: string[];
+      properties?: Record<string, unknown>;
+    };
+    expect(apply?.requestBody?.contentTypes).toEqual(['application/json']);
+    expect(applySchema.required).toEqual(['code', 'subscription_token']);
+    expect(applySchema.properties).toHaveProperty('subscription_token');
+
+    const discount = operationRegistry.getById(
+      'v1:GET:/subscriptions/{subscriptionId}/discount/',
+    );
+    expect(discount?.parameters.map((parameter) => parameter.name)).toContain(
+      'subscription_token',
+    );
+
+    const add = operationRegistry.getById(
+      'v1:POST:/customers/{customerReference}/subscriptions/add/',
+    );
+    const addSchema = add?.requestBody?.schema as {
+      properties?: Record<string, { description?: string }>;
+    };
+    expect(add?.requestBody?.contentTypes).toEqual(['application/json']);
+    expect(add?.apiKeyKind).toBe('secret');
+    expect(addSchema.properties?.promotion_code?.description).toMatch(
+      /skips the trial/i,
+    );
+
+    const multi = operationRegistry.getById('v1:POST:/subscriptions/multi/');
+    const multiSchema = multi?.requestBody?.schema as {
+      properties?: {
+        subscriptions?: {
+          items?: { properties?: Record<string, unknown> };
+        };
+      };
+    };
+    expect(multi?.requestBody?.contentTypes).toEqual(['application/json']);
+    expect(
+      multiSchema.properties?.subscriptions?.items?.properties,
+    ).toHaveProperty('promotion_code');
+
+    const checkout = operationRegistry.getById('v1:POST:/checkouts/');
+    const checkoutSchema = checkout?.requestBody?.schema as {
+      properties?: Record<string, { description?: string }>;
+    };
+    expect(checkout?.requestBody?.contentTypes).toEqual(['application/json']);
+    expect(checkoutSchema.properties?.promotion_code?.description).toMatch(
+      /payment_method\.token/i,
+    );
+
+    expect(
+      operationRegistry.getById('v1:POST:/temporarypaymentmethod/')?.apiKeyKind,
+    ).toBe('public');
+    expect(
+      operationRegistry.getById('v1:GET:/subscriptions/')?.apiKeyKind,
+    ).toBe('secret');
+  });
+
+  test('v2 payment method schema includes card brand, last4, and funding', () => {
+    const spec = getBundledSpec('v2');
+    const card = spec.components?.schemas?.V2CustomerPaymentMethodCard as {
+      properties?: {
+        brand?: { description?: string; enum?: Array<string | null> };
+        funding?: { description?: string; enum?: Array<string | null> };
+        last4?: { pattern?: string };
+      };
+    };
+    expect(card.properties?.brand?.enum).toContain('visa');
+    expect(card.properties?.brand?.description).toMatch(/Visa Electron/i);
+    expect(card.properties?.funding?.enum).toEqual([
+      'credit',
+      'debit',
+      'prepaid',
+      null,
+    ]);
+    expect(card.properties?.funding?.description).toMatch(/Teya/);
+    expect(card.properties?.last4?.pattern).toBe('^[0-9]{4}$');
+
+    const method = spec.components?.schemas?.V2CustomerPaymentMethod as {
+      properties?: { card?: { nullable?: boolean; description?: string } };
+    };
+    expect(method.properties?.card?.nullable).toBe(true);
+    expect(method.properties?.card?.description).toMatch(/claim and invoice/i);
+  });
+
   test('every bundled operation parses as describe output', () => {
     for (const operation of operationRegistry.operations) {
       const result = operationDetailSchema.safeParse(operation);

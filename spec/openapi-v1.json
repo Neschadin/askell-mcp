@@ -42,6 +42,10 @@
       "description": "Subscription operations, requires secret api key."
     },
     {
+      "name": "Subscription Discounts",
+      "description": "Promotion codes on subscriptions. Authenticated by the subscription's token instead of an API key, so they can be called from customer-facing applications."
+    },
+    {
       "name": "Plan",
       "description": "Plan operations, requires a secret api key."
     },
@@ -410,6 +414,7 @@
           "Customer"
         ],
         "summary": "Add subscription to a customer",
+        "description": "Adds a subscription for an existing customer, charging the first period with the customer's payment method unless the plan has a trial.\n\nPass `promotion_code` to redeem a promotion code on the new subscription before its first charge. An invalid code returns 400 before the delivery address or the subscription is created and before anything is charged.",
         "parameters": [
           {
             "name": "customerReference",
@@ -719,6 +724,7 @@
           "Subscription"
         ],
         "summary": "Create multiple subscriptions",
+        "description": "Creates or reuses a customer and creates one subscription per item in `subscriptions`, charging the first period of each item that has no trial.\n\nEach item can carry a `promotion_code`, and a code used on several items must have a redemption left for each. Every item's code is validated up front: an invalid code (or a checkout price mismatch, below) returns 400 before the payment method is stored and before any subscription is created or charged. The customer may already have been created or updated by then. When `payment_method.token` comes from a checkout created with a `promotion_code` (`POST /checkouts/`), that code is redeemed on the first item for the checkout's plan that has no `promotion_code` of its own. Unless the checkout was `capture_only`, that item's discounted first charge must still equal the amount the checkout quoted (and the card was authorised for); if the coupon's terms or the item's `amount`/`discount` make it differ, the request returns 400 before the payment method is stored or any subscription is created or charged. Pass `promotion_code` on the item explicitly to redeem the code at the current price without this check.",
         "requestBody": {
           "$ref": "#/components/requestBodies/Subscription"
         },
@@ -1023,13 +1029,367 @@
         ]
       }
     },
+    "/subscriptions/{subscriptionId}/apply-code/": {
+      "post": {
+        "tags": [
+          "Subscription Discounts"
+        ],
+        "summary": "Apply a promotion code to a subscription",
+        "description": "Redeems a promotion code on an active subscription, creating a discount that is applied to its subsequent charges. A subscription can only carry one discount at a time. That includes a pending one: a code redeemed when the subscription was created with a future `start_date` has a discount whose window opens on that date. Until then it still blocks a new code with 400, although `GET /subscriptions/{subscriptionId}/discount/` reports it as `has_discount: false`.\n\nThis endpoint does not use an API key. It is authenticated by the subscription's `token` (the `token` field of the Subscription object), sent as `subscription_token` in the request body, so it can be called from a customer-facing application. Treat the subscription token as a secret.\n\nThe code is matched case-insensitively. It is validated against the subscription's customer, currency and billing amount (minimum amount and customer restrictions apply).\n\nTo discount the first charge of a new subscription, pass `promotion_code` when creating it instead (`POST /customers/{customerReference}/subscriptions/add/` or `POST /subscriptions/multi/`).",
+        "parameters": [
+          {
+            "name": "subscriptionId",
+            "in": "path",
+            "description": "Subscription id",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code",
+                  "subscription_token"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "The promotion code to redeem.",
+                    "example": "SUMMER20"
+                  },
+                  "subscription_token": {
+                    "type": "string",
+                    "description": "The subscription's `token`.",
+                    "example": "3f5a8c1e-2b7d-4a9e-8c6f-1d2e3f4a5b6c"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Promotion code applied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Promotion code applied successfully"
+                    },
+                    "discount": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 123
+                        },
+                        "coupon_name": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": "Summer Sale"
+                        },
+                        "discount_display": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "The coupon's discount, for example `20%` or `500 ISK`.",
+                          "example": "20%"
+                        },
+                        "start": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The code or token is missing, the subscription is not active, it already has an active or pending discount, or the code is invalid, expired, used up or not valid for this subscription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDiscountError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No subscription with this id and token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDiscountError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error while applying the code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDiscountError"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/subscriptions/{subscriptionId}/discount/": {
+      "get": {
+        "tags": [
+          "Subscription Discounts"
+        ],
+        "summary": "Get the active discount for a subscription",
+        "description": "Returns the subscription's active coupon discount, or `has_discount: false` when none is active.\n\nThis endpoint does not use an API key. It is authenticated by the subscription's `token` (the `token` field of the Subscription object), sent as the `subscription_token` query parameter.",
+        "parameters": [
+          {
+            "name": "subscriptionId",
+            "in": "path",
+            "description": "Subscription id",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subscription_token",
+            "in": "query",
+            "description": "The subscription's `token`.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active discount",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "has_discount": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "discount": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 123
+                        },
+                        "coupon_name": {
+                          "type": "string",
+                          "example": "Summer Sale"
+                        },
+                        "discount_display": {
+                          "type": "string",
+                          "example": "20%"
+                        },
+                        "promotion_code": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "The code the discount was redeemed with, or null for a coupon applied without a code.",
+                          "example": "SUMMER20"
+                        },
+                        "start": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "duration": {
+                          "type": "string",
+                          "enum": [
+                            "once",
+                            "repeating",
+                            "forever"
+                          ],
+                          "example": "forever"
+                        },
+                        "duration_in_months": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "Number of months a `repeating` discount lasts."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The subscription token is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDiscountError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No subscription with this id and token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDiscountError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error while reading the discount",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDiscountError"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/subscriptions/{subscriptionId}/remove-discount/": {
+      "post": {
+        "tags": [
+          "Subscription Discounts"
+        ],
+        "summary": "Remove the active or pending discount from a subscription",
+        "description": "Removes the subscription's active coupon discount, or a pending one that has not started yet (a code redeemed at creation with a future `start_date`; `GET /subscriptions/{subscriptionId}/discount/` reports a pending discount as `has_discount: false`). Subsequent charges are made at the full subscription amount.\n\nThis endpoint does not use an API key. It is authenticated by the subscription's `token` (the `token` field of the Subscription object), sent as `subscription_token` in the request body.",
+        "parameters": [
+          {
+            "name": "subscriptionId",
+            "in": "path",
+            "description": "Subscription id",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "subscription_token"
+                ],
+                "properties": {
+                  "subscription_token": {
+                    "type": "string",
+                    "description": "The subscription's `token`.",
+                    "example": "3f5a8c1e-2b7d-4a9e-8c6f-1d2e3f4a5b6c"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Discount removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Discount removed successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The subscription token is missing, or the subscription has no active or pending discount",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDiscountError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No subscription with this id and token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDiscountError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error while removing the discount",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDiscountError"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/checkouts/": {
       "post": {
         "tags": [
           "Checkout"
         ],
         "summary": "Create a hosted checkout card form",
-        "description": "Creates a hosted checkout and returns a `checkout_url` that should be rendered in an iframe. The hosted page collects card details, handles 3D Secure when required, and posts completion messages to the embedding page. The resulting `token` is a reference to a payment method that can be added to a customer after checkout status becomes `tokencreated`.\n\nCreate a checkout either for a `plan` or directly for an account `payment_processor`. When using `payment_processor`, `currency` is required. A `plan` checkout completes into a legacy subscription, so on an account that uses subscription contracts only it is refused with 400 and `code: legacy_subscriptions_disabled`; a checkout for a `payment_processor` still works there. To capture only the card details, set `capture_only` to `true`; this value is optional and defaults to `false`.\n\nIf supplied, `allowed_origin` must be an origin only, for example `https://merchant.example`, with no path, query string, or credentials. It controls the single parent page origin allowed to frame this checkout and receive checkout postMessage notifications. If omitted, all checkout origins configured for the account are allowed to frame the checkout.",
+        "description": "Creates a hosted checkout and returns a `checkout_url` that should be rendered in an iframe. The hosted page collects card details, handles 3D Secure when required, and posts completion messages to the embedding page. The resulting `token` is a reference to a payment method that can be added to a customer after checkout status becomes `tokencreated`.\n\nCreate a checkout either for a `plan` or directly for an account `payment_processor`. When using `payment_processor`, `currency` is required. A `plan` checkout completes into a legacy subscription, so on an account that uses subscription contracts only it is refused with 400 and `code: legacy_subscriptions_disabled`; a checkout for a `payment_processor` still works there. To capture only the card details, set `capture_only` to `true`; this value is optional and defaults to `false`.\n\nIf supplied, `allowed_origin` must be an origin only, for example `https://merchant.example`, with no path, query string, or credentials. It controls the single parent page origin allowed to frame this checkout and receive checkout postMessage notifications. If omitted, all checkout origins configured for the account are allowed to frame the checkout.\n\nWith a `plan`, a `promotion_code` can be supplied. The card form then shows the discounted first-period amount, and the code is redeemed when the checkout's `token` is used in `POST /subscriptions/multi/`. See `promotion_code` in the request body.",
         "requestBody": {
           "$ref": "#/components/requestBodies/CheckoutCreate"
         },
@@ -1876,6 +2236,11 @@
             "format": "uri",
             "description": "Optional iframe parent origin for this checkout, for example `https://merchant.example`. Must be an origin only, with no path, query string, or credentials. Overrides the account configured checkout origins for this checkout.",
             "example": "https://merchant.example"
+          },
+          "promotion_code": {
+            "type": "string",
+            "example": "SUMMER20",
+            "description": "Optional promotion code for the subscription this checkout's card will pay for (requires a `plan`). It is validated against the plan amount and currency; a code restricted to a specific customer cannot be used here, as the checkout has no customer yet. The card form and 3D Secure use the discounted first-period amount (unless `capture_only` is set). The checkout itself creates no subscription and redeems nothing: when the checkout's `token` is used as `payment_method.token` in `POST /subscriptions/multi/`, the code is redeemed on the first item for this checkout's plan that has no `promotion_code` of its own (an item's own code always wins). Other endpoints do not carry it over: pass `promotion_code` explicitly there."
           }
         },
         "oneOf": [
@@ -2588,6 +2953,11 @@
             "example": "My custom note",
             "required": "false",
             "description": "An optional description for internal purposes."
+          },
+          "promotion_code": {
+            "type": "string",
+            "example": "SUMMER20",
+            "description": "Optional promotion code to redeem on the new subscription. It is validated against the customer and the amount it applies to: the plan amount, or `amount` when given, less the `discount` percentage. It is redeemed before the first charge, so that charge is already discounted, and later renewals follow the coupon's duration. When a future `start_date` defers the first charge of a plan without a trial, the discount starts on that date, so a `repeating` coupon's months count from the first charge. A coupon that skips the trial period charges the discounted first period immediately instead of starting the plan's trial, unless `start_date` is in the future (the first billing then lands on it, as with a trial). A `once` coupon that brings the immediate first charge to zero is used up by it. An invalid, expired, used-up or customer-restricted code returns 400 before any payment method is stored and before any subscription is created or charged (with `POST /subscriptions/multi/`, the customer may already have been created or updated). When the same code is used on several items of `POST /subscriptions/multi/`, it must have a redemption left for each of them. Blank or absent means no code."
           }
         }
       },
@@ -2748,6 +3118,46 @@
           "checkout_url": {
             "type": "string",
             "example": "https://askell.is/checkout/637302f0412e2e11adc0ba21adafcf11/"
+          },
+          "promotion_code": {
+            "type": "object",
+            "description": "Present only when the checkout was created with a `promotion_code`.",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "The normalised (upper-case) code stored on the checkout.",
+                "example": "SUMMER20"
+              },
+              "discount_display": {
+                "type": "string",
+                "description": "The coupon's discount, for example `20%` or `500 ISK`.",
+                "example": "20%"
+              },
+              "original_amount": {
+                "type": "string",
+                "description": "The plan's first-period amount before the discount.",
+                "example": "1000.00"
+              },
+              "discounted_amount": {
+                "type": "string",
+                "description": "The first-period amount after the discount, shown in the card form.",
+                "example": "800.00"
+              }
+            }
+          }
+        }
+      },
+      "SubscriptionDiscountError": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Present on the `apply-code` and `remove-discount` responses.",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Invalid subscription or token"
           }
         }
       },

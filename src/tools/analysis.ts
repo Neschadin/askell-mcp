@@ -116,9 +116,11 @@ export function registerAnalysisTools(
           .optional()
           .describe('Query string parameters forwarded to the list endpoint'),
         apiKeyKind: z
-          .enum(['secret', 'public'])
+          .enum(['secret', 'public', 'none'])
           .default('secret')
-          .describe('Which configured API key to use'),
+          .describe(
+            'Which configured API key to use. none sends no Authorization header',
+          ),
         maxPages: z
           .int()
           .positive()

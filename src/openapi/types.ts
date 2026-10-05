@@ -2,7 +2,7 @@ export type ApiVersion = 'v1' | 'v2';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD';
 
-export type ApiKeyKind = 'secret' | 'public';
+export type ApiKeyKind = 'secret' | 'public' | 'none';
 
 export interface OpenApiParameter {
   name?: string;
@@ -51,6 +51,7 @@ export interface OpenApiDocument {
           deprecated?: boolean;
           parameters?: OpenApiParameter[];
           requestBody?: {
+            $ref?: string;
             required?: boolean;
             description?: string;
             content?: Record<string, { schema?: unknown }>;

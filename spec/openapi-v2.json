@@ -4568,6 +4568,45 @@
           }
         }
       },
+      "V2CustomerPaymentMethodCard": {
+        "type": "object",
+        "description": "The card behind a card payment method. Each field is `null` when the payment processor does not tell Áskell.",
+        "properties": {
+          "brand": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "visa",
+              "mastercard",
+              "amex",
+              "maestro",
+              "diners",
+              "discover",
+              "jcb",
+              "dankort",
+              null
+            ],
+            "description": "Card brand. Visa Electron is reported as `visa`."
+          },
+          "last4": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[0-9]{4}$",
+            "description": "Last four digits of the card number."
+          },
+          "funding": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "credit",
+              "debit",
+              "prepaid",
+              null
+            ],
+            "description": "Whether the card is a credit, debit or prepaid card. Only known for processors that report it (Straumur, and Valitor Pay after the card's first successful charge); always `null` for Teya."
+          }
+        }
+      },
       "V2CustomerPaymentMethod": {
         "type": "object",
         "properties": {
@@ -4595,6 +4634,15 @@
           },
           "display_info": {
             "type": "string"
+          },
+          "card": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2CustomerPaymentMethodCard"
+              }
+            ],
+            "nullable": true,
+            "description": "Brand, last four digits and funding of the card. `null` for claim and invoice payment methods."
           },
           "verified": {
             "type": "boolean"

@@ -27,8 +27,14 @@ export class AskellClient {
     this.baseUrl = normalizeBaseUrl(config.apiBaseUrl);
   }
 
-  private apiKeyFor(kind: ApiKeyKind | undefined): string {
+  private authorizationHeader(
+    kind: ApiKeyKind | undefined,
+  ): Record<string, string> {
     const apiKeyKind = kind ?? 'secret';
+    if (apiKeyKind === 'none') {
+      return {};
+    }
+
     const apiKey =
       apiKeyKind === 'public'
         ? this.config.publicApiKey
@@ -42,7 +48,7 @@ export class AskellClient {
       );
     }
 
-    return apiKey;
+    return { Authorization: `Api-Key ${apiKey}` };
   }
 
   async request(
@@ -69,14 +75,14 @@ export class AskellClient {
       }
     }
 
-    const apiKey = this.apiKeyFor(input.apiKeyKind);
+    const authorization = this.authorizationHeader(input.apiKeyKind);
 
     const started = performance.now();
     const response = await fetch(url, {
       method,
       headers: {
-        Authorization: `Api-Key ${apiKey}`,
         Accept: 'application/json',
+        ...authorization,
         ...(input.body !== undefined
           ? { 'Content-Type': 'application/json' }
           : {}),
@@ -115,7 +121,7 @@ export class AskellClient {
     signal?: AbortSignal;
   }): Promise<FormattedResponse & { ok: boolean; status: number }> {
     const maxPages = input.maxPages ?? 20;
-    const apiKey = this.apiKeyFor(input.apiKeyKind);
+    const authorization = this.authorizationHeader(input.apiKeyKind);
 
     const collected: unknown[] = [];
     let nextUrl: URL | null = null;
@@ -146,8 +152,8 @@ export class AskellClient {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          Authorization: `Api-Key ${apiKey}`,
           Accept: 'application/json',
+          ...authorization,
         },
         signal: input.signal,
       });

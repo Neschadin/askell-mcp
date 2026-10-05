@@ -24,9 +24,11 @@ const listInputSchema = z.object({
       'Case-insensitive search in id, path, summary, description, tags',
     ),
   apiKeyKind: z
-    .enum(['secret', 'public'])
+    .enum(['secret', 'public', 'none'])
     .optional()
-    .describe('Filter by required API key type'),
+    .describe(
+      'Filter by required API key type. none means the operation does not use an API key',
+    ),
   limit: z
     .int()
     .positive()
@@ -44,7 +46,7 @@ const describeInputSchema = z.object({
 });
 
 const apiVersionSchema = z.enum(['v1', 'v2']);
-const apiKeyKindSchema = z.enum(['secret', 'public']);
+const apiKeyKindSchema = z.enum(['secret', 'public', 'none']);
 const httpMethodSchema = z.enum([
   'GET',
   'POST',
