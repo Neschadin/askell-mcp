@@ -3118,7 +3118,7 @@
           "promotion_code": {
             "type": "string",
             "nullable": true,
-            "description": "Optional promotion code. When valid, the resulting discount is folded into the offer totals; on contract creation the code is redeemed and a discount is attached to the contract."
+            "description": "Optional promotion code. When valid, the resulting discount is folded into the offer totals; on contract creation the code is redeemed and a discount is attached to the contract. A coupon limited to products (`applies_to_products`) only discounts those products' lines, and a code is refused when none of the offer's products is among them."
           },
           "customer": {
             "type": "integer",
@@ -6658,6 +6658,20 @@
             "type": "boolean",
             "description": "Whether the coupon can currently be redeemed."
           },
+          "applies_to_plans": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Ids of the legacy plans the coupon is limited to. Empty, together with `applies_to_products`, means the coupon applies to everything. Once either list has an entry the coupon is restricted: a legacy subscription gets the discount only while its plan is listed here, and a V2 contract line only when its product is listed in `applies_to_products` (so a coupon limited to plans only gives nothing on contracts, and the reverse)."
+          },
+          "applies_to_products": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Ids of the catalog products the coupon is limited to. On a contract only the lines of these products are discounted: a `percent_off` coupon takes its percentage of those lines and an `amount_off` coupon at most their total. A code is refused when nothing in the order (or on the contract it is applied to) is in scope."
+          },
           "metadata": {
             "$ref": "#/components/schemas/V2Metadata"
           },
@@ -6735,6 +6749,20 @@
             "format": "date-time",
             "nullable": true
           },
+          "applies_to_plans": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Limit the coupon to these legacy plan ids (of this account). Leave both this and `applies_to_products` empty for a coupon that applies to everything; once either has an entry the coupon only applies to what is listed. An empty list clears it."
+          },
+          "applies_to_products": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Limit the coupon to these catalog product ids (of this account): on a contract only those products' lines are discounted. An empty list clears it."
+          },
           "metadata": {
             "allOf": [
               {
@@ -6800,6 +6828,20 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "applies_to_plans": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Limit the coupon to these legacy plan ids (of this account). Leave both this and `applies_to_products` empty for a coupon that applies to everything; once either has an entry the coupon only applies to what is listed. An empty list clears it; omit it to leave the list unchanged."
+          },
+          "applies_to_products": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Limit the coupon to these catalog product ids (of this account): on a contract only those products' lines are discounted. An empty list clears it; omit it to leave the list unchanged."
           },
           "metadata": {
             "allOf": [

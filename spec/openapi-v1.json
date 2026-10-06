@@ -764,6 +764,64 @@
         ]
       }
     },
+    "/subscriptions/quote/": {
+      "post": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "Quote a new subscription",
+        "description": "Previews what creating a subscription on `plan` would charge, optionally with a `promotion_code`, using the same rules as `POST /customers/{customerReference}/subscriptions/add/` and the items of `POST /subscriptions/multi/`: the plan amount or `amount` override less the `discount` percentage, the trial (a customer with billing history on the account gets none; without `customer_reference` the customer is treated as new), a coupon that skips the trial unless `start_date` is in the future, and a future `start_date` deferring the first charge.\n\nNothing is created, stored, redeemed or charged: no customer, subscription, discount or checkout, and the code's redemption count is unchanged. The quote is a preview, not a hold. Creating the subscription validates the code again, so it can still be refused if the code expires, runs out or changes in the meantime.\n\nAn invalid, expired, used-up, customer-restricted, wrong-currency or below-minimum code, or one whose coupon is limited (`applies_to_plans`/`applies_to_products`) to plans that do not include this one, returns 400 with `code: invalid_promotion_code` and the message creation would give.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionQuoteRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionQuoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The quote",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionQuote"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The promotion code would be refused on creation (`code: invalid_promotion_code`), the plan or customer is not found, `start_date`, `amount` or `discount` is malformed, the reused subscription is already active, or the account uses subscription contracts only and no longer creates legacy subscriptions (`code: legacy_subscriptions_disabled`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/SubscriptionQuoteError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LegacySubscriptionGuardError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
     "/subscriptions/{subscriptionId}/": {
       "get": {
         "tags": [
@@ -1095,8 +1153,9 @@
                       "type": "object",
                       "properties": {
                         "id": {
-                          "type": "integer",
-                          "example": 123
+                          "type": "string",
+                          "description": "The discount's id.",
+                          "example": "di_3f9a1c2b7d4e5f6a7b8c9d0e"
                         },
                         "coupon_name": {
                           "type": "string",
@@ -1206,8 +1265,9 @@
                       "nullable": true,
                       "properties": {
                         "id": {
-                          "type": "integer",
-                          "example": 123
+                          "type": "string",
+                          "description": "The discount's id.",
+                          "example": "di_3f9a1c2b7d4e5f6a7b8c9d0e"
                         },
                         "coupon_name": {
                           "type": "string",
@@ -2240,7 +2300,7 @@
           "promotion_code": {
             "type": "string",
             "example": "SUMMER20",
-            "description": "Optional promotion code for the subscription this checkout's card will pay for (requires a `plan`). It is validated against the plan amount and currency; a code restricted to a specific customer cannot be used here, as the checkout has no customer yet. The card form and 3D Secure use the discounted first-period amount (unless `capture_only` is set). The checkout itself creates no subscription and redeems nothing: when the checkout's `token` is used as `payment_method.token` in `POST /subscriptions/multi/`, the code is redeemed on the first item for this checkout's plan that has no `promotion_code` of its own (an item's own code always wins). Other endpoints do not carry it over: pass `promotion_code` explicitly there."
+            "description": "Optional promotion code for the subscription this checkout's card will pay for (requires a `plan`). It is validated against the plan amount and currency, and refused when its coupon is limited to other plans; a code restricted to a specific customer cannot be used here, as the checkout has no customer yet. The card form and 3D Secure use the discounted first-period amount (unless `capture_only` is set). The checkout itself creates no subscription and redeems nothing: when the checkout's `token` is used as `payment_method.token` in `POST /subscriptions/multi/`, the code is redeemed on the first item for this checkout's plan that has no `promotion_code` of its own (an item's own code always wins). Other endpoints do not carry it over: pass `promotion_code` explicitly there."
           }
         },
         "oneOf": [
@@ -2957,7 +3017,7 @@
           "promotion_code": {
             "type": "string",
             "example": "SUMMER20",
-            "description": "Optional promotion code to redeem on the new subscription. It is validated against the customer and the amount it applies to: the plan amount, or `amount` when given, less the `discount` percentage. It is redeemed before the first charge, so that charge is already discounted, and later renewals follow the coupon's duration. When a future `start_date` defers the first charge of a plan without a trial, the discount starts on that date, so a `repeating` coupon's months count from the first charge. A coupon that skips the trial period charges the discounted first period immediately instead of starting the plan's trial, unless `start_date` is in the future (the first billing then lands on it, as with a trial). A `once` coupon that brings the immediate first charge to zero is used up by it. An invalid, expired, used-up or customer-restricted code returns 400 before any payment method is stored and before any subscription is created or charged (with `POST /subscriptions/multi/`, the customer may already have been created or updated). When the same code is used on several items of `POST /subscriptions/multi/`, it must have a redemption left for each of them. Blank or absent means no code."
+            "description": "Optional promotion code to redeem on the new subscription. It is validated against the customer and the amount it applies to: the plan amount, or `amount` when given, less the `discount` percentage. It is redeemed before the first charge, so that charge is already discounted, and later renewals follow the coupon's duration. When a future `start_date` defers the first charge of a plan without a trial, the discount starts on that date, so a `repeating` coupon's months count from the first charge. A coupon that skips the trial period charges the discounted first period immediately instead of starting the plan's trial, unless `start_date` is in the future (the first billing then lands on it, as with a trial). A `once` coupon that brings the immediate first charge to zero is used up by it. An invalid, expired, used-up or customer-restricted code, or one whose coupon is limited (`applies_to_plans`/`applies_to_products`) to plans that do not include this one, returns 400 before any payment method is stored and before any subscription is created or charged (with `POST /subscriptions/multi/`, the customer may already have been created or updated). When the same code is used on several items of `POST /subscriptions/multi/`, it must have a redemption left for each of them. Blank or absent means no code."
           }
         }
       },
@@ -3018,6 +3078,242 @@
             "items": {
               "$ref": "#/components/schemas/SubscriptionCreate"
             }
+          }
+        }
+      },
+      "SubscriptionQuoteRequest": {
+        "type": "object",
+        "required": [
+          "plan"
+        ],
+        "properties": {
+          "plan": {
+            "type": "integer",
+            "description": "The plan (plan variant) id.",
+            "example": 1
+          },
+          "promotion_code": {
+            "type": "string",
+            "description": "Optional promotion code to quote. Blank or absent means no code.",
+            "example": "SUMMER20"
+          },
+          "amount": {
+            "type": "string",
+            "description": "Optional amount to overwrite the plan amount, as on creation.",
+            "example": "1500"
+          },
+          "discount": {
+            "type": "string",
+            "description": "Optional discount percentage, from 0 to 100, as on creation.",
+            "example": "10"
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "Optional reference of an existing customer, for codes restricted to a customer and for trial eligibility. Without it the quote is for a new customer.",
+            "example": "customer-123"
+          },
+          "reference": {
+            "type": "string",
+            "description": "With `customer_reference`: the reference creation would use. An existing subscription of the customer with this reference is reused on creation, so its stored amount, discount percentage, discount (`existing_discount`) and `recurring` flag apply, and the quote is refused when it is already active or already carries an active or pending discount (with a code).",
+            "example": "subscription-1"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Optional first billing date (date or date-time), as on creation.",
+            "example": "2026-11-01T00:00:00Z"
+          }
+        }
+      },
+      "SubscriptionQuote": {
+        "type": "object",
+        "description": "Amounts are strings with two decimals.",
+        "properties": {
+          "plan": {
+            "type": "integer",
+            "example": 1
+          },
+          "currency": {
+            "type": "string",
+            "example": "ISK"
+          },
+          "amount": {
+            "type": "string",
+            "description": "The price per period after the `amount` override and the `discount` percentage, before the promotion code, as the subscription stores them: `discount` as a whole percentage and `amount` to four decimal places, rounded half away from zero. Charges after creation (renewals, and a first charge after a trial or on a future `start_date`) use these stored values; an immediate first charge uses `amount` and `discount` exactly as sent.",
+            "example": "1000.00"
+          },
+          "trial": {
+            "type": "object",
+            "properties": {
+              "applies": {
+                "type": "boolean",
+                "example": false
+              },
+              "trial_end": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "When the trial ends and the first period is charged."
+              }
+            }
+          },
+          "first_charge": {
+            "type": "object",
+            "nullable": true,
+            "description": "The first charge. Null when the subscription does not renew (a new one on a plan that is not `recurring`, or a reused one whose own `recurring` flag is off) and the first charge is not immediate (a trial or a future `start_date`): such a subscription is never billed after creation.",
+            "properties": {
+              "date": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the first period is charged: now, the end of the trial, or a future `start_date`."
+              },
+              "amount": {
+                "type": "string",
+                "description": "The first charge. The discount of a code redeemed with a trial starts at creation, so a `repeating` coupon shorter than the trial no longer discounts it, while a `once` coupon is still unused and does. A zero amount creates no payment.",
+                "example": "800.00"
+              },
+              "discount_amount": {
+                "type": "string",
+                "example": "200.00"
+              },
+              "charged_now": {
+                "type": "boolean",
+                "description": "Whether creation charges the first period right away.",
+                "example": true
+              }
+            }
+          },
+          "renewal": {
+            "type": "object",
+            "nullable": true,
+            "description": "The price of later periods. Null when the subscription does not renew: a reused subscription keeps its own `recurring` flag, a new one takes the plan's.",
+            "properties": {
+              "amount": {
+                "type": "string",
+                "description": "The renewal price while the discount still applies: always with a `forever` coupon, until `discount_end` with a `repeating` one, never with a `once` coupon the first charge used. A reused subscription's pending discount applies from its `discount_start`.",
+                "example": "800.00"
+              },
+              "amount_without_discount": {
+                "type": "string",
+                "example": "1000.00"
+              },
+              "discount_months": {
+                "type": "integer",
+                "nullable": true,
+                "description": "For a `repeating` coupon, the number of months it discounts.",
+                "example": 3
+              }
+            }
+          },
+          "promotion_code": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "SUMMER20"
+              },
+              "coupon_name": {
+                "type": "string",
+                "nullable": true,
+                "example": "Summer Sale"
+              },
+              "discount_display": {
+                "type": "string",
+                "description": "The coupon's discount, for example `20%` or `500 ISK`.",
+                "example": "20%"
+              },
+              "duration": {
+                "type": "string",
+                "enum": [
+                  "once",
+                  "repeating",
+                  "forever"
+                ]
+              },
+              "duration_in_months": {
+                "type": "integer",
+                "nullable": true
+              },
+              "skip_trial_period": {
+                "type": "boolean"
+              },
+              "applies_to_plan": {
+                "type": "boolean",
+                "description": "Always true: a code whose coupon is limited to other plans is refused."
+              },
+              "discount_start": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the discount would start: at creation, or on a future `start_date` that defers the first charge of a plan without a trial."
+              },
+              "discount_end": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "When a `repeating` discount would end."
+              }
+            }
+          },
+          "existing_discount": {
+            "type": "object",
+            "nullable": true,
+            "description": "Without `promotion_code`: the discount the reused subscription (`customer_reference` + `reference`) already carries, active or pending, which creation keeps. It prices the charges within its own window and only while its coupon applies to `plan`; out of scope (`applies_to_plan: false`) the prices are undiscounted. Null otherwise.",
+            "properties": {
+              "code": {
+                "type": "string",
+                "nullable": true,
+                "description": "The code it was redeemed with, or null for a coupon applied without a code.",
+                "example": "SUMMER20"
+              },
+              "coupon_name": {
+                "type": "string",
+                "nullable": true,
+                "example": "Summer Sale"
+              },
+              "discount_display": {
+                "type": "string",
+                "example": "20%"
+              },
+              "duration": {
+                "type": "string",
+                "enum": [
+                  "once",
+                  "repeating",
+                  "forever"
+                ]
+              },
+              "duration_in_months": {
+                "type": "integer",
+                "nullable": true
+              },
+              "discount_start": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "discount_end": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "applies_to_plan": {
+                "type": "boolean",
+                "description": "Whether the coupon's plan scope includes `plan`."
+              }
+            }
+          }
+        }
+      },
+      "SubscriptionQuoteError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Promotion code minimum amount requirement not met"
+          },
+          "code": {
+            "type": "string",
+            "description": "`invalid_promotion_code` when the promotion code would be refused on creation; absent on other errors.",
+            "example": "invalid_promotion_code"
           }
         }
       },

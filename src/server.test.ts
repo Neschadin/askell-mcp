@@ -180,6 +180,24 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('/v2/promotion-codes/');
     expect(text).toContain('exactly one of amount_off+currency or percent_off');
     expect(text).toContain('active=false');
+    expect(text).toContain('applies_to_plans');
+    expect(text).toContain('applies_to_products');
+    expect(text).toContain(
+      'plans-only coupon gives nothing on contracts',
+    );
+    expect(text).toContain(
+      'products-only coupon gives nothing on legacy subscriptions',
+    );
+    expect(text).toContain('amount_off is at most their total');
+    expect(text).toContain('omit a list to leave it');
+    expect(text).toContain(
+      'contract.discount.coupon does not include these arrays',
+    );
+    expect(text).toContain('GET /v2/coupons/{id}/');
+    expect(text).toContain('does not document applies_to_* yet');
+    expect(text).toContain(
+      'plans-only coupon is refused on a contract quote',
+    );
     expect(text).not.toContain('cannot mark shipped via the API');
     expect(text).not.toContain('warehouse, read-only');
     expect(text).not.toContain('Writes die');
@@ -234,5 +252,15 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('V2CustomerPaymentMethod.card');
     expect(text).toContain('Visa Electron is visa');
     expect(text).toContain('legacy_subscriptions_disabled still refuses add');
+    expect(text).toContain('POST /subscriptions/quote/');
+    expect(text).toContain('redemption count is unchanged');
+    expect(text).toContain('use askell_mutate');
+    expect(text).toContain('existing_discount');
+    expect(text).toContain('applies_to_plan false');
+    expect(text).toContain('half away from zero');
+    expect(text).toContain('discount.id');
+    expect(text).toContain('not an integer');
+    expect(text).toContain('plan-scoped code');
+    expect(text).toContain('A coupon limited to other plans is refused');
   });
 });

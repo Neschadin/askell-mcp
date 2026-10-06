@@ -10,6 +10,6 @@ OpenAPI in `spec/` is the endpoint contract. Flows (V2 checkout, 3DS, embedded `
 When the task touches Askell domain (tools, resources, server instructions, eval questions, webhooks, checkout, billing), load the `askell-docs` skill and fetch live:
 
 1. Index: https://docs.askell.is/llms.txt
-2. Then the page URL from that index (prefer `/en/`).
+2. Then the page URL from that index (prefer `/en/`). Also follow pages those docs link when the index lags — coupons are https://docs.askell.is/en/api/coupons.html, not listed in `llms.txt` yet.
 
 Do not vendor the docs site into git. Do not invent endpoints from memory — check bundled spec + live page.
