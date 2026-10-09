@@ -3118,7 +3118,7 @@
           "promotion_code": {
             "type": "string",
             "nullable": true,
-            "description": "Optional promotion code. When valid, the resulting discount is folded into the offer totals; on contract creation the code is redeemed and a discount is attached to the contract. A coupon limited to products (`applies_to_products`) only discounts those products' lines, and a code is refused when none of the offer's products is among them."
+            "description": "Optional promotion code. When valid, the resulting discount is folded into the offer totals; on contract creation the code is redeemed and a discount is attached to the contract. A coupon limited to products or prices (`applies_to_products`/`applies_to_prices`) only discounts the lines in its scope, and a code is refused when none of the offer's prices is in scope (listed, or of a listed product)."
           },
           "customer": {
             "type": "integer",
@@ -6663,14 +6663,28 @@
             "items": {
               "type": "integer"
             },
-            "description": "Ids of the legacy plans the coupon is limited to. Empty, together with `applies_to_products`, means the coupon applies to everything. Once either list has an entry the coupon is restricted: a legacy subscription gets the discount only while its plan is listed here, and a V2 contract line only when its product is listed in `applies_to_products` (so a coupon limited to plans only gives nothing on contracts, and the reverse)."
+            "description": "Ids of the legacy plans the coupon is limited to, each with all of its variants. Empty, together with `applies_to_plan_variants`, `applies_to_products` and `applies_to_prices`, means the coupon applies to everything. Once any of the four lists has an entry the coupon is restricted: a legacy subscription gets the discount only while its plan is listed here or its plan variant in `applies_to_plan_variants`, and a V2 contract line only when its product is listed in `applies_to_products` or its price in `applies_to_prices` (so a coupon limited to plans or plan variants only gives nothing on contracts, and the reverse)."
+          },
+          "applies_to_plan_variants": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Ids of the legacy plan variants the coupon is limited to, each on its own: for example only a plan's yearly variant and not its monthly one. A plan in `applies_to_plans` covers all of its variants, so a subscription is in scope when either list covers its plan variant."
           },
           "applies_to_products": {
             "type": "array",
             "items": {
               "type": "integer"
             },
-            "description": "Ids of the catalog products the coupon is limited to. On a contract only the lines of these products are discounted: a `percent_off` coupon takes its percentage of those lines and an `amount_off` coupon at most their total. A code is refused when nothing in the order (or on the contract it is applied to) is in scope."
+            "description": "Ids of the catalog products the coupon is limited to, each with all of its prices. On a contract only the lines in scope are discounted (a line on one of these products, or on a price in `applies_to_prices`): a `percent_off` coupon takes its percentage of those lines and an `amount_off` coupon at most their total. A code is refused when nothing in the order (or on the contract it is applied to) is in scope."
+          },
+          "applies_to_prices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Ids of the catalog prices (the `id` of `GET /v2/catalog/prices/`, also an offer item's `price`) the coupon is limited to, each on its own: for example only a product's monthly price and not its yearly one. A product in `applies_to_products` covers all of its prices, so a contract line is in scope when either list covers its price. A contract item is judged by the price it is on at the time, so after an interval change from a listed monthly price to an unlisted yearly one it gets no discount."
           },
           "metadata": {
             "$ref": "#/components/schemas/V2Metadata"
@@ -6754,14 +6768,28 @@
             "items": {
               "type": "integer"
             },
-            "description": "Limit the coupon to these legacy plan ids (of this account). Leave both this and `applies_to_products` empty for a coupon that applies to everything; once either has an entry the coupon only applies to what is listed. An empty list clears it."
+            "description": "Limit the coupon to these legacy plan ids (of this account), each with all of its variants. Leave this, `applies_to_plan_variants`, `applies_to_products` and `applies_to_prices` empty for a coupon that applies to everything; once any of them has an entry the coupon only applies to what is listed. An empty list clears it."
+          },
+          "applies_to_plan_variants": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Limit the coupon to these legacy plan variant ids (of this account), such as only a plan's yearly variant. Adds to `applies_to_plans`: a subscription is in scope when its plan variant is listed here or its plan is listed there. An empty list clears it."
           },
           "applies_to_products": {
             "type": "array",
             "items": {
               "type": "integer"
             },
-            "description": "Limit the coupon to these catalog product ids (of this account): on a contract only those products' lines are discounted. An empty list clears it."
+            "description": "Limit the coupon to these catalog product ids (of this account), each with all of its prices: on a contract only those products' lines are discounted. An empty list clears it."
+          },
+          "applies_to_prices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Limit the coupon to these catalog price ids (of this account), such as only a product's monthly price. Adds to `applies_to_products`: a contract line is in scope when its price is listed here or its product is listed there. An empty list clears it."
           },
           "metadata": {
             "allOf": [
@@ -6834,14 +6862,28 @@
             "items": {
               "type": "integer"
             },
-            "description": "Limit the coupon to these legacy plan ids (of this account). Leave both this and `applies_to_products` empty for a coupon that applies to everything; once either has an entry the coupon only applies to what is listed. An empty list clears it; omit it to leave the list unchanged."
+            "description": "Limit the coupon to these legacy plan ids (of this account), each with all of its variants. Leave this, `applies_to_plan_variants`, `applies_to_products` and `applies_to_prices` empty for a coupon that applies to everything; once any of them has an entry the coupon only applies to what is listed. An empty list clears it; omit it to leave the list unchanged."
+          },
+          "applies_to_plan_variants": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Limit the coupon to these legacy plan variant ids (of this account), such as only a plan's yearly variant. Adds to `applies_to_plans`: a subscription is in scope when its plan variant is listed here or its plan is listed there. An empty list clears it; omit it to leave the list unchanged."
           },
           "applies_to_products": {
             "type": "array",
             "items": {
               "type": "integer"
             },
-            "description": "Limit the coupon to these catalog product ids (of this account): on a contract only those products' lines are discounted. An empty list clears it; omit it to leave the list unchanged."
+            "description": "Limit the coupon to these catalog product ids (of this account), each with all of its prices: on a contract only those products' lines are discounted. An empty list clears it; omit it to leave the list unchanged."
+          },
+          "applies_to_prices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Limit the coupon to these catalog price ids (of this account), such as only a product's monthly price. Adds to `applies_to_products`: a contract line is in scope when its price is listed here or its product is listed there. An empty list clears it; omit it to leave the list unchanged."
           },
           "metadata": {
             "allOf": [

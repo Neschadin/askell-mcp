@@ -181,23 +181,30 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('exactly one of amount_off+currency or percent_off');
     expect(text).toContain('active=false');
     expect(text).toContain('applies_to_plans');
+    expect(text).toContain('applies_to_plan_variants');
     expect(text).toContain('applies_to_products');
+    expect(text).toContain('applies_to_prices');
+    expect(text).toContain('All four empty applies to everything');
     expect(text).toContain(
-      'plans-only coupon gives nothing on contracts',
+      'plans-only or plan-variants-only coupon gives nothing on contracts',
     );
     expect(text).toContain(
-      'products-only coupon gives nothing on legacy subscriptions',
+      'products-only or prices-only coupon gives nothing on legacy subscriptions',
     );
     expect(text).toContain('amount_off is at most their total');
+    expect(text).toContain('drops the discount');
     expect(text).toContain('omit a list to leave it');
     expect(text).toContain(
       'contract.discount.coupon does not include these arrays',
     );
     expect(text).toContain('GET /v2/coupons/{id}/');
     expect(text).toContain('does not document applies_to_* yet');
+    expect(text).toContain("none of the offer's prices is in scope");
     expect(text).toContain(
-      'plans-only coupon is refused on a contract quote',
+      'plans-only or plan-variants-only coupon is refused on a contract quote',
     );
+    expect(text).not.toContain('Both empty applies to everything');
+    expect(text).not.toContain("none of the offer's products is in scope");
     expect(text).not.toContain('cannot mark shipped via the API');
     expect(text).not.toContain('warehouse, read-only');
     expect(text).not.toContain('Writes die');
@@ -261,6 +268,11 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('discount.id');
     expect(text).toContain('not an integer');
     expect(text).toContain('plan-scoped code');
+    expect(text).toContain('applies_to_plan_variants');
+    expect(text).toContain('this plan or plan variant');
+    expect(text).toContain(
+      'its 400 sentence still names only applies_to_plans / applies_to_products',
+    );
     expect(text).toContain('A coupon limited to other plans is refused');
   });
 });
