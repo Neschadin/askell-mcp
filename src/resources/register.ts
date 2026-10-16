@@ -67,9 +67,9 @@ Payload is the scheduled change (same shape as \`scheduled_changes[]\`) plus \`s
 ### billing_run.* (v2)
 \`created\`, \`changed\`, \`succeeded\`, \`failed\`, \`retry\`
 
-Body matches \`V2BillingRun\`: \`contract_id\` (not \`contract\`), \`customer_id\`, \`period_start_at\`, \`period_end_at\`, \`state\`, amounts, \`attempt_count\`, \`max_attempts\`, \`next_retry_at\`, \`last_attempt_at\`, \`transaction_id\`, \`transaction_uuid\`, \`transaction_external_reference\` (null when no transaction exists), \`lines\`, \`attempts\`. Live page \`state\` values: \`scheduled\`, \`processing\`, \`retry_scheduled\`, \`pending_external\`, \`succeeded\`, \`failed_terminal\`, \`canceled\`, \`voided\`, \`refunded\`. OpenAPI leaves \`state\` an unconstrained string.
+Body matches \`V2BillingRun\`: \`contract_id\` (not \`contract\`), \`customer_id\`, \`period_start_at\`, \`period_end_at\`, \`state\`, amounts, \`refunded_amount\`, \`refundable_amount\`, \`attempt_count\`, \`max_attempts\`, \`next_retry_at\`, \`last_attempt_at\`, \`transaction_id\`, \`transaction_uuid\`, \`transaction_external_reference\` (null when no transaction exists), \`lines\`, \`attempts\`. Live page \`state\` values: \`scheduled\`, \`processing\`, \`retry_scheduled\`, \`pending_external\`, \`succeeded\`, \`failed_terminal\`, \`canceled\`, \`voided\`, \`refunded\`. OpenAPI leaves \`state\` an unconstrained string.
 
-Refunding a succeeded run (\`POST /v2/billing-runs/{id}/refund/\`) sends \`billing_run.changed\`, not a new event type. The run's \`state\` becomes \`refunded\`. A \`202\` means the run is still \`succeeded\`.
+Refunding a succeeded run (\`POST /v2/billing-runs/{id}/refund/\`, optional \`amount\`; omit it to refund \`refundable_amount\`) sends \`billing_run.changed\`, not a new event type. A partial refund leaves \`state\` \`succeeded\` and sets \`refunded_amount\`. \`state\` becomes \`refunded\` only when the whole charge is refunded. A \`202\` means the refund is not on the returned run yet, which is still \`succeeded\` — that is not the same as a partial refund, which is a \`200\` that stays \`succeeded\`.
 
 ### customer.* (v1)
 \`created\`, \`changed\` — same shape as GET \`/customers/{ref}/\` (\`id\`, names, \`email\`, \`phone\`, \`customer_reference\`, address fields, \`payment_method[]\`).
@@ -77,11 +77,11 @@ Refunding a succeeded run (\`POST /v2/billing-runs/{id}/refund/\`) sends \`billi
 ### payment.*
 \`created\`, \`changed\`, \`retry\`. One registration receives both shapes. Tell them apart with \`Hook-API-Version\`, or with \`subscription_contract_id\` (only on a billing-run charge).
 
-One-off Payment (\`Hook-API-Version: v1\`): \`uuid\`, \`amount\`, \`currency\`, \`description\`, \`reference\`, \`state\` (\`pending\` | \`settled\` | \`failed\` | \`retrying\`), \`created_at\`, \`updated_at\`, \`transactions[]\`.
+One-off Payment (\`Hook-API-Version: v1\`): \`uuid\`, \`amount\`, \`refunded_amount\`, \`currency\`, \`description\`, \`reference\`, \`state\` (\`pending\` | \`settled\` | \`failed\` | \`retrying\` | \`refunded\` | \`canceled\`), \`created_at\`, \`updated_at\`, \`transactions[]\`. A partial refund leaves \`state\` \`settled\`.
 
 Billing-run charge (\`Hook-API-Version: v2\`): a flat transaction, no \`transactions[]\`. \`uuid\` (transaction id), \`amount\`, \`currency\`, \`description\`, \`reference\` (processor reference), \`state\` (\`initial\` | \`pending\` | \`settled\` | \`failed\` | \`canceled\` | \`refunded\`), \`fail_code\`, \`refund_code\`, \`cancel_code\`, \`payment_method\` (numeric id), \`billing_run_id\`, \`billing_run_attempt_id\`, \`subscription_contract_id\`, \`customer\`, \`customer_reference\`, \`legacy_subscription_ids\`. \`payment.created\` when an attempt opens a transaction, \`payment.changed\` when the charge succeeds, fails permanently, or waits on the processor, \`payment.retry\` when another attempt is scheduled. A \`payment.retry\` with no transaction has null \`uuid\`, \`reference\`, \`created_at\`, \`updated_at\`, \`payment_method\`, and codes; \`amount\` / \`currency\` come from the run, and \`state\` is the run's state (for example \`retry_scheduled\`).
 
-That \`uuid\` is not a Payment. Do not \`POST /payments/{uuid}/refund/\`. Refund with \`POST /v2/billing-runs/{billingRunId}/refund/\`.
+That \`uuid\` is a billing-run charge, not a Payment. Do not \`POST /payments/{uuid}/refund/\` or \`POST /transactions/{uuid}/refund/\` — both return 400 \`billing_run_charge\` and \`billing_run_id\` names the run. Refund with \`POST /v2/billing-runs/{billingRunId}/refund/\`. A settled subscription transaction that is not a billing-run charge uses \`POST /transactions/{uuid}/refund/\` (optional \`amount\`). One-off Payments use \`POST /payments/{uuid}/refund/\`.
 
 ### checkout.* (v1)
 \`created\`, \`changed\` — \`token\`, \`checkout_url\`, \`status\`.

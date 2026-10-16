@@ -220,8 +220,18 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('customer is neither created nor updated');
     expect(text).toContain('payment_processor checkout still works');
     expect(text).toContain('POST /v2/billing-runs/{id}/refund/');
+    expect(text).toContain('refundable_amount');
+    expect(text).toContain('refunded_amount');
+    expect(text).toContain('leaves state succeeded');
     expect(text).toContain('do not resend immediately');
+    expect(text).toContain('refund_pending');
+    expect(text).toContain('partial_refund_not_supported');
+    expect(text).toContain('Teya RPG only the whole amount');
     expect(text).toContain('POST /payments/{uuid}/refund/ is one-off Payments only');
+    expect(text).toContain('not an array');
+    expect(text).toContain('POST /transactions/{uuid}/refund/');
+    expect(text).toContain('billing_run_charge');
+    expect(text).not.toContain('full amount only');
     expect(text).toContain('apply_at=period_end');
     expect(text).toContain('future_effective_at_not_supported');
     expect(text).toContain('scheduled_change_exists');

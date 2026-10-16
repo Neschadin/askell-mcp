@@ -281,10 +281,56 @@ describe('askell_describe_operation payload', () => {
       apiKeyKind: 'secret',
       tags: ['V2 Billing Runs'],
     });
-    expect(refund?.requestBody).toBeUndefined();
+    expect(refund?.requestBody?.required).toBe(false);
+    const refundSchema = refund?.requestBody?.schema as {
+      properties?: Record<string, { description?: string }>;
+    };
+    expect(refundSchema.properties).toHaveProperty('amount');
+    expect(refund?.description).toMatch(/refundable_amount/);
+    expect(refund?.description).toMatch(/partial_refund_not_supported/);
     expect(refund?.description).toMatch(/202/);
     expect(refund?.description).toMatch(/do not immediately resend/i);
     expect(refund?.description).toMatch(/billing_run_id/);
+
+    const transactionRefund = operationRegistry.getById(
+      'v1:POST:/transactions/{uuid}/refund/',
+    );
+    expect(transactionRefund).toMatchObject({
+      method: 'POST',
+      apiKeyKind: 'secret',
+      tags: ['Transaction'],
+    });
+    expect(transactionRefund?.requestBody?.required).toBe(false);
+    expect(transactionRefund?.description).toMatch(/billing_run_charge/);
+
+    const paymentRefund = operationRegistry.getById(
+      'v1:POST:/payments/{uuid}/refund/',
+    );
+    expect(paymentRefund?.requestBody?.required).toBe(false);
+    const paymentSpec = getBundledSpec('v1');
+    const paymentRefundPost = paymentSpec.paths?.[
+      '/payments/{uuid}/refund/'
+    ] as
+      | {
+          post?: {
+            responses?: Record<
+              string,
+              {
+                content?: {
+                  'application/json'?: { schema?: { $ref?: string } };
+                };
+              }
+            >;
+          };
+        }
+      | undefined;
+    const paymentRefundSchema =
+      paymentRefundPost?.post?.responses?.['200']?.content?.[
+        'application/json'
+      ]?.schema;
+    expect(paymentRefundSchema).toEqual({
+      $ref: '#/components/schemas/Payment',
+    });
 
     const anchor = operationRegistry.getById(
       'v2:POST:/v2/subscription-contracts/{contractId}/change-anchor/',

@@ -164,6 +164,90 @@
         ]
       }
     },
+    "/transactions/{uuid}/refund/": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "UUID of the transaction",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "summary": "Refund a settled transaction, in full or in part",
+        "description": "Refunds a settled charge of one of the account's subscriptions or one-off Payments through its payment processor. Requires a secret key, as the payment refund does; public keys are refused. Without `amount` everything left to refund is refunded; with it, only that much. A transaction can be refunded in several parts up to its amount: a partly refunded transaction stays `settled` and shows what was refunded in `refunded_amount`, and it moves to `refunded` once the whole amount is refunded. Partial refunds depend on the payment processor (see `POST /api/payments/{uuid}/refund/`).\n\n**200**: the refund succeeded. **202**: the payment processor accepted the refund but has not completed it (for example Teya answering PENDING) or did not say how it ended (no answer, or a server error); its amount is held back from further refunds until it completes. Sending the request again without `amount` while pending refunds hold back everything left asks the processor about them again under the same keys where its gateway recognises a repeated key (Teya, Verifone); any other processor is not asked again, since it could refund twice, and the request is answered with 400 `refund_pending`: check the pending refund at the processor. Both answer with the transaction and the refund.\n\n**400**: `{\"error\": ..., \"code\": ...}`. A charge made by a V2 billing run is refunded through the run: its transaction uuid is answered with a 400 whose body names the run (`billing_run_id`, `code` `billing_run_charge`) and points to `POST /api/v2/billing-runs/{billingRunId}/refund/`.\n\n**404**: no transaction with this uuid on the account.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The refund succeeded. A partly refunded transaction stays `settled`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionRefundResult"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "The payment processor accepted the refund but has not completed it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionRefundResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/RefundError"
+          },
+          "404": {
+            "description": "No transaction with this uuid on the account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "not_found"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
     "/transactions/": {
       "get": {
         "tags": [
@@ -1839,24 +1923,41 @@
             }
           }
         ],
-        "summary": "Refund a settled Payment",
-        "description": "If a Payment is in the settled state and the payment processor supports refunds, you can refund it. Requires a secret key. Charges made by V2 billing runs are not Payments: the transaction uuid a V2 `payment.*` webhook carries is answered with a 400 whose body names the run (`billing_run_id`) and points to `POST /api/v2/billing-runs/{billingRunId}/refund/`, which refunds it.",
+        "summary": "Refund a settled Payment, in full or in part",
+        "description": "Refunds a settled Payment through its payment processor. Requires a secret key. Without a body (or without `amount`) everything left to refund is refunded, as before partial refunds existed. With `amount`, only that much is refunded; a Payment can be refunded in several parts up to its amount. A partly refunded Payment stays `settled` and shows what was refunded in `refunded_amount` (its settled transaction carries the same); it moves to `refunded` once the whole amount is refunded.\n\nPartial refunds depend on the payment processor: Teya, Verifone and Straumur take them; Valitor Pay takes them from the day after the charge; Teya RPG only refunds the whole amount.\n\n**200**: the refund succeeded. **202**: the processor accepted the refund but has not completed it (for example Teya answering PENDING) or did not say how it ended (no answer, or a server error); its amount is held back from further refunds until it completes. Sending the request again without `amount` while pending refunds hold back everything left to refund asks the processor about them again under the same keys where its gateway recognises a repeated key (Teya, Verifone), so they are not refunded twice; any other processor is not asked again, since it could refund twice, and the request is answered with 400 `refund_pending`: check the pending refund at the processor. If anything is left beyond what they hold back, a request without `amount` refunds that remainder as a new refund instead. **400**: `{\"error\": ..., \"code\": ...}`, see the codes below.\n\nCharges made by V2 billing runs are not Payments: the transaction uuid a V2 `payment.*` webhook carries is answered with a 400 whose body names the run (`billing_run_id`) and points to `POST /api/v2/billing-runs/{billingRunId}/refund/`, which refunds it.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful operation",
+            "description": "The refund succeeded. A partly refunded Payment stays `settled`.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Payment"
-                  }
+                  "$ref": "#/components/schemas/Payment"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "The payment processor accepted the refund but has not completed it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid status value"
+            "$ref": "#/components/responses/RefundError"
           }
         },
         "security": [
@@ -2589,6 +2690,11 @@
             "type": "string",
             "example": "100.00"
           },
+          "refunded_amount": {
+            "type": "string",
+            "example": "50.00",
+            "description": "How much of the Payment has been refunded. A partly refunded Payment stays `settled`."
+          },
           "currency": {
             "type": "string",
             "example": "USD"
@@ -2606,7 +2712,9 @@
               "failed",
               "settled",
               "pending",
-              "retrying"
+              "retrying",
+              "refunded",
+              "canceled"
             ]
           },
           "created_at": {
@@ -2944,9 +3052,74 @@
             "type": "string",
             "example": "6.99"
           },
+          "refunded_amount": {
+            "type": "string",
+            "example": "0.00",
+            "description": "How much of the amount has been refunded. A partly refunded transaction stays `settled`; it is `refunded` once the whole amount is refunded."
+          },
           "currency": {
             "type": "string",
             "example": "USD"
+          }
+        }
+      },
+      "TransactionRefund": {
+        "type": "object",
+        "description": "One refund of a transaction. A transaction refunded before refunds were recorded one by one has a single refund for its whole amount.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string",
+            "example": "2500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "ISK"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "succeeded",
+              "failed"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failure_reason": {
+            "type": "string",
+            "description": "Why the payment processor did not make the refund, for a failed one."
+          }
+        }
+      },
+      "TransactionRefundResult": {
+        "type": "object",
+        "properties": {
+          "transaction": {
+            "$ref": "#/components/schemas/Transaction"
+          },
+          "refund": {
+            "$ref": "#/components/schemas/TransactionRefund"
+          }
+        }
+      },
+      "RefundRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "2500",
+            "description": "How much to refund, as a decimal string or a number, in the charge's currency and with no more decimals than the currency has (ISK: whole krónur). Omit it to refund everything left."
           }
         }
       },
@@ -3523,6 +3696,40 @@
           "country": {
             "type": "string",
             "nullable": true
+          }
+        }
+      }
+    },
+    "responses": {
+      "RefundError": {
+        "description": "The refund was refused or the payment processor did not make it. `code` is one of `transaction_not_refundable` (the charge is not settled, e.g. already refunded), `refunds_not_supported` (the payment processor does not support refunds, or not for this charge), `partial_refund_not_supported` (the processor only refunds the whole amount, or not yet: Valitor Pay takes partial refunds from the day after the charge), `invalid_refund_amount` (not a number, not above zero, or more decimals than the currency has), `refund_amount_exceeds_refundable` (more than is left to refund; the message says how much is), `refund_failed` (the processor did not make the refund), `refund_pending` (pending refunds hold back everything left, and the processor cannot be asked about them again without risking a second refund: check them at the processor) or `billing_run_charge` (a charge a V2 billing run made, refunded through the run: `billing_run_id` names it).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "transaction_not_refundable",
+                    "refunds_not_supported",
+                    "partial_refund_not_supported",
+                    "invalid_refund_amount",
+                    "refund_amount_exceeds_refundable",
+                    "refund_failed",
+                    "refund_pending",
+                    "billing_run_charge"
+                  ]
+                },
+                "billing_run_id": {
+                  "type": "integer",
+                  "description": "The V2 billing run that made the charge, for `billing_run_charge`."
+                }
+              }
+            }
           }
         }
       }

@@ -62,6 +62,8 @@ function summarizeListItem(item: unknown): unknown {
     'currency',
     'amount',
     'total_amount',
+    'refunded_amount',
+    'refundable_amount',
     'code',
     'valid',
     'duration',

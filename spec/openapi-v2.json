@@ -1814,13 +1814,23 @@
         "tags": [
           "V2 Billing Runs"
         ],
-        "summary": "Refund a V2 billing run",
-        "description": "Refunds the charge a succeeded V2 billing run settled. Full refunds only: the whole settled amount of the run's transaction is returned to the payment method it was charged to; partial refunds are not supported. Only runs in the `succeeded` state with a settled transaction can be refunded, and the payment processor must support refunds. No request body. Requires a secret key (public keys and legacy tokens are rejected).\n\n**200** — the processor refunded the charge and the returned run is `refunded` (with the refund recorded under `metadata.transaction_refund`); a `billing_run.changed` webhook is sent.\n\n**202** — the refund is not reflected on the returned run yet, which is still `succeeded`. Either the processor accepted the refund but has not completed it (for example Teya answering PENDING), or the processor refunded the charge and the run is still being updated. The request is recorded under `metadata.refund_requests`. Wait for the `billing_run.changed` webhook, or re-read the run, to see it move to `refunded`. Do not treat a 202 as a failure and do not immediately resend the request.\n\n**400** — the run is not `succeeded`, has no settled transaction (for example a zero-amount run, or a charge already refunded), its payment processor does not support refunds, or the processor did not complete the refund.\n\nConcurrent refund requests for the same run are serialized, and a request made after an earlier one refunded the charge gets a 400 while the run is `refunded`. If a request gets no response (for example a timeout), read the run with `GET /api/v2/billing-runs/{billingRunId}/` and check its `state` and `metadata.refund_requests` before sending the request again.\n\nThe `billing_run_id` in `payment.*` webhook payloads identifies the run to refund.",
+        "summary": "Refund a V2 billing run, in full or in part",
+        "description": "Refunds the charge a succeeded V2 billing run settled, to the payment method it was charged to. Only runs in the `succeeded` state with a settled transaction can be refunded, and the payment processor must support refunds. Requires a secret key (public keys and legacy tokens are rejected).\n\nThe optional `amount` is how much to refund; without it everything left to refund is refunded. A run can be refunded in several parts. What is left to refund is the run's `refundable_amount`: the charge, less what was refunded and what pending refunds hold back, and never more than what is left of the run's original total (contract balance included) once that and what was already credited to the customer from the run (proration credits from later changes to the contract) are taken off, so a refund and a credit never pay the same money back twice. Credits computed after a refund are likewise reduced by the share of the run's original total that was refunded. A processor that only refunds the whole charge cannot refund what is left once part of it was refunded or credited: `refundable_amount` is then `0.00` and a refund is answered with 400 `partial_refund_not_supported`. Partial refunds depend on the payment processor (see `POST /api/payments/{uuid}/refund/`).\n\n**200**: the refund succeeded. Once the whole charge is refunded the returned run is `refunded` (with the refund recorded under `metadata.transaction_refund`); while it is partly refunded the run stays `succeeded` and shows what was refunded in `refunded_amount`. Either way a `billing_run.changed` webhook is sent.\n\n**202**: the refund is not reflected on the returned run yet, which is still `succeeded`. Either the processor accepted the refund but has not completed it (for example Teya answering PENDING) or did not say how it ended (no answer, or a server error), or the processor refunded the whole charge and the run is still being updated. Wait for the `billing_run.changed` webhook, or re-read the run, to see it move on. Do not treat a 202 as a failure and do not immediately resend the request. Sending it again without `amount` while pending refunds hold back everything left to refund asks the processor about them again under the same keys where its gateway recognises a repeated key (Teya, Verifone), so they are not refunded twice; any other processor is not asked again, since it could refund twice, and the request is answered with 400 `refund_pending`: check the pending refund at the processor. If anything is left beyond what they hold back, a request without `amount` refunds that remainder as a new refund instead.\n\nEvery refund that succeeded or is pending is recorded under `metadata.refund_requests`, with its `amount`, `refund_uuid` and `outcome` (`refunded` or `pending`).\n\n**400**: `{\"error\": ..., \"code\": ...}`. `billing_run_not_refundable`: the run is not `succeeded` or has no settled transaction (for example a zero-amount run, or a charge already refunded). `refunds_not_supported`: its payment processor does not support refunds. `invalid_refund_amount`, `refund_amount_exceeds_refundable` and `partial_refund_not_supported`: see the codes on `POST /api/payments/{uuid}/refund/`. `refund_failed`: the processor did not make the refund. `refund_pending`: pending refunds hold back everything left, at a processor that cannot be asked about them again; check them at the processor.\n\nConcurrent refund requests for the same run are serialized. If a request gets no response (for example a timeout), read the run with `GET /api/v2/billing-runs/{billingRunId}/` and check its `state`, `refunded_amount` and `metadata.refund_requests` before sending the request again.\n\nThe `billing_run_id` in `payment.*` webhook payloads identifies the run to refund.",
         "parameters": [
           {
             "$ref": "#/components/parameters/V2BillingRunId"
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "$ref": "#/components/responses/V2BillingRun"
@@ -1829,7 +1839,7 @@
             "$ref": "#/components/responses/V2BillingRunRefundPending"
           },
           "400": {
-            "$ref": "#/components/responses/V2ValidationError"
+            "$ref": "#/components/responses/V2BillingRunRefundError"
           },
           "404": {
             "$ref": "#/components/responses/V2NotFound"
@@ -5828,6 +5838,16 @@
             "type": "string",
             "nullable": true
           },
+          "refunded_amount": {
+            "type": "string",
+            "example": "2500.00",
+            "description": "How much of the run's charge has been refunded. A partly refunded run stays `succeeded`."
+          },
+          "refundable_amount": {
+            "type": "string",
+            "example": "2500.00",
+            "description": "How much of the run's charge can still be refunded: the charge less what was refunded and what pending refunds hold back, and never more than what is left of the run's original total (contract balance included) once that and what was already credited to the customer from the run are taken off. `0.00` unless the run is `succeeded`, and `0.00` when the payment processor only refunds the whole charge and part of it was already refunded or credited."
+          },
           "lines": {
             "type": "array",
             "items": {
@@ -6585,6 +6605,16 @@
             "items": {
               "$ref": "#/components/schemas/V2SubscriptionContractScheduledChange"
             }
+          }
+        }
+      },
+      "RefundRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "2500",
+            "description": "How much to refund, as a decimal string or a number, in the charge's currency and with no more decimals than the currency has (ISK: whole krónur). Omit it to refund everything left."
           }
         }
       },
@@ -7807,11 +7837,38 @@
         }
       },
       "V2BillingRunRefundPending": {
-        "description": "The refund is not reflected on the returned billing run yet, which is still `succeeded`: either the payment processor accepted the refund but has not completed it, or it refunded the charge and the run is still being updated. The request is recorded under `metadata.refund_requests`. Wait for the `billing_run.changed` webhook, or re-read the run, to see it move to `refunded`; do not treat this as a failure or immediately resend the request.",
+        "description": "The refund is not reflected on the returned billing run yet, which is still `succeeded`: either the payment processor accepted the refund but has not completed it, or it refunded the whole charge and the run is still being updated. The request is recorded under `metadata.refund_requests`. Wait for the `billing_run.changed` webhook, or re-read the run, to see it move on; do not treat this as a failure or immediately resend the request.",
         "content": {
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/V2BillingRun"
+            }
+          }
+        }
+      },
+      "V2BillingRunRefundError": {
+        "description": "The refund was refused or the payment processor did not make it. `code` is `billing_run_not_refundable` (the run is not `succeeded` or has no settled transaction), `refunds_not_supported`, `partial_refund_not_supported`, `invalid_refund_amount`, `refund_amount_exceeds_refundable`, `refund_failed` or `refund_pending` (see `RefundError`).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "billing_run_not_refundable",
+                    "refunds_not_supported",
+                    "partial_refund_not_supported",
+                    "invalid_refund_amount",
+                    "refund_amount_exceeds_refundable",
+                    "refund_failed",
+                    "refund_pending"
+                  ]
+                }
+              }
             }
           }
         }

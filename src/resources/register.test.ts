@@ -31,6 +31,16 @@ describe('webhook-events resource', () => {
     expect(WEBHOOK_EVENTS_DOC).toContain(
       'Do not `POST /payments/{uuid}/refund/`',
     );
+    expect(WEBHOOK_EVENTS_DOC).toContain(
+      'POST /transactions/{uuid}/refund/',
+    );
+    expect(WEBHOOK_EVENTS_DOC).toContain('billing_run_charge');
+    expect(WEBHOOK_EVENTS_DOC).toContain('refunded_amount');
+    expect(WEBHOOK_EVENTS_DOC).toContain('refundable_amount');
+    expect(WEBHOOK_EVENTS_DOC).toContain('A partial refund leaves `state` `succeeded`');
+    expect(WEBHOOK_EVENTS_DOC).not.toContain(
+      "The run's `state` becomes `refunded`. A `202`",
+    );
     expect(WEBHOOK_EVENTS_DOC).toContain('billing_run.changed');
     expect(WEBHOOK_EVENTS_DOC).toContain('refunded');
     expect(WEBHOOK_EVENTS_DOC).toContain('`reference` and `scheduled_changes`');

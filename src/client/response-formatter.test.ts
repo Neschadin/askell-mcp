@@ -205,6 +205,45 @@ describe('buildBoundedListPayload', () => {
     expect(parsed.body[0]).not.toHaveProperty('restrictions');
   });
 
+  test('summary compact keeps partial-refund amounts', () => {
+    const items = Array.from({ length: 40 }, (_, i) => ({
+      id: i + 1,
+      state: 'succeeded',
+      amount: '5000.00',
+      refunded_amount: '2500.00',
+      refundable_amount: '2500.00',
+      currency: 'ISK',
+      created_at: '2026-01-01T00:00:00Z',
+      lines: [{ description: 'x'.repeat(500) }],
+    }));
+
+    const result = buildBoundedListPayload({
+      status: 200,
+      meta: { path: '/v2/billing-runs/' },
+      items,
+      maxBytes: 8_000,
+    });
+
+    const parsed = JSON.parse(result.text) as {
+      meta: { compacted?: boolean; compactedMode?: string };
+      body: Array<{
+        state?: string;
+        refunded_amount?: string;
+        refundable_amount?: string;
+        lines?: unknown;
+      }>;
+    };
+
+    expect(parsed.meta.compacted).toBe(true);
+    expect(parsed.meta.compactedMode).toBe('summary');
+    expect(parsed.body[0]).toMatchObject({
+      state: 'succeeded',
+      refunded_amount: '2500.00',
+      refundable_amount: '2500.00',
+    });
+    expect(parsed.body[0]).not.toHaveProperty('lines');
+  });
+
   test('index compact keeps customer-facing promotion code', () => {
     const items = Array.from({ length: 200 }, (_, i) => ({
       id: `promo_${i}`,

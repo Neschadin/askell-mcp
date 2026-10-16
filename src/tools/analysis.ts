@@ -289,7 +289,7 @@ export function registerAnalysisTools(
     {
       title: 'Billing run triage (v2)',
       description:
-        'Fetch a billing run by id with optional related contract context for failure analysis. Result is an error when the billing run fetch fails. A failed related contract stays in the payload and is listed in `failures`.',
+        'Fetch a billing run by id with optional related contract context for failure analysis. Result is an error when the billing run fetch fails. A failed related contract stays in the payload and is listed in `failures`. A succeeded run can still be partly refunded: read `refunded_amount` and `refundable_amount` (`refundable_amount` is `0.00` unless state is `succeeded`).',
       inputSchema: z.object({
         billingRunId: z
           .union([z.string().min(1), z.int()])

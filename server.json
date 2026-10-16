@@ -7,12 +7,12 @@
     "url": "https://github.com/Neschadin/askell-mcp",
     "source": "github"
   },
-  "version": "0.4.23",
+  "version": "0.4.24",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "askell-mcp",
-      "version": "0.4.23",
+      "version": "0.4.24",
       "runtimeHint": "bunx",
       "runtimeArguments": [
         {
