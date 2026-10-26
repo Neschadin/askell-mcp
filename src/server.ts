@@ -113,7 +113,9 @@ Safety:
 
 Resources:
 - askell://spec/v1 and askell://spec/v2 — bundled OpenAPI
-- askell://docs/webhook-events — inbound webhook payloads (most families not in OpenAPI; fulfillment_order.* is V2FulfillmentOrder), HMAC-SHA512, /webhooks/ hmac_secret`;
+- askell://docs/webhook-events — inbound webhook payloads (most families not in OpenAPI; fulfillment_order.* is V2FulfillmentOrder), HMAC-SHA512, /webhooks/ hmac_secret
+
+Skills (SEP-2640, skills/list): askell-docs (live docs + traps), askell-mcp (tool workflow on this server).`;
 }
 
 export function createServer(config: AppConfig): McpServer {

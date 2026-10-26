@@ -1,12 +1,18 @@
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 
 import { loadConfig } from './config.ts';
+import { loadPublishedSkills } from './skills.ts';
 import { createServer } from './server.ts';
 
 try {
-  const config = await loadConfig();
+  const [config, skillCatalog] = await Promise.all([
+    loadConfig(),
+    loadPublishedSkills(),
+  ]);
 
-  void serveStdio(() => createServer(config));
+  const server = createServer(config);
+  skillCatalog.attach(server);
+  void serveStdio(() => server);
 
   console.error(
     `askell-mcp running on stdio (${config.askellEnv} ${config.apiBaseUrl})`,
