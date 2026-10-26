@@ -101,6 +101,9 @@ jobs:
       - name: Compile binary
         run: bun build --compile --minify --bytecode --format=esm --target=${{ matrix.target }} src/index.ts --outfile dist/${{ matrix.artifact }}
 
+      - name: Bundle skills for compiled binary
+        run: cp -r skills dist/
+
       - name: Smoke test binary
         run: |
           BIN="dist/${{ matrix.artifact }}"
