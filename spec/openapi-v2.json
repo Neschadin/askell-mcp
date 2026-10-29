@@ -4496,7 +4496,8 @@
               "completed",
               "expired",
               "canceled"
-            ]
+            ],
+            "description": "`completed` once the session's checkout has been paid (or is awaiting the payment processor); `contract_id` and `initial_billing_run_id` are then set. `expired` is reported once `expires_at` has passed and no payment is in progress. From then on the session's checkout can no longer be finalized or paid again through either finalize endpoint, and a checkout that was still `pending` is canceled. When the session expires, a declined (`failed`) checkout's initial billing run is canceled with its inactive contract, so it is never retried or charged afterwards; look them up through `GET /api/v2/checkouts/{checkout_token}/`. If a seller's manual retry or the payment processor pays that run before then, the checkout and the session complete at once, with the contract. Two purchases are left to the seller although the session reports `expired`: a contract the seller has activated keeps its billing run, and a checkout that was paid but could not be activated (`activation_failure`), or was paid only after its first period had ended (`activation_skipped` on the contract and the run), keeps its paid run and its inactive contract. A session whose checkout or initial billing run is being paid as it expires stays `pending` until that payment completes or fails. So does one whose declined checkout has an earlier charge with an outcome not known yet: automatic retries stop for that run, which waits for the seller to retry it manually or cancel the contract."
           },
           "expires_at": {
             "type": "string",
@@ -4517,7 +4518,8 @@
           "checkout_token": {
             "type": "string",
             "format": "uuid",
-            "nullable": true
+            "nullable": true,
+            "description": "Token of the session's checkout; `null` until a checkout is created in the session."
           },
           "contract_id": {
             "type": "integer",

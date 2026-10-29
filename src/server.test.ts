@@ -168,6 +168,11 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('discount.recurring_final_amount');
     expect(text).toContain('allowed_origin');
     expect(text).toContain('Rejected on /v2/checkout-sessions/');
+    expect(text).toContain('V2CheckoutSession.status is only on the response schema');
+    expect(text).toContain('initial_billing_run_id');
+    expect(text).toContain('activation_skipped');
+    expect(text).toContain('stays pending past expires_at');
+    expect(text).toContain('either finalize endpoint');
     expect(text).toContain('GET /v2/fulfillment-orders/');
     expect(text).toContain('fulfillment_order.* webhooks');
     expect(text).toContain('shipping_code shipping_not_available');
