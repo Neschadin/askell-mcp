@@ -389,7 +389,11 @@ describe('askell_describe_operation payload', () => {
       'metadata',
       'payment_processor_override',
       'reference',
+      'sales_channel',
     ]);
+    expect(patch.properties).not.toHaveProperty('delivery_address');
+    expect(patch.properties).not.toHaveProperty('accounting_department');
+    expect(patch.properties).not.toHaveProperty('accounting_cost_center');
     expect(patch.properties?.reference?.maxLength).toBe(128);
     expect(patch.properties?.metadata?.description).toMatch(
       /any of them in the request are ignored/i,
@@ -399,6 +403,73 @@ describe('askell_describe_operation payload', () => {
       'v2:PATCH:/v2/subscription-contracts/{contractId}/',
     );
     expect(operation?.description).toMatch(/accounting_department/);
+    expect(operation?.description).toMatch(/sales_channel/);
+  });
+
+  test('portal, one-off purchases, and scheduled-change operations', () => {
+    const spec = getBundledSpec('v2');
+    expect(
+      operationRegistry.getById(
+        'v2:GET:/v2/subscription-contracts/{contractId}/one-off-purchases/',
+      )?.apiKeyKind,
+    ).toBe('secret');
+    expect(
+      operationRegistry.getById('v2:POST:/v2/customer-portal-entries/')
+        ?.apiKeyKind,
+    ).toBe('secret');
+    expect(
+      operationRegistry.getById('v2:POST:/v2/customer-portal-sessions/')
+        ?.apiKeyKind,
+    ).toBe('secret');
+
+    const change = spec.components?.schemas
+      ?.V2SubscriptionContractScheduledChange as {
+      properties?: {
+        operation?: { enum?: string[] };
+        contract_item?: { nullable?: boolean };
+        price?: { nullable?: boolean };
+      };
+    };
+    expect(change.properties?.operation?.enum).toEqual([
+      'update_item',
+      'add_item',
+      'remove_item',
+    ]);
+    expect(change.properties?.contract_item?.nullable).toBe(true);
+    expect(change.properties?.price?.nullable).toBe(true);
+
+    const contract = spec.components?.schemas?.V2SubscriptionContract as {
+      properties?: Record<string, unknown>;
+    };
+    expect(contract.properties).toHaveProperty('sales_channel');
+    expect(contract.properties).toHaveProperty('sales_channel_id');
+    expect(contract.properties).toHaveProperty('one_off_purchases');
+    expect(contract.properties).toHaveProperty('pending_delivery_change');
+
+    const created = spec.components?.schemas?.V2SubscriptionContractCreate as {
+      allOf?: Array<{ properties?: Record<string, unknown> }>;
+    };
+    const createFields = created.allOf?.find(
+      (part) => part.properties && 'sales_channel' in part.properties,
+    );
+    expect(createFields?.properties).toHaveProperty('sales_channel');
+
+    const err = spec.components?.schemas?.V2CustomerPortalError as {
+      properties?: { code?: { enum?: string[] } };
+    };
+    expect(err.properties?.code?.enum).toEqual([
+      'api_key_not_allowed',
+      'seller_verified_sessions_disabled',
+      'throttled',
+    ]);
+    expect(err.properties?.code?.enum).not.toContain('self_service_unavailable');
+
+    const sessionOp = spec.paths?.['/v2/customer-portal-sessions/']?.post as {
+      responses?: Record<string, { description?: string }>;
+    };
+    expect(sessionOp.responses?.['403']?.description).toMatch(
+      /self_service_unavailable/,
+    );
   });
 
   test('item add/remove 409 is only on the response, and v1 guard is LegacySubscriptionGuardError', () => {

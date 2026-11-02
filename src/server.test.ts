@@ -255,7 +255,27 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('contract_reference');
     expect(text).toContain('too late for subscription_contract.created');
     expect(text).toContain('contract_reference null');
-    expect(text).toContain('V2SubscriptionContractPatch does not include them — do not send them');
+    expect(text).toContain('sales_channel');
+    expect(text).toContain('null or blank removes the channel');
+    expect(text).toContain(
+      'does not include delivery_address, accounting_department, accounting_cost_center — do not send them',
+    );
+    expect(text).not.toContain(
+      'PATCH body is only metadata, reference, payment_processor_override.',
+    );
+    expect(text).toContain('one_off_purchases is pending only');
+    expect(text).toContain('one-off-purchases/');
+    expect(text).toContain('No POST or DELETE');
+    expect(text).toContain('pending_delivery_change');
+    expect(text).toContain('subscription_contract.changed fires when it is queued');
+    expect(text).toContain('update_item | add_item | remove_item');
+    expect(text).toContain('canceling one cancels the others');
+    expect(text).toContain('POST /v2/customer-portal-entries/');
+    expect(text).toContain('POST /v2/customer-portal-sessions/');
+    expect(text).toContain('Customer-Session');
+    expect(text).toContain('self_service_unavailable');
+    expect(text).toContain('Do not redact url or token');
+    expect(text).toContain('not a seller-verified portal link');
     expect(text).toContain('On a shared key the session value wins');
     expect(text).toContain('sending them does nothing');
   });

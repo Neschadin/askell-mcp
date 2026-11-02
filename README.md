@@ -161,6 +161,8 @@ If both `ASKELL_MUTATION_GATE` and `ASKELL_REQUIRE_MUTATION_APPROVAL` are set, `
 | `askell_billing_run_triage` | v2 billing run (+ optional contract)              |
 | `askell_list_webhooks`      | List configured webhooks (`hmac_secret` redacted) |
 
+`hmac_secret` is the only field redacted in tool output. Customer-portal sign-in URLs and widget tokens (`POST /v2/customer-portal-entries/`, `POST /v2/customer-portal-sessions/`) are returned in full so the browser can use them. Do not put the widget token in a URL.
+
 ### Resources
 
 | URI                            | Content                 |

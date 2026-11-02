@@ -36,7 +36,7 @@ Bundled OpenAPI (offline): resources `askell://spec/v1`, `askell://spec/v2`. Web
 - `query`, `body` — JSON as needed.
 - `apiKeyKind` — omit to follow the operation: `secret` (most), `public` (checkout/temp PM status), `none` (v1 subscription discount paths with `subscription_token` only).
 
-Responses are JSON text. `hmac_secret` in webhook bodies is redacted in tool output (`<redacted len=N>`); use the dashboard or a direct API call for the real secret.
+Responses are JSON text. `hmac_secret` in webhook bodies is redacted in tool output (`<redacted len=N>`); use the dashboard or a direct API call for the real secret. Customer-portal `url` and `token` are not redacted: hand `url` to the browser, and send `token` as `Authorization: Customer-Session <token>` — never in a URL.
 
 ## Analysis shortcuts (prefer over raw GET loops)
 
@@ -65,5 +65,6 @@ Use `skills/list` and `skills/get` (or your host’s Skills UI) to load them on 
 ## Do not
 
 - Use `askell_call` for POST/PUT/PATCH/DELETE (use `askell_mutate`).
+- Treat `subscriber_page` as a seller-verified login. That is `POST /v2/customer-portal-entries/` (hosted page) or `POST /v2/customer-portal-sessions/` (on-site widget).
 - Assume `askell_describe_operation` includes response body schemas (often omitted; use live docs + `askell-docs` skill).
 - Reuse production API keys on sandbox or vice versa.

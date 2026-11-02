@@ -53,6 +53,10 @@
       "description": "Subscription V2 embedded checkout session APIs for seller backend integrations."
     },
     {
+      "name": "V2 Customer Portal",
+      "description": "Sign a customer your site has already signed in to Áskell's hosted subscription page, without the email code. Requires a secret api key and a sales channel that allows seller-verified sessions."
+    },
+    {
       "name": "V2 Billing Runs",
       "description": "Subscription V2 billing-run read and retry APIs, requires secret api key."
     },
@@ -707,7 +711,7 @@
           "V2 Subscription Contracts"
         ],
         "summary": "Partially update a V2 subscription contract",
-        "description": "Restricted patch endpoint. Only `metadata`, `reference`, `payment_processor_override`, `delivery_address`, `accounting_department` and `accounting_cost_center` may be updated. Requires a secret key.",
+        "description": "Restricted patch endpoint. Only `metadata`, `reference`, `payment_processor_override`, `sales_channel`, `delivery_address`, `accounting_department` and `accounting_cost_center` may be updated. Requires a secret key.",
         "parameters": [
           {
             "$ref": "#/components/parameters/V2ContractId"
@@ -890,6 +894,78 @@
           },
           "409": {
             "$ref": "#/components/responses/V2ProrationConflict"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/subscription-contracts/{contractId}/one-off-purchases/": {
+      "get": {
+        "tags": [
+          "V2 Subscription Contracts"
+        ],
+        "summary": "List a V2 subscription contract's one-off purchases",
+        "description": "One-time products added to an order to come, in every state, the order they are for first: `pending` while they wait for their order (also on the contract as `one_off_purchases`), `billed` once that order's billing run has succeeded, `canceled`, and `failed` when the order's billing run failed for good. Without `page_size` the whole list is returned as an array.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2ContractId"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "description": "Only purchases in this state.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "billed",
+                "canceled",
+                "failed"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "description": "Pages the list (at most 1000 per page).",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The contract's one-off purchases.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/V2SubscriptionContractOneOffPurchase"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
           }
         },
         "security": [
@@ -1674,6 +1750,130 @@
           },
           "404": {
             "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/customer-portal-entries/": {
+      "post": {
+        "tags": [
+          "V2 Customer Portal"
+        ],
+        "summary": "Create a sign-in link to the hosted subscription page",
+        "description": "Creates a single-use link that signs the customer in to Áskell's hosted subscription page without the email code, as your statement that the customer is signed in on your site. Send the customer's browser to the returned `url`; it works once and expires after 5 minutes. The page asks the customer to press Continue before the link is spent, so link previews do not use it. The sales channel's self-service settings must allow seller-verified sessions, and only a secret API key is accepted (not the legacy token). The session that starts can change only the customer's subscriptions whose own self-service settings allow seller-verified sessions. Turning the setting off, or revoking the key, ends such sessions at their next request and stops unused links. Throttled to 60 links per key per minute.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2CustomerPortalEntryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The sign-in link",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2CustomerPortalEntry"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "401": {
+            "description": "No valid secret API key."
+          },
+          "403": {
+            "description": "The key is not a secret key, or cannot act for the account (`code`: `api_key_not_allowed`), or the sales channel does not allow seller-verified sessions (`code`: `seller_verified_sessions_disabled`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2CustomerPortalError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many links for this key. `retry_after` and the `Retry-After` header say when to try again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2CustomerPortalError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/customer-portal-sessions/": {
+      "post": {
+        "tags": [
+          "V2 Customer Portal"
+        ],
+        "summary": "Start the subscription widget for a customer",
+        "description": "Starts Áskell's subscription widget on your site for one of your customers. Hand the returned `token` to the customer's browser, which sends it as `Authorization: Customer-Session <token>` to the customer-portal API (the `@askell/browser` SDK does this). With `seller_verified: true`, and when the sales channel's self-service settings allow seller-verified sessions, the token is an editing session (`type: session`) that may change the customer's subscriptions whose own self-service settings allow seller-verified sessions, without the email code: the request is your statement that the customer is signed in on your site. Otherwise it is a read-only handle (`type: handle`) that reads the customer's subscriptions and asks for the email code, which exchanges it for an editing session. Every browser call must come from one of the sales channel's allowed origins (`https`), so the channel must list at least one. Ask for a new token on every page load: it lasts 30 minutes without use and 4 hours at most. Only a secret API key is accepted (not the legacy token). Turning the setting or the account's self-service off, removing the origin from the channel, or revoking the key ends the widget at its next call. Throttled to 300 tokens per key per minute.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2CustomerPortalSessionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The widget's token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2CustomerPortalSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/V2ValidationError"
+          },
+          "401": {
+            "description": "No valid secret API key."
+          },
+          "403": {
+            "description": "The key is not a secret key, or cannot act for the account (`code`: `api_key_not_allowed`), or self-service is not turned on for the account (`code`: `self_service_unavailable`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2CustomerPortalError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many tokens for this key. `retry_after` and the `Retry-After` header say when to try again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2CustomerPortalError"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3179,6 +3379,11 @@
                 "type": "integer",
                 "nullable": true
               },
+              "sales_channel": {
+                "type": "string",
+                "nullable": true,
+                "description": "Sales channel id or account-scoped reference. The channel's self-service settings then apply to the contract. Optional; a blank value or `null` means no channel."
+              },
               "metadata": {
                 "$ref": "#/components/schemas/V2Metadata"
               },
@@ -3222,6 +3427,11 @@
           "payment_processor_override": {
             "type": "integer",
             "nullable": true
+          },
+          "sales_channel": {
+            "type": "string",
+            "nullable": true,
+            "description": "Sales channel id or account-scoped reference, putting the contract under that channel's self-service settings. `null` or a blank value removes the contract from its channel."
           }
         }
       },
@@ -3915,19 +4125,191 @@
           }
         }
       },
+      "V2SubscriptionContractDeliveryChange": {
+        "type": "object",
+        "description": "A change of the contract's delivery address and/or shipping choice that the customer made on the subscription page.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "applied",
+              "canceled",
+              "superseded"
+            ],
+            "description": "`pending` while it waits for the order before the one it is for; `superseded` when a newer change replaced it."
+          },
+          "for_order_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the order the change is for is billed."
+          },
+          "after_billing_run_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The billing run of the order the change waits for, once that run exists: the change applies when the run has succeeded and its order has been created."
+          },
+          "delivery_address": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2Address"
+              }
+            ],
+            "nullable": true,
+            "description": "The new delivery address; `null` when the change keeps the current one."
+          },
+          "shipping_selection": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2ShippingSelection"
+              }
+            ],
+            "nullable": true,
+            "description": "The new shipping choice; `null` when the change keeps the current one."
+          },
+          "actor_type": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who made the change: `customer:portal` for the customer on the subscription page."
+          },
+          "warning_code": {
+            "type": "string",
+            "description": "Set when the change was applied although its shipping option was no longer active (`option_inactive`), the carrier no longer covered the address (`not_covered`) or the pickup point was gone (`location_gone`); empty otherwise."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "applied_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "canceled_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "V2SubscriptionContractOneOffPurchase": {
+        "type": "object",
+        "description": "A one-time product added to an order to come, by the customer on the subscription page (`actor_type` `customer:portal`) or by you. It is billed and shipped with that order's renewal, priced as that renewal is billed.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "billed",
+              "canceled",
+              "failed"
+            ],
+            "description": "`pending` until its order's billing run succeeds (`billed`); `canceled` when removed or when the contract was canceled; `failed` when the order's billing run failed for good (not billed again)."
+          },
+          "scheduled_for": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the order it is for is billed."
+          },
+          "price_id": {
+            "type": "integer"
+          },
+          "price": {
+            "$ref": "#/components/schemas/V2CatalogPrice"
+          },
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "reference": {
+                "type": "string",
+                "nullable": true
+              },
+              "electronic_only": {
+                "type": "boolean"
+              }
+            }
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "actor_type": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who added it: `customer:portal` for the customer on the subscription page."
+          },
+          "group": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Ties together the purchases added at once."
+          },
+          "billing_run_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The renewal billing run that bills it, once that run exists."
+          },
+          "billing_run_line_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "failure_code": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why a `failed` purchase was not billed."
+          },
+          "cancel_reason": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why a `canceled` purchase was canceled."
+          },
+          "billed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "canceled_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "V2SubscriptionContractScheduledChange": {
         "type": "object",
+        "description": "A change waiting for an item's renewal. `update_item` changes the item's price, quantity or discount; `remove_item` ends the item at that renewal (`price` is null and `product` is the item's); `add_item` adds an item at the renewal of the items it renews with (`contract_item` is null until the renewal creates it). The changes made together share a `group`, which the renewal applies whole or fails whole. `actor_type` is `customer:portal` for a change the customer made on the subscription page.",
         "properties": {
           "id": {
             "type": "integer"
           },
           "contract_item": {
-            "type": "integer"
+            "type": "integer",
+            "nullable": true
           },
           "operation": {
             "type": "string",
             "enum": [
-              "update_item"
+              "update_item",
+              "add_item",
+              "remove_item"
             ]
           },
           "state": {
@@ -3944,13 +4326,20 @@
             "format": "date-time"
           },
           "price_id": {
-            "type": "integer"
+            "type": "integer",
+            "nullable": true
           },
           "price": {
-            "$ref": "#/components/schemas/V2CatalogPrice"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2CatalogPrice"
+              }
+            ],
+            "nullable": true
           },
           "product": {
             "type": "object",
+            "nullable": true,
             "properties": {
               "id": {
                 "type": "integer"
@@ -3988,6 +4377,26 @@
           "reason": {
             "type": "string",
             "nullable": true
+          },
+          "actor_type": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who scheduled the change: `customer:portal` for the customer on the subscription page, `dashboard:user` or `api-v2:user` for the seller."
+          },
+          "group": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Ties together the changes made at once."
+          },
+          "interval_change": {
+            "type": "boolean",
+            "description": "Whether the change moves the item to another billing interval. A customer's frequency switch is a group of such changes, one per recurring item, applied together; canceling one of them cancels the others."
+          },
+          "failure_code": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why the renewal could not apply a `failed` change; `group_failed` when another change of its group failed."
           },
           "applied_at": {
             "type": "string",
@@ -4479,6 +4888,170 @@
             "type": "integer",
             "minimum": 60,
             "maximum": 86400
+          }
+        }
+      },
+      "V2CustomerPortalEntryCreate": {
+        "type": "object",
+        "required": [
+          "sales_channel"
+        ],
+        "properties": {
+          "customer": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Customer id. Send either `customer` or `customer_reference`."
+          },
+          "customer_reference": {
+            "type": "string",
+            "nullable": true,
+            "description": "Your reference for the customer, instead of `customer`."
+          },
+          "sales_channel": {
+            "type": "string",
+            "description": "The sales channel's account-scoped reference; an id is accepted when no channel has that reference. Its self-service settings must allow seller-verified sessions."
+          },
+          "contract": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The customer's subscription contract whose page the link opens. Defaults to the customer's most recently created active contract; a customer without one must name a contract."
+          },
+          "return_url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "Optional. Shown on the page as a link back to your site, never redirected to. Must be an `https` URL whose origin is one of the sales channel's allowed origins."
+          }
+        }
+      },
+      "V2CustomerPortalEntry": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The single-use sign-in link. Send the customer's browser to it; do not store or log it."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the link stops working, 5 minutes after it was created."
+          },
+          "customer": {
+            "type": "integer"
+          },
+          "contract": {
+            "type": "integer",
+            "description": "The contract whose page the link opens."
+          },
+          "sales_channel": {
+            "type": "string",
+            "description": "The sales channel's reference."
+          }
+        }
+      },
+      "V2CustomerPortalSessionCreate": {
+        "type": "object",
+        "required": [
+          "sales_channel"
+        ],
+        "properties": {
+          "customer": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Customer id. Send either `customer` or `customer_reference`."
+          },
+          "customer_reference": {
+            "type": "string",
+            "nullable": true,
+            "description": "Your reference for the customer, instead of `customer`."
+          },
+          "sales_channel": {
+            "type": "string",
+            "description": "The sales channel's account-scoped reference; an id is accepted when no channel has that reference. The widget may only be used from its allowed origins."
+          },
+          "contract": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Optional. The customer's subscription contract the widget opens on, and the one the email code is asked for by default. Defaults to the customer's most recently created active contract."
+          },
+          "seller_verified": {
+            "type": "boolean",
+            "default": false,
+            "description": "Ask for an editing session without the email code, as your statement that the customer is signed in on your site. Given only when the sales channel allows seller-verified sessions; otherwise the answer is a read-only handle and `seller_verified_refusal` says why."
+          },
+          "origin": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Optional. One of the sales channel's allowed origins: the widget may then be used from it only. Without it, a session is bound to the first origin it is used from."
+          }
+        }
+      },
+      "V2CustomerPortalSession": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "session",
+              "handle"
+            ],
+            "description": "`session`: an editing session. `handle`: a read-only handle, exchanged for a session with the email code."
+          },
+          "token": {
+            "type": "string",
+            "description": "Send it from the customer's browser as `Authorization: Customer-Session <token>`. Do not store or log it, and never put it in a URL."
+          },
+          "seller_verified": {
+            "type": "boolean",
+            "description": "Whether the token is a seller-verified editing session."
+          },
+          "seller_verified_refusal": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why a seller-verified session was asked for and a handle given: `seller_verified_sessions_disabled` when the sales channel does not allow them."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the token stops working at the latest. A session also ends after 30 minutes without use."
+          },
+          "customer": {
+            "type": "integer"
+          },
+          "contract": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The contract the widget opens on."
+          },
+          "sales_channel": {
+            "type": "string",
+            "description": "The sales channel's reference."
+          },
+          "origin": {
+            "type": "string",
+            "nullable": true,
+            "description": "The origin the widget is bound to, when one was named."
+          }
+        }
+      },
+      "V2CustomerPortalError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "api_key_not_allowed",
+              "seller_verified_sessions_disabled",
+              "throttled"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          },
+          "retry_after": {
+            "type": "integer",
+            "description": "Seconds until the next request is allowed, on a 429."
           }
         }
       },
@@ -6396,6 +6969,16 @@
             "maxLength": 128,
             "description": "The contract's reference in an external system, such as the seller's order number. V2 payment pages set it from their `subscription_reference` URL parameter, and checkouts from the `contract_reference` given when the checkout session, or a checkout without a session, was created."
           },
+          "sales_channel": {
+            "type": "string",
+            "nullable": true,
+            "description": "Reference of the sales channel the contract was sold through, whose self-service settings apply to it. A checkout session sets its channel, a V2 payment page the channel it sells from at the time of the sale; the seller can set or change it on create and update. `null` when the contract has no channel."
+          },
+          "sales_channel_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Id of the contract's sales channel, or `null`."
+          },
           "shipping_selection": {
             "$ref": "#/components/schemas/V2ShippingSelection"
           },
@@ -6606,6 +7189,22 @@
             "description": "Pending item changes scheduled for the items' next renewals.",
             "items": {
               "$ref": "#/components/schemas/V2SubscriptionContractScheduledChange"
+            }
+          },
+          "pending_delivery_change": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2SubscriptionContractDeliveryChange"
+              }
+            ],
+            "nullable": true,
+            "description": "A delivery address or shipping change the customer made on the subscription page after the next order's edit cutoff, queued for the order after it; `null` when there is none. It becomes the contract's `delivery_address` and `shipping_selection` once the next order has been placed, and `subscription_contract.changed` fires when it is queued, canceled or applied."
+          },
+          "one_off_purchases": {
+            "type": "array",
+            "description": "One-time products waiting for an order to come (`pending`), the order they are for first. Every state is listed at `GET /v2/subscription-contracts/{contractId}/one-off-purchases/`.",
+            "items": {
+              "$ref": "#/components/schemas/V2SubscriptionContractOneOffPurchase"
             }
           }
         }

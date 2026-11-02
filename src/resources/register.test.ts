@@ -63,6 +63,16 @@ describe('webhook-events resource', () => {
     expect(WEBHOOK_EVENTS_DOC).toContain('customer_id');
     expect(WEBHOOK_EVENTS_DOC).toContain('`customer` is an object');
     expect(WEBHOOK_EVENTS_DOC).toContain('subscription_contract.ended');
+    expect(WEBHOOK_EVENTS_DOC).toContain('pending_delivery_change');
+    expect(WEBHOOK_EVENTS_DOC).toContain(
+      'queued, canceled, or applied',
+    );
+    expect(WEBHOOK_EVENTS_DOC).toContain(
+      '`update_item` | `add_item` | `remove_item`',
+    );
+    expect(WEBHOOK_EVENTS_DOC).toContain('group_failed');
+    expect(WEBHOOK_EVENTS_DOC).toContain('canceling one cancels the others');
+    expect(WEBHOOK_EVENTS_DOC).not.toContain('`operation` is `update_item`.');
     expect(WEBHOOK_EVENTS_DOC).toContain('migration_batch_id');
     expect(WEBHOOK_EVENTS_DOC).toContain(
       'subscription_contract_item.entitlement_changed',
