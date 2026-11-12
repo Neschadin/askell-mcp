@@ -1,7 +1,7 @@
-import v1Spec from '../../spec/openapi-v1.json';
-import v2Spec from '../../spec/openapi-v2.json';
+import v1Spec from "../../spec/openapi-v1.json";
+import v2Spec from "../../spec/openapi-v2.json";
 
-import { isRecord } from '../is-record.ts';
+import { isRecord } from "../is-record.ts";
 import type {
   ApiKeyKind,
   ApiOperation,
@@ -11,16 +11,16 @@ import type {
   OpenApiDocument,
   OpenApiParameter,
   OpenApiResponseObject,
-} from './types.ts';
+} from "./types.ts";
 
-const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head'] as const;
+const HTTP_METHODS = ["get", "post", "put", "patch", "delete", "head"] as const;
 
 function resolveRef(
   doc: OpenApiDocument,
   ref: string,
   seen = new Set<string>(),
 ): unknown {
-  if (!ref.startsWith('#/')) {
+  if (!ref.startsWith("#/")) {
     return ref;
   }
 
@@ -29,11 +29,11 @@ function resolveRef(
   }
 
   seen.add(ref);
-  const parts = ref.slice(2).split('/');
+  const parts = ref.slice(2).split("/");
   let current: unknown = doc;
 
   for (const part of parts) {
-    if (current == null || typeof current !== 'object') {
+    if (current == null || typeof current !== "object") {
       return ref;
     }
     current = (current as Record<string, unknown>)[part];
@@ -41,9 +41,9 @@ function resolveRef(
 
   if (
     current != null &&
-    typeof current === 'object' &&
-    '$ref' in current &&
-    typeof (current as { $ref: unknown }).$ref === 'string'
+    typeof current === "object" &&
+    "$ref" in current &&
+    typeof (current as { $ref: unknown }).$ref === "string"
   ) {
     return resolveRef(doc, (current as { $ref: string }).$ref, seen);
   }
@@ -52,11 +52,11 @@ function resolveRef(
 }
 
 function resolveSchema(doc: OpenApiDocument, schema: unknown): unknown {
-  if (schema == null || typeof schema !== 'object') {
+  if (schema == null || typeof schema !== "object") {
     return schema;
   }
 
-  if ('$ref' in schema && typeof schema.$ref === 'string') {
+  if ("$ref" in schema && typeof schema.$ref === "string") {
     return resolveRef(doc, schema.$ref);
   }
 
@@ -72,7 +72,7 @@ function resolveSchemaDeep(
   schema: unknown,
   seen = new Set<string>(),
 ): unknown {
-  if (schema == null || typeof schema !== 'object') {
+  if (schema == null || typeof schema !== "object") {
     return schema;
   }
 
@@ -81,7 +81,7 @@ function resolveSchemaDeep(
   }
 
   const record = schema as Record<string, unknown>;
-  if (typeof record.$ref === 'string') {
+  if (typeof record.$ref === "string") {
     if (record.circular === true || seen.has(record.$ref)) {
       return { $ref: record.$ref, circular: true };
     }
@@ -94,7 +94,7 @@ function resolveSchemaDeep(
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(record)) {
     out[key] =
-      value !== null && typeof value === 'object'
+      value !== null && typeof value === "object"
         ? resolveSchemaDeep(doc, value, seen)
         : value;
   }
@@ -109,14 +109,14 @@ function resolveRequestBody(
     description?: string;
     content?: Record<string, { schema?: unknown }>;
   },
-): ApiOperation['requestBody'] {
+): ApiOperation["requestBody"] {
   let source = requestBody;
 
-  if (typeof requestBody.$ref === 'string') {
+  if (typeof requestBody.$ref === "string") {
     const resolved = resolveRef(doc, requestBody.$ref);
     if (
       resolved == null ||
-      typeof resolved !== 'object' ||
+      typeof resolved !== "object" ||
       Array.isArray(resolved)
     ) {
       return { contentTypes: [] };
@@ -149,7 +149,7 @@ function extractErrorCodes(
     return [];
   }
 
-  if (typeof schema.$ref === 'string') {
+  if (typeof schema.$ref === "string") {
     if (seen.has(schema.$ref)) {
       return [];
     }
@@ -159,22 +159,24 @@ function extractErrorCodes(
   }
 
   const codes = new Set<string>();
-  const properties = isRecord(schema.properties) ? schema.properties : undefined;
+  const properties = isRecord(schema.properties)
+    ? schema.properties
+    : undefined;
   const codePropRaw = properties?.code;
   const codeProp =
-    isRecord(codePropRaw) && typeof codePropRaw.$ref === 'string'
+    isRecord(codePropRaw) && typeof codePropRaw.$ref === "string"
       ? resolveRef(doc, codePropRaw.$ref)
       : codePropRaw;
 
   if (isRecord(codeProp) && Array.isArray(codeProp.enum)) {
     for (const entry of codeProp.enum) {
-      if (typeof entry === 'string' && entry.length > 0) {
+      if (typeof entry === "string" && entry.length > 0) {
         codes.add(entry);
       }
     }
   }
 
-  for (const keyword of ['allOf', 'anyOf', 'oneOf'] as const) {
+  for (const keyword of ["allOf", "anyOf", "oneOf"] as const) {
     const branches = schema[keyword];
     if (Array.isArray(branches)) {
       for (const branch of branches) {
@@ -193,20 +195,20 @@ function summarizeSchemaRef(schema: unknown): string | undefined {
     return undefined;
   }
 
-  if (typeof schema.$ref === 'string') {
+  if (typeof schema.$ref === "string") {
     return schema.$ref;
   }
 
   if (
-    schema.type === 'array' &&
+    schema.type === "array" &&
     isRecord(schema.items) &&
-    typeof schema.items.$ref === 'string'
+    typeof schema.items.$ref === "string"
   ) {
     return `array<${schema.items.$ref}>`;
   }
 
   const refs = new Set<string>();
-  for (const keyword of ['allOf', 'anyOf', 'oneOf'] as const) {
+  for (const keyword of ["allOf", "anyOf", "oneOf"] as const) {
     const branches = schema[keyword];
     if (!Array.isArray(branches)) continue;
     for (const branch of branches) {
@@ -216,7 +218,7 @@ function summarizeSchemaRef(schema: unknown): string | undefined {
   }
 
   if (refs.size > 0) {
-    return [...refs].join(' | ');
+    return [...refs].join(" | ");
   }
 
   return undefined;
@@ -234,7 +236,7 @@ function resolveResponses(
 
   for (const [status, rawResponse] of Object.entries(responses)) {
     let source: OpenApiResponseObject = rawResponse;
-    if (typeof rawResponse.$ref === 'string') {
+    if (typeof rawResponse.$ref === "string") {
       const resolved = resolveRef(doc, rawResponse.$ref);
       if (isRecord(resolved)) {
         source = resolved as OpenApiResponseObject;
@@ -247,10 +249,8 @@ function resolveResponses(
       ? content[contentTypes[0]]?.schema
       : undefined;
     const schemaRef = summarizeSchemaRef(firstSchema);
-    const isErrorStatus = status.startsWith('4') || status.startsWith('5');
-    const errorCodes = isErrorStatus
-      ? extractErrorCodes(doc, firstSchema)
-      : [];
+    const isErrorStatus = status.startsWith("4") || status.startsWith("5");
+    const errorCodes = isErrorStatus ? extractErrorCodes(doc, firstSchema) : [];
 
     out[status] = {
       ...(source.description !== undefined
@@ -276,9 +276,9 @@ function resolveParameters(
   return parameters.map((parameter) => {
     let source: OpenApiParameter = parameter;
 
-    if ('$ref' in parameter && typeof parameter.$ref === 'string') {
+    if ("$ref" in parameter && typeof parameter.$ref === "string") {
       const resolved = resolveRef(doc, parameter.$ref);
-      if (resolved && typeof resolved === 'object') {
+      if (resolved && typeof resolved === "object") {
         source = resolved as OpenApiParameter;
       }
     }
@@ -286,7 +286,9 @@ function resolveParameters(
     // Pick known fields only — OpenAPI params often include style/explode/example,
     // which MCP outputSchema rejects (additionalProperties: false).
     return {
-      ...(source.name !== undefined ? { name: parameter.name ?? source.name } : {}),
+      ...(source.name !== undefined
+        ? { name: parameter.name ?? source.name }
+        : {}),
       ...(source.in !== undefined ? { in: source.in } : {}),
       ...(source.required !== undefined ? { required: source.required } : {}),
       ...(source.description !== undefined
@@ -308,20 +310,20 @@ function inferApiKeyKind(
   // Omitted `security` inherits the document default (secret key).
   // `security: []` opts out of every scheme — no API key.
   if (security === undefined) {
-    return 'secret';
+    return "secret";
   }
 
   if (security.length === 0) {
-    return 'none';
+    return "none";
   }
 
   for (const requirement of security) {
-    if ('Public-Api-Key' in requirement) {
-      return 'public';
+    if ("Public-Api-Key" in requirement) {
+      return "public";
     }
   }
 
-  return 'secret';
+  return "secret";
 }
 
 function buildOperationId(
@@ -378,8 +380,8 @@ export class OperationRegistry {
 
   constructor() {
     this.operations = [
-      ...parseDocument(v1Spec as unknown as OpenApiDocument, 'v1'),
-      ...parseDocument(v2Spec as unknown as OpenApiDocument, 'v2'),
+      ...parseDocument(v1Spec as unknown as OpenApiDocument, "v1"),
+      ...parseDocument(v2Spec as unknown as OpenApiDocument, "v2"),
     ];
   }
 
@@ -388,7 +390,7 @@ export class OperationRegistry {
   }
 
   find(filters: {
-    apiVersion?: ApiVersion | 'all';
+    apiVersion?: ApiVersion | "all";
     tag?: string;
     method?: HttpMethod;
     pathPrefix?: string;
@@ -400,7 +402,7 @@ export class OperationRegistry {
     return this.operations.filter((operation) => {
       if (
         filters.apiVersion &&
-        filters.apiVersion !== 'all' &&
+        filters.apiVersion !== "all" &&
         operation.apiVersion !== filters.apiVersion
       ) {
         return false;
@@ -428,17 +430,17 @@ export class OperationRegistry {
       if (search) {
         const responseErrorCodes = Object.values(operation.responses ?? {})
           .flatMap((res) => res.errorCodes ?? [])
-          .join(' ');
+          .join(" ");
 
         const haystack = [
           operation.id,
           operation.path,
           operation.summary,
-          operation.description ?? '',
-          operation.tags.join(' '),
+          operation.description ?? "",
+          operation.tags.join(" "),
           responseErrorCodes,
         ]
-          .join(' ')
+          .join(" ")
           .toLowerCase();
 
         if (!haystack.includes(search)) {
@@ -450,7 +452,7 @@ export class OperationRegistry {
     });
   }
 
-  listTags(apiVersion?: ApiVersion | 'all'): string[] {
+  listTags(apiVersion?: ApiVersion | "all"): string[] {
     const tags = new Set<string>();
 
     for (const operation of this.find({ apiVersion })) {
@@ -466,7 +468,7 @@ export class OperationRegistry {
 export const operationRegistry = new OperationRegistry();
 
 export function getBundledSpec(apiVersion: ApiVersion): OpenApiDocument {
-  return apiVersion === 'v1'
+  return apiVersion === "v1"
     ? (v1Spec as unknown as OpenApiDocument)
     : (v2Spec as unknown as OpenApiDocument);
 }

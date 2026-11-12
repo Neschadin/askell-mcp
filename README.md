@@ -149,17 +149,17 @@ If both `ASKELL_MUTATION_GATE` and `ASKELL_REQUIRE_MUTATION_APPROVAL` are set, `
 
 ### Tools
 
-| Tool                        | Description                                                      |
-| --------------------------- | ---------------------------------------------------------------- |
-| `askell_list_operations`    | Search bundled OpenAPI operations (paths, tags, error codes)     |
-| `askell_describe_operation` | Params, body schema, and response/error codes for one operation  |
-| `askell_call`               | GET/HEAD any v1/v2 endpoint                                      |
-| `askell_mutate`             | POST/PUT/PATCH/DELETE any v1/v2 endpoint                         |
-| `askell_paginate_all`       | Follow paginated list endpoints                                  |
-| `askell_customer_overview`  | v1 customer + subscriptions (+ optional v2 contracts)            |
-| `askell_contract_overview`  | v2 subscription contract + billing runs                          |
-| `askell_billing_run_triage` | v2 billing run (+ optional contract)                             |
-| `askell_list_webhooks`      | List configured webhooks (`hmac_secret` redacted)                |
+| Tool                        | Description                                                     |
+| --------------------------- | --------------------------------------------------------------- |
+| `askell_list_operations`    | Search bundled OpenAPI operations (paths, tags, error codes)    |
+| `askell_describe_operation` | Params, body schema, and response/error codes for one operation |
+| `askell_call`               | GET/HEAD any v1/v2 endpoint                                     |
+| `askell_mutate`             | POST/PUT/PATCH/DELETE any v1/v2 endpoint                        |
+| `askell_paginate_all`       | Follow paginated list endpoints                                 |
+| `askell_customer_overview`  | v1 customer + subscriptions (+ optional v2 contracts)           |
+| `askell_contract_overview`  | v2 subscription contract + billing runs                         |
+| `askell_billing_run_triage` | v2 billing run (+ optional contract)                            |
+| `askell_list_webhooks`      | List configured webhooks (`hmac_secret` redacted)               |
 
 `hmac_secret` is the only field redacted in tool output. Customer-portal sign-in URLs and widget tokens (`POST /v2/customer-portal-entries/`, `POST /v2/customer-portal-sessions/`) are returned in full so the browser can use them. Do not put the widget token in a URL.
 
@@ -175,10 +175,10 @@ If both `ASKELL_MUTATION_GATE` and `ASKELL_REQUIRE_MUTATION_APPROVAL` are set, `
 
 Clients supporting MCP Skills (`skills/list`, `skills/get`) can load bundled guidance on demand:
 
-| Skill         | Purpose                                                                                 |
-| ------------- | --------------------------------------------------------------------------------------- |
-| `askell-docs` | Live Askell docs workflow and integration traps (claims, coupons, checkouts, webhooks)  |
-| `askell-mcp`  | Tool selection, discovery, read/mutate split, and prod vs sandbox safety                |
+| Skill         | Purpose                                                                                |
+| ------------- | -------------------------------------------------------------------------------------- |
+| `askell-docs` | Live Askell docs workflow and integration traps (claims, coupons, checkouts, webhooks) |
+| `askell-mcp`  | Tool selection, discovery, read/mutate split, and prod vs sandbox safety               |
 
 Docs: [docs.askell.is](https://docs.askell.is/) · OpenAPI: [v1](https://askell.is/api/swagger/swagger.json) · [v2](https://askell.is/api/swagger/v2/swagger.json)
 

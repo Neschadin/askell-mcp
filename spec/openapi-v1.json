@@ -69,9 +69,7 @@
   "paths": {
     "/hello/": {
       "get": {
-        "tags": [
-          "Hello"
-        ],
+        "tags": ["Hello"],
         "summary": "Get a test response",
         "description": "Validates that you can successfully call the API with authorization. Requires a secret key.",
         "responses": {
@@ -95,9 +93,7 @@
     },
     "/plans/": {
       "get": {
-        "tags": [
-          "Plan"
-        ],
+        "tags": ["Plan"],
         "summary": "Get a list of plans",
         "description": "Lists all plans. Each entry is a plan variant: one price and interval of a plan. Requires a secret key.",
         "responses": {
@@ -124,9 +120,7 @@
     },
     "/plans/{planId}/": {
       "get": {
-        "tags": [
-          "Plan"
-        ],
+        "tags": ["Plan"],
         "summary": "Get a plan",
         "description": "Get a plan variant by its id, as listed by `/plans/`. Its `payment_processor` belongs to the plan the variant is part of, and is the same for every variant of that plan. Requires a secret key.",
         "parameters": [
@@ -164,9 +158,7 @@
         ]
       },
       "put": {
-        "tags": [
-          "Plan"
-        ],
+        "tags": ["Plan"],
         "summary": "Update a plan",
         "description": "Update a plan variant. `interval`, `interval_count`, `amount` and `currency` are the variant's own.\n\n`payment_processor` belongs to the plan the variant is part of, so setting it changes it for every variant of that plan. Subscriptions on those variants that have no payment processor of their own bill with it from their next billing. Send the payment processor's id, an object with `id` (the `payment_processor` object a GET returns can be sent back), or `null` to clear it. For a claim processor (`type` `claim`) the object can also carry `claim_rule_id` and `claim_template_id`, the claim rule and claim template the plan's claims are created with: send both, or neither to use the account's default claim rule and template. Setting the processor without them, or setting another processor, clears them. Leave `payment_processor` out to keep it and its claim rule and template as they are. Requires a secret key.\n",
         "parameters": [
@@ -216,9 +208,7 @@
         ]
       },
       "patch": {
-        "tags": [
-          "Plan"
-        ],
+        "tags": ["Plan"],
         "summary": "Partially update a plan",
         "description": "Update a plan variant. All fields are optional.\n\n`payment_processor` belongs to the plan the variant is part of, so setting it changes it for every variant of that plan. Subscriptions on those variants that have no payment processor of their own bill with it from their next billing. See the PUT operation for its forms. Leave it out to keep it and its claim rule and template as they are. Requires a secret key.\n",
         "parameters": [
@@ -270,9 +260,7 @@
     },
     "/transactions/{uuid}/receipt/": {
       "get": {
-        "tags": [
-          "Transaction"
-        ],
+        "tags": ["Transaction"],
         "parameters": [
           {
             "name": "uuid",
@@ -315,9 +303,7 @@
     },
     "/transactions/{uuid}/refund/": {
       "post": {
-        "tags": [
-          "Transaction"
-        ],
+        "tags": ["Transaction"],
         "parameters": [
           {
             "name": "uuid",
@@ -380,9 +366,7 @@
                     },
                     "code": {
                       "type": "string",
-                      "enum": [
-                        "not_found"
-                      ]
+                      "enum": ["not_found"]
                     }
                   }
                 }
@@ -399,9 +383,7 @@
     },
     "/transactions/": {
       "get": {
-        "tags": [
-          "Transaction"
-        ],
+        "tags": ["Transaction"],
         "parameters": [
           {
             "in": "query",
@@ -516,9 +498,7 @@
     },
     "/customers/": {
       "get": {
-        "tags": [
-          "Customer"
-        ],
+        "tags": ["Customer"],
         "parameters": [
           {
             "in": "query",
@@ -563,9 +543,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "Customer"
-        ],
+        "tags": ["Customer"],
         "summary": "Create a customer",
         "description": "Create a customer in Áskell. Requires a secret key. To make it easier linking customers to existing  systems, it is your responsibility to assign a reference to the customer so that you can look  them up later. This can be an id, a UUID or whatever suits you. It's best to keep it simple.\n",
         "requestBody": {
@@ -602,9 +580,7 @@
     },
     "/customers/{customerReference}/subscriptions/": {
       "get": {
-        "tags": [
-          "Customer"
-        ],
+        "tags": ["Customer"],
         "summary": "Get all subscriptions for a customer",
         "parameters": [
           {
@@ -643,9 +619,7 @@
     },
     "/customers/{customerReference}/subscriptions/add/": {
       "post": {
-        "tags": [
-          "Customer"
-        ],
+        "tags": ["Customer"],
         "summary": "Add subscription to a customer",
         "description": "Adds a subscription for an existing customer, charging the first period with the customer's payment method unless the plan has a trial.\n\nPass `promotion_code` to redeem a promotion code on the new subscription before its first charge. An invalid code returns 400 before the delivery address or the subscription is created and before anything is charged.",
         "parameters": [
@@ -695,9 +669,7 @@
     },
     "/customers/{customerReference}/": {
       "get": {
-        "tags": [
-          "Customer"
-        ],
+        "tags": ["Customer"],
         "summary": "Get a customer",
         "description": "Get a customer which has already been created. You need to supply your chosen customer reference. Requires a secret key.\n",
         "parameters": [
@@ -735,9 +707,7 @@
         ]
       },
       "put": {
-        "tags": [
-          "Customer"
-        ],
+        "tags": ["Customer"],
         "summary": "Update a customer",
         "description": "Update a customer which has already been created. You must supply all required fields. Requires a secret key.\n",
         "parameters": [
@@ -775,9 +745,7 @@
         ]
       },
       "delete": {
-        "tags": [
-          "Customer"
-        ],
+        "tags": ["Customer"],
         "summary": "Delete a customer",
         "description": "Delete a customer. Requires a secret key.\n",
         "parameters": [
@@ -808,9 +776,7 @@
         ]
       },
       "patch": {
-        "tags": [
-          "Customer"
-        ],
+        "tags": ["Customer"],
         "summary": "Partially update a customer",
         "description": "Update a customer which has already been created. All fields are optional. Requires a secret key.",
         "parameters": [
@@ -850,9 +816,7 @@
     },
     "/customers/paymentmethod/": {
       "post": {
-        "tags": [
-          "Customer"
-        ],
+        "tags": ["Customer"],
         "summary": "Add a payment method to customer.",
         "description": "Requires a secret key. You must first acquire a temporary payment method token using `/temporarypaymentmethod/` and use that in your post body.",
         "requestBody": {
@@ -892,9 +856,7 @@
     },
     "/subscriptions/": {
       "get": {
-        "tags": [
-          "Subscription"
-        ],
+        "tags": ["Subscription"],
         "parameters": [
           {
             "in": "query",
@@ -953,9 +915,7 @@
     },
     "/subscriptions/multi/": {
       "post": {
-        "tags": [
-          "Subscription"
-        ],
+        "tags": ["Subscription"],
         "summary": "Create multiple subscriptions",
         "description": "Creates or reuses a customer and creates one subscription per item in `subscriptions`, charging the first period of each item that has no trial.\n\nEach item can carry a `promotion_code`, and a code used on several items must have a redemption left for each. Every item's code is validated up front: an invalid code (or a checkout price mismatch, below) returns 400 before the payment method is stored and before any subscription is created or charged. The customer may already have been created or updated by then. When `payment_method.token` comes from a checkout created with a `promotion_code` (`POST /checkouts/`), that code is redeemed on the first item for the checkout's plan that has no `promotion_code` of its own. Unless the checkout was `capture_only`, that item's discounted first charge must still equal the amount the checkout quoted (and the card was authorised for); if the coupon's terms or the item's `amount`/`discount` make it differ, the request returns 400 before the payment method is stored or any subscription is created or charged. Pass `promotion_code` on the item explicitly to redeem the code at the current price without this check.",
         "requestBody": {
@@ -999,9 +959,7 @@
     },
     "/subscriptions/quote/": {
       "post": {
-        "tags": [
-          "Subscription"
-        ],
+        "tags": ["Subscription"],
         "summary": "Quote a new subscription",
         "description": "Previews what creating a subscription on `plan` would charge, optionally with a `promotion_code`, using the same rules as `POST /customers/{customerReference}/subscriptions/add/` and the items of `POST /subscriptions/multi/`: the plan amount or `amount` override less the `discount` percentage, the trial (a customer with billing history on the account gets none; without `customer_reference` the customer is treated as new), a coupon that skips the trial unless `start_date` is in the future, and a future `start_date` deferring the first charge.\n\nNothing is created, stored, redeemed or charged: no customer, subscription, discount or checkout, and the code's redemption count is unchanged. The quote is a preview, not a hold. Creating the subscription validates the code again, so it can still be refused if the code expires, runs out or changes in the meantime.\n\nAn invalid, expired, used-up, customer-restricted, wrong-currency or below-minimum code, or one whose coupon is limited (`applies_to_plans`/`applies_to_products`) to plans that do not include this one, returns 400 with `code: invalid_promotion_code` and the message creation would give.",
         "requestBody": {
@@ -1057,9 +1015,7 @@
     },
     "/subscriptions/{subscriptionId}/": {
       "get": {
-        "tags": [
-          "Subscription"
-        ],
+        "tags": ["Subscription"],
         "summary": "Get a single subscription",
         "parameters": [
           {
@@ -1093,9 +1049,7 @@
         ]
       },
       "patch": {
-        "tags": [
-          "Subscription"
-        ],
+        "tags": ["Subscription"],
         "summary": "Update a single subscription",
         "parameters": [
           {
@@ -1153,9 +1107,7 @@
     },
     "/subscriptions/{subscriptionId}/cancel/": {
       "post": {
-        "tags": [
-          "Subscription"
-        ],
+        "tags": ["Subscription"],
         "summary": "Cancel a subscription",
         "parameters": [
           {
@@ -1208,9 +1160,7 @@
     },
     "/subscriptions/{subscriptionId}/activate/": {
       "post": {
-        "tags": [
-          "Subscription"
-        ],
+        "tags": ["Subscription"],
         "summary": "Activate a cancelled subscription. This will only work if the latest subscription billing period has not passed.",
         "parameters": [
           {
@@ -1263,9 +1213,7 @@
     },
     "/subscriptions/{subscriptionId}/set_expiry/": {
       "post": {
-        "tags": [
-          "Subscription"
-        ],
+        "tags": ["Subscription"],
         "summary": "Set a subscription expiry date",
         "description": "Sets the subscription expiry date by updating the latest billing log. Requires a secret key.",
         "parameters": [
@@ -1322,9 +1270,7 @@
     },
     "/subscriptions/{subscriptionId}/apply-code/": {
       "post": {
-        "tags": [
-          "Subscription Discounts"
-        ],
+        "tags": ["Subscription Discounts"],
         "summary": "Apply a promotion code to a subscription",
         "description": "Redeems a promotion code on an active subscription, creating a discount that is applied to its subsequent charges. A subscription can only carry one discount at a time. That includes a pending one: a code redeemed when the subscription was created with a future `start_date` has a discount whose window opens on that date. Until then it still blocks a new code with 400, although `GET /subscriptions/{subscriptionId}/discount/` reports it as `has_discount: false`.\n\nThis endpoint does not use an API key. It is authenticated by the subscription's `token` (the `token` field of the Subscription object), sent as `subscription_token` in the request body, so it can be called from a customer-facing application. Treat the subscription token as a secret.\n\nThe code is matched case-insensitively. It is validated against the subscription's customer, currency and billing amount (minimum amount and customer restrictions apply).\n\nTo discount the first charge of a new subscription, pass `promotion_code` when creating it instead (`POST /customers/{customerReference}/subscriptions/add/` or `POST /subscriptions/multi/`).",
         "parameters": [
@@ -1345,10 +1291,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "code",
-                  "subscription_token"
-                ],
+                "required": ["code", "subscription_token"],
                 "properties": {
                   "code": {
                     "type": "string",
@@ -1454,9 +1397,7 @@
     },
     "/subscriptions/{subscriptionId}/discount/": {
       "get": {
-        "tags": [
-          "Subscription Discounts"
-        ],
+        "tags": ["Subscription Discounts"],
         "summary": "Get the active discount for a subscription",
         "description": "Returns the subscription's active coupon discount, or `has_discount: false` when none is active.\n\nThis endpoint does not use an API key. It is authenticated by the subscription's `token` (the `token` field of the Subscription object), sent as the `subscription_token` query parameter.",
         "parameters": [
@@ -1528,11 +1469,7 @@
                         },
                         "duration": {
                           "type": "string",
-                          "enum": [
-                            "once",
-                            "repeating",
-                            "forever"
-                          ],
+                          "enum": ["once", "repeating", "forever"],
                           "example": "forever"
                         },
                         "duration_in_months": {
@@ -1583,9 +1520,7 @@
     },
     "/subscriptions/{subscriptionId}/remove-discount/": {
       "post": {
-        "tags": [
-          "Subscription Discounts"
-        ],
+        "tags": ["Subscription Discounts"],
         "summary": "Remove the active or pending discount from a subscription",
         "description": "Removes the subscription's active coupon discount, or a pending one that has not started yet (a code redeemed at creation with a future `start_date`; `GET /subscriptions/{subscriptionId}/discount/` reports a pending discount as `has_discount: false`). Subsequent charges are made at the full subscription amount.\n\nThis endpoint does not use an API key. It is authenticated by the subscription's `token` (the `token` field of the Subscription object), sent as `subscription_token` in the request body.",
         "parameters": [
@@ -1606,9 +1541,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "subscription_token"
-                ],
+                "required": ["subscription_token"],
                 "properties": {
                   "subscription_token": {
                     "type": "string",
@@ -1678,9 +1611,7 @@
     },
     "/checkouts/": {
       "post": {
-        "tags": [
-          "Checkout"
-        ],
+        "tags": ["Checkout"],
         "summary": "Create a hosted checkout card form",
         "description": "Creates a hosted checkout and returns a `checkout_url` that should be rendered in an iframe. The hosted page collects card details, handles 3D Secure when required, and posts completion messages to the embedding page. The resulting `token` is a reference to a payment method that can be added to a customer after checkout status becomes `tokencreated`.\n\nCreate a checkout either for a `plan` or directly for an account `payment_processor`. When using `payment_processor`, `currency` is required. A `plan` checkout completes into a legacy subscription, so on an account that uses subscription contracts only it is refused with 400 and `code: legacy_subscriptions_disabled`; a checkout for a `payment_processor` still works there. To capture only the card details, set `capture_only` to `true`; this value is optional and defaults to `false`.\n\nIf supplied, `allowed_origin` must be an origin only, for example `https://merchant.example`, with no path, query string, or credentials. It controls the single parent page origin allowed to frame this checkout and receive checkout postMessage notifications. If omitted, all checkout origins configured for the account are allowed to frame the checkout.\n\nWith a `plan`, a `promotion_code` can be supplied. The card form then shows the discounted first-period amount, and the code is redeemed when the checkout's `token` is used in `POST /subscriptions/multi/`. See `promotion_code` in the request body.",
         "requestBody": {
@@ -1724,9 +1655,7 @@
     },
     "/checkouts/paymentprocessors/": {
       "get": {
-        "tags": [
-          "Checkout"
-        ],
+        "tags": ["Checkout"],
         "summary": "List payment processors available for checkout",
         "description": "Lists the account payment processors available to the secret API key and indicates whether each processor supports hosted checkout. Use this endpoint when creating a checkout directly with `payment_processor` instead of `plan`.",
         "responses": {
@@ -1760,9 +1689,7 @@
     },
     "/temporarypaymentmethod/": {
       "post": {
-        "tags": [
-          "Temporary payment method"
-        ],
+        "tags": ["Temporary payment method"],
         "summary": "Create a temporary payment method from a credit card",
         "description": "The resulting `token` is a reference to a temporary payment method. You have to confirm this payment method by e.g. using it to activate a subscription, or adding a new payment method to a customer. Requires a public api key. \n",
         "requestBody": {
@@ -1799,9 +1726,7 @@
     },
     "/temporarypaymentmethod/{token}/": {
       "get": {
-        "tags": [
-          "Temporary payment method"
-        ],
+        "tags": ["Temporary payment method"],
         "summary": "Check the status of a temporary payment methd token when dealing with 3D secure.",
         "parameters": [
           {
@@ -1848,9 +1773,7 @@
     },
     "/checkouts/{token}/": {
       "get": {
-        "tags": [
-          "Checkout"
-        ],
+        "tags": ["Checkout"],
         "summary": "Check the status of a checkout.",
         "parameters": [
           {
@@ -1897,9 +1820,7 @@
     },
     "/payments/": {
       "get": {
-        "tags": [
-          "Payment"
-        ],
+        "tags": ["Payment"],
         "summary": "Get a list of Payments",
         "description": "Lists all payments. Requires a secret key.",
         "responses": {
@@ -1927,9 +1848,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "Payment"
-        ],
+        "tags": ["Payment"],
         "summary": "Create a payment",
         "description": "Create a single payment in Áskell. Requires a secret key. A payment is executed asynchronously which means that you will have to rely on checking the status of the payment after creating it, or rely on webhooks. You can check the status of the payment using the uuid supplied when the payment is initially created.\n\nInitially, the payment will have the state 'pending'. If the payment is successful, the state will be 'settled'. If the payment fails, the state will be 'failed'.\n If you decide to retry the payment, the payment might have the state 'retrying'.\n\nTo summarize, the four states are:\n\n* pending\n* settled\n* failed\n* retrying\n\n",
         "requestBody": {
@@ -1966,9 +1885,7 @@
     },
     "/payments/{uuid}/": {
       "get": {
-        "tags": [
-          "Payment"
-        ],
+        "tags": ["Payment"],
         "parameters": [
           {
             "name": "uuid",
@@ -2011,9 +1928,7 @@
     },
     "/payments/{uuid}/retry/": {
       "post": {
-        "tags": [
-          "Payment"
-        ],
+        "tags": ["Payment"],
         "parameters": [
           {
             "name": "uuid",
@@ -2056,9 +1971,7 @@
     },
     "/payments/{uuid}/refund/": {
       "post": {
-        "tags": [
-          "Payment"
-        ],
+        "tags": ["Payment"],
         "parameters": [
           {
             "name": "uuid",
@@ -2118,9 +2031,7 @@
     },
     "/payments/{uuid}/cancel/": {
       "post": {
-        "tags": [
-          "Payment"
-        ],
+        "tags": ["Payment"],
         "parameters": [
           {
             "name": "uuid",
@@ -2210,9 +2121,7 @@
     },
     "/webhooks/": {
       "get": {
-        "tags": [
-          "Webhooks"
-        ],
+        "tags": ["Webhooks"],
         "summary": "Get a list of webhooks",
         "description": "Lists all your configured webhooks. Requires a secret key.",
         "responses": {
@@ -2237,9 +2146,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "Webhooks"
-        ],
+        "tags": ["Webhooks"],
         "summary": "Create a webhook",
         "description": "Create a webhook so that Áskell can call your system when certain events happen. Requires a secret key.",
         "requestBody": {
@@ -2289,9 +2196,7 @@
             }
           }
         ],
-        "tags": [
-          "Webhooks"
-        ],
+        "tags": ["Webhooks"],
         "summary": "Update a webhook",
         "description": "Update entire webhook. Requires a secret key.",
         "requestBody": {
@@ -2342,9 +2247,7 @@
             }
           }
         ],
-        "tags": [
-          "Webhooks"
-        ],
+        "tags": ["Webhooks"],
         "summary": "Partially update a webhook",
         "description": "Update chosen fields of a webhook. Requires a secret key.",
         "requestBody": {
@@ -2392,9 +2295,7 @@
             }
           }
         ],
-        "tags": [
-          "Webhooks"
-        ],
+        "tags": ["Webhooks"],
         "summary": "Delete a single webhook",
         "description": "Delete a webhook with the specified id. Requires a secret key.",
         "responses": {
@@ -2469,10 +2370,7 @@
         }
       },
       "WebhookCreate": {
-        "required": [
-          "url",
-          "event"
-        ],
+        "required": ["url", "event"],
         "type": "object",
         "properties": {
           "url": {
@@ -2569,9 +2467,7 @@
             "type": "object",
             "nullable": true,
             "description": "The payment processor of the plan the variant is part of, the same for every variant of that plan. Null when the plan has none.",
-            "required": [
-              "id"
-            ],
+            "required": ["id"],
             "properties": {
               "id": {
                 "type": "integer",
@@ -2639,9 +2535,7 @@
       },
       "PlanPaymentProcessorUpdate": {
         "type": "object",
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "properties": {
           "id": {
             "type": "integer",
@@ -2723,16 +2617,11 @@
         "oneOf": [
           {
             "type": "object",
-            "required": [
-              "plan"
-            ]
+            "required": ["plan"]
           },
           {
             "type": "object",
-            "required": [
-              "payment_processor",
-              "currency"
-            ]
+            "required": ["payment_processor", "currency"]
           }
         ]
       },
@@ -2771,9 +2660,7 @@
             "items": {
               "type": "string"
             },
-            "example": [
-              "ISK"
-            ]
+            "example": ["ISK"]
           },
           "supports_checkout": {
             "type": "boolean",
@@ -2829,10 +2716,7 @@
         }
       },
       "CustomerAddPaymentMethod": {
-        "required": [
-          "customer_reference",
-          "token"
-        ],
+        "required": ["customer_reference", "token"],
         "type": "object",
         "properties": {
           "customer_reference": {
@@ -2846,12 +2730,7 @@
         }
       },
       "CustomerCreate": {
-        "required": [
-          "customer_reference",
-          "email",
-          "first_name",
-          "last_name"
-        ],
+        "required": ["customer_reference", "email", "first_name", "last_name"],
         "type": "object",
         "properties": {
           "first_name": {
@@ -3073,12 +2952,7 @@
           "state": {
             "type": "string",
             "example": "pending",
-            "enum": [
-              "failed",
-              "settled",
-              "pending",
-              "retrying"
-            ]
+            "enum": ["failed", "settled", "pending", "retrying"]
           },
           "created_at": {
             "type": "string",
@@ -3098,11 +2972,7 @@
       },
       "PaymentCreate": {
         "type": "object",
-        "required": [
-          "customer_reference",
-          "amount",
-          "currency"
-        ],
+        "required": ["customer_reference", "amount", "currency"],
         "properties": {
           "customer_reference": {
             "type": "string",
@@ -3127,9 +2997,7 @@
             "properties": {
               "payment_processor": {
                 "type": "string",
-                "enum": [
-                  "claim"
-                ],
+                "enum": ["claim"],
                 "example": "claim"
               },
               "claimtemplate": {
@@ -3318,10 +3186,7 @@
           },
           "billing_log_type": {
             "type": "string",
-            "enum": [
-              "trial",
-              "renewal"
-            ]
+            "enum": ["trial", "renewal"]
           },
           "billing_date": {
             "type": "string",
@@ -3397,11 +3262,7 @@
           },
           "state": {
             "type": "string",
-            "enum": [
-              "pending",
-              "succeeded",
-              "failed"
-            ]
+            "enum": ["pending", "succeeded", "failed"]
           },
           "created_at": {
             "type": "string",
@@ -3485,10 +3346,7 @@
       },
       "SubscriptionCreate": {
         "type": "object",
-        "required": [
-          "plan",
-          "reference"
-        ],
+        "required": ["plan", "reference"],
         "properties": {
           "plan": {
             "type": "integer",
@@ -3592,9 +3450,7 @@
       },
       "SubscriptionQuoteRequest": {
         "type": "object",
-        "required": [
-          "plan"
-        ],
+        "required": ["plan"],
         "properties": {
           "plan": {
             "type": "integer",
@@ -3733,11 +3589,7 @@
               },
               "duration": {
                 "type": "string",
-                "enum": [
-                  "once",
-                  "repeating",
-                  "forever"
-                ]
+                "enum": ["once", "repeating", "forever"]
               },
               "duration_in_months": {
                 "type": "integer",
@@ -3785,11 +3637,7 @@
               },
               "duration": {
                 "type": "string",
-                "enum": [
-                  "once",
-                  "repeating",
-                  "forever"
-                ]
+                "enum": ["once", "repeating", "forever"]
               },
               "duration_in_months": {
                 "type": "integer",
@@ -3829,11 +3677,7 @@
       "LegacySubscriptionGuardError": {
         "type": "object",
         "description": "Returned with HTTP 400 when the legacy API refuses work that subscription contracts now own. Match on `code` rather than on the message.",
-        "required": [
-          "error",
-          "code",
-          "v2_endpoint"
-        ],
+        "required": ["error", "code", "v2_endpoint"],
         "properties": {
           "error": {
             "type": "string",

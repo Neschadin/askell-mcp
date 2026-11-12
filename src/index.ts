@@ -1,8 +1,8 @@
-import { serveStdio } from '@modelcontextprotocol/server/stdio';
+import { serveStdio } from "@modelcontextprotocol/server/stdio";
 
-import { loadConfig } from './config.ts';
-import { loadPublishedSkills } from './skills.ts';
-import { createServer } from './server.ts';
+import { loadConfig } from "./config.ts";
+import { loadPublishedSkills } from "./skills.ts";
+import { createServer } from "./server.ts";
 
 try {
   const [config, skillCatalog] = await Promise.all([

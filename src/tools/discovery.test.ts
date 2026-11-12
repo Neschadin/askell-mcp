@@ -1,61 +1,61 @@
-import { describe, expect, test } from 'bun:test';
-import * as z from 'zod';
+import { describe, expect, test } from "bun:test";
+import * as z from "zod";
 
-import { getBundledSpec, operationRegistry } from '../openapi/registry.ts';
-import { operationDetailSchema } from './discovery.ts';
+import { getBundledSpec, operationRegistry } from "../openapi/registry.ts";
+import { operationDetailSchema } from "./discovery.ts";
 
-describe('askell_describe_operation payload', () => {
-  test('strips OpenAPI style/explode so outputSchema can accept the payload', () => {
+describe("askell_describe_operation payload", () => {
+  test("strips OpenAPI style/explode so outputSchema can accept the payload", () => {
     const dirty = {
-      id: 'v2:GET:/v2/billing-runs/{billingRunId}/',
-      apiVersion: 'v2',
-      method: 'GET',
-      path: '/v2/billing-runs/{billingRunId}/',
-      tags: ['V2 Billing Runs'],
-      summary: 'Get a V2 billing run',
+      id: "v2:GET:/v2/billing-runs/{billingRunId}/",
+      apiVersion: "v2",
+      method: "GET",
+      path: "/v2/billing-runs/{billingRunId}/",
+      tags: ["V2 Billing Runs"],
+      summary: "Get a V2 billing run",
       parameters: [
         {
-          name: 'billingRunId',
-          in: 'path',
+          name: "billingRunId",
+          in: "path",
           required: true,
-          schema: { type: 'string' },
-          style: 'simple',
+          schema: { type: "string" },
+          style: "simple",
           explode: false,
         },
       ],
-      apiKeyKind: 'secret',
+      apiKeyKind: "secret",
     };
 
     const parsed = operationDetailSchema.parse(dirty);
     expect(parsed.parameters[0]).toEqual({
-      name: 'billingRunId',
-      in: 'path',
+      name: "billingRunId",
+      in: "path",
       required: true,
-      schema: { type: 'string' },
+      schema: { type: "string" },
     });
-    expect(parsed.parameters[0]).not.toHaveProperty('style');
-    expect(parsed.parameters[0]).not.toHaveProperty('explode');
+    expect(parsed.parameters[0]).not.toHaveProperty("style");
+    expect(parsed.parameters[0]).not.toHaveProperty("explode");
   });
 
-  test('retry billing-run body requires reason', () => {
+  test("retry billing-run body requires reason", () => {
     const operation = operationRegistry.getById(
-      'v2:POST:/v2/billing-runs/{billingRunId}/retry/',
+      "v2:POST:/v2/billing-runs/{billingRunId}/retry/",
     );
     expect(operation).toBeDefined();
 
     const payload = operationDetailSchema.parse(operation);
     const schema = payload.requestBody?.schema as { required?: string[] };
-    expect(schema.required).toEqual(['reason']);
+    expect(schema.required).toEqual(["reason"]);
 
     for (const parameter of payload.parameters) {
-      expect(parameter).not.toHaveProperty('style');
-      expect(parameter).not.toHaveProperty('explode');
+      expect(parameter).not.toHaveProperty("style");
+      expect(parameter).not.toHaveProperty("explode");
     }
   });
 
-  test('quote create accepts customer for combo/promo context', () => {
+  test("quote create accepts customer for combo/promo context", () => {
     const operation = operationRegistry.getById(
-      'v2:POST:/v2/subscription-offer-quotes/',
+      "v2:POST:/v2/subscription-offer-quotes/",
     );
     expect(operation).toBeDefined();
 
@@ -63,12 +63,12 @@ describe('askell_describe_operation payload', () => {
     const schema = payload.requestBody?.schema as {
       properties?: Record<string, unknown>;
     };
-    expect(schema.properties).toHaveProperty('customer');
-    expect(schema.properties).toHaveProperty('promotion_code');
+    expect(schema.properties).toHaveProperty("customer");
+    expect(schema.properties).toHaveProperty("promotion_code");
   });
 
-  test('hosted checkout create includes shipping selection and allowed_origin', () => {
-    const operation = operationRegistry.getById('v2:POST:/v2/checkouts/');
+  test("hosted checkout create includes shipping selection and allowed_origin", () => {
+    const operation = operationRegistry.getById("v2:POST:/v2/checkouts/");
     expect(operation).toBeDefined();
 
     const payload = operationDetailSchema.parse(operation);
@@ -76,26 +76,26 @@ describe('askell_describe_operation payload', () => {
       allOf?: Array<{ properties?: Record<string, unknown> }>;
     };
     const hasShipping = schema.allOf?.some(
-      (part) => part.properties && 'shipping' in part.properties,
+      (part) => part.properties && "shipping" in part.properties,
     );
     const hasAllowedOrigin = schema.allOf?.some(
-      (part) => part.properties && 'allowed_origin' in part.properties,
+      (part) => part.properties && "allowed_origin" in part.properties,
     );
     expect(hasShipping).toBe(true);
     expect(hasAllowedOrigin).toBe(true);
   });
 
-  test('finalize describes verified PM for zero-total recurring', () => {
+  test("finalize describes verified PM for zero-total recurring", () => {
     const operation = operationRegistry.getById(
-      'v2:POST:/v2/checkouts/{token}/finalize/',
+      "v2:POST:/v2/checkouts/{token}/finalize/",
     );
     expect(operation?.description).toMatch(/verified payment method/i);
     expect(operation?.description).toMatch(/trial period/i);
     expect(operation?.description).toMatch(/free one-time/i);
   });
 
-  test('v2 contract schema includes read-only subscriber_page', () => {
-    const spec = getBundledSpec('v2');
+  test("v2 contract schema includes read-only subscriber_page", () => {
+    const spec = getBundledSpec("v2");
     const schema = spec.components?.schemas?.V2SubscriptionContract as {
       properties?: {
         subscriber_page?: { readOnly?: boolean; nullable?: boolean };
@@ -105,8 +105,8 @@ describe('askell_describe_operation payload', () => {
     expect(schema.properties?.subscriber_page?.nullable).toBe(true);
   });
 
-  test('quote discount exposes recurring amounts without coupon in recurring_*', () => {
-    const spec = getBundledSpec('v2');
+  test("quote discount exposes recurring amounts without coupon in recurring_*", () => {
+    const spec = getBundledSpec("v2");
     const quote = spec.components?.schemas?.V2SubscriptionOfferQuote as {
       properties?: {
         discount?: {
@@ -115,69 +115,69 @@ describe('askell_describe_operation payload', () => {
       };
     };
     const discount = quote.properties?.discount?.properties;
-    expect(discount).toHaveProperty('recurring_original_amount');
-    expect(discount).toHaveProperty('recurring_discount_amount');
-    expect(discount).toHaveProperty('recurring_final_amount');
+    expect(discount).toHaveProperty("recurring_original_amount");
+    expect(discount).toHaveProperty("recurring_discount_amount");
+    expect(discount).toHaveProperty("recurring_final_amount");
     expect(discount?.recurring_original_amount?.description).toMatch(
       /recurring_\* totals of the quote do not include the promotion code discount/i,
     );
   });
 
-  test('v2 fulfillment order list, get, fulfill, and cancel are registered', () => {
-    const list = operationRegistry.getById('v2:GET:/v2/fulfillment-orders/');
+  test("v2 fulfillment order list, get, fulfill, and cancel are registered", () => {
+    const list = operationRegistry.getById("v2:GET:/v2/fulfillment-orders/");
     expect(list).toMatchObject({
-      method: 'GET',
-      apiKeyKind: 'secret',
-      tags: ['V2 Fulfillment'],
+      method: "GET",
+      apiKeyKind: "secret",
+      tags: ["V2 Fulfillment"],
     });
     expect(list?.description).toMatch(/fulfillment_order\.\*/);
     expect(
       operationRegistry.getById(
-        'v2:GET:/v2/fulfillment-orders/{fulfillmentOrderId}/',
+        "v2:GET:/v2/fulfillment-orders/{fulfillmentOrderId}/",
       ),
     ).toBeDefined();
 
     const fulfill = operationRegistry.getById(
-      'v2:POST:/v2/fulfillment-orders/{fulfillmentOrderId}/fulfill/',
+      "v2:POST:/v2/fulfillment-orders/{fulfillmentOrderId}/fulfill/",
     );
     expect(fulfill).toMatchObject({
-      method: 'POST',
-      apiKeyKind: 'secret',
-      tags: ['V2 Fulfillment'],
+      method: "POST",
+      apiKeyKind: "secret",
+      tags: ["V2 Fulfillment"],
     });
     expect(fulfill?.description).toMatch(/idempotent/i);
     expect(fulfill?.requestBody?.required).toBe(false);
     const fulfillSchema = fulfill?.requestBody?.schema as {
       properties?: Record<string, unknown>;
     };
-    expect(fulfillSchema.properties).toHaveProperty('tracking_number');
-    expect(fulfillSchema.properties).toHaveProperty('carrier');
+    expect(fulfillSchema.properties).toHaveProperty("tracking_number");
+    expect(fulfillSchema.properties).toHaveProperty("carrier");
 
     const cancel = operationRegistry.getById(
-      'v2:POST:/v2/fulfillment-orders/{fulfillmentOrderId}/cancel/',
+      "v2:POST:/v2/fulfillment-orders/{fulfillmentOrderId}/cancel/",
     );
     expect(cancel).toMatchObject({
-      method: 'POST',
-      apiKeyKind: 'secret',
+      method: "POST",
+      apiKeyKind: "secret",
     });
     expect(cancel?.requestBody).toBeUndefined();
     expect(cancel?.description).toMatch(/fulfillment_order\.cancelled/);
   });
 
-  test('fulfillment order schema is the webhook body', () => {
-    const spec = getBundledSpec('v2');
+  test("fulfillment order schema is the webhook body", () => {
+    const spec = getBundledSpec("v2");
     const schema = spec.components?.schemas?.V2FulfillmentOrder as {
       description?: string;
       properties?: Record<string, unknown>;
     };
     expect(schema.description).toMatch(/fulfillment_order\.\*/);
-    expect(schema.properties).toHaveProperty('billing_run_id');
-    expect(schema.properties).toHaveProperty('fulfillments');
-    expect(schema.properties).toHaveProperty('shipping_selection');
+    expect(schema.properties).toHaveProperty("billing_run_id");
+    expect(schema.properties).toHaveProperty("fulfillments");
+    expect(schema.properties).toHaveProperty("shipping_selection");
   });
 
-  test('fulfillment shipment exposes external carrier fields', () => {
-    const spec = getBundledSpec('v2');
+  test("fulfillment shipment exposes external carrier fields", () => {
+    const spec = getBundledSpec("v2");
     const schema = spec.components?.schemas?.V2Fulfillment as {
       properties?: {
         handler?: { enum?: string[] };
@@ -185,107 +185,105 @@ describe('askell_describe_operation payload', () => {
         tracking_url?: unknown;
       };
     };
-    expect(schema.properties?.handler?.enum).toContain('');
-    expect(schema.properties).toHaveProperty('carrier');
-    expect(schema.properties).toHaveProperty('tracking_url');
+    expect(schema.properties?.handler?.enum).toContain("");
+    expect(schema.properties).toHaveProperty("carrier");
+    expect(schema.properties).toHaveProperty("tracking_url");
   });
 
-  test('v2 coupon and promotion-code catalog ops are registered', () => {
-    const couponList = operationRegistry.getById('v2:GET:/v2/coupons/');
+  test("v2 coupon and promotion-code catalog ops are registered", () => {
+    const couponList = operationRegistry.getById("v2:GET:/v2/coupons/");
     expect(couponList).toMatchObject({
-      method: 'GET',
-      apiKeyKind: 'secret',
-      tags: ['V2 Coupons'],
+      method: "GET",
+      apiKeyKind: "secret",
+      tags: ["V2 Coupons"],
     });
+    expect(operationRegistry.getById("v2:POST:/v2/coupons/")).toBeDefined();
     expect(
-      operationRegistry.getById('v2:POST:/v2/coupons/'),
+      operationRegistry.getById("v2:GET:/v2/coupons/{couponId}/"),
     ).toBeDefined();
     expect(
-      operationRegistry.getById('v2:GET:/v2/coupons/{couponId}/'),
+      operationRegistry.getById("v2:PATCH:/v2/coupons/{couponId}/"),
     ).toBeDefined();
     expect(
-      operationRegistry.getById('v2:PATCH:/v2/coupons/{couponId}/'),
-    ).toBeDefined();
-    expect(
-      operationRegistry.getById('v2:DELETE:/v2/coupons/{couponId}/'),
+      operationRegistry.getById("v2:DELETE:/v2/coupons/{couponId}/"),
     ).toBeDefined();
 
-    const create = operationRegistry.getById('v2:POST:/v2/coupons/');
+    const create = operationRegistry.getById("v2:POST:/v2/coupons/");
     const createSchema = create?.requestBody?.schema as {
       required?: string[];
       properties?: Record<string, unknown>;
     };
-    expect(createSchema.required).toEqual(['duration']);
-    expect(createSchema.properties).toHaveProperty('amount_off');
-    expect(createSchema.properties).toHaveProperty('percent_off');
+    expect(createSchema.required).toEqual(["duration"]);
+    expect(createSchema.properties).toHaveProperty("amount_off");
+    expect(createSchema.properties).toHaveProperty("percent_off");
 
     expect(
-      operationRegistry.getById('v2:GET:/v2/promotion-codes/'),
+      operationRegistry.getById("v2:GET:/v2/promotion-codes/"),
     ).toMatchObject({
-      method: 'GET',
-      apiKeyKind: 'secret',
-      tags: ['V2 Coupons'],
+      method: "GET",
+      apiKeyKind: "secret",
+      tags: ["V2 Coupons"],
     });
     const promoCreate = operationRegistry.getById(
-      'v2:POST:/v2/promotion-codes/',
+      "v2:POST:/v2/promotion-codes/",
     );
     const promoSchema = promoCreate?.requestBody?.schema as {
       required?: string[];
       properties?: Record<string, unknown>;
     };
-    expect(promoSchema.required).toEqual(['coupon']);
-    expect(promoSchema.properties).toHaveProperty('code');
-    expect(promoSchema.properties).toHaveProperty('customer');
-    expect(promoSchema.properties).toHaveProperty('customer_reference');
+    expect(promoSchema.required).toEqual(["coupon"]);
+    expect(promoSchema.properties).toHaveProperty("code");
+    expect(promoSchema.properties).toHaveProperty("customer");
+    expect(promoSchema.properties).toHaveProperty("customer_reference");
     expect(
       operationRegistry.getById(
-        'v2:GET:/v2/promotion-codes/{promotionCodeId}/',
+        "v2:GET:/v2/promotion-codes/{promotionCodeId}/",
       ),
     ).toBeDefined();
     expect(
       operationRegistry.getById(
-        'v2:PATCH:/v2/promotion-codes/{promotionCodeId}/',
+        "v2:PATCH:/v2/promotion-codes/{promotionCodeId}/",
       ),
     ).toBeDefined();
     expect(
       operationRegistry.getById(
-        'v2:DELETE:/v2/promotion-codes/{promotionCodeId}/',
+        "v2:DELETE:/v2/promotion-codes/{promotionCodeId}/",
       ),
     ).toBeDefined();
   });
 
-  test('coupon and promotion-code schemas are in the bundled spec', () => {
-    const spec = getBundledSpec('v2');
+  test("coupon and promotion-code schemas are in the bundled spec", () => {
+    const spec = getBundledSpec("v2");
     const coupon = spec.components?.schemas?.V2Coupon as {
       properties?: Record<string, unknown>;
     };
-    expect(coupon.properties).toHaveProperty('amount_off');
-    expect(coupon.properties).toHaveProperty('percent_off');
-    expect(coupon.properties).toHaveProperty('duration');
-    expect(coupon.properties).toHaveProperty('valid');
+    expect(coupon.properties).toHaveProperty("amount_off");
+    expect(coupon.properties).toHaveProperty("percent_off");
+    expect(coupon.properties).toHaveProperty("duration");
+    expect(coupon.properties).toHaveProperty("valid");
 
     const promo = spec.components?.schemas?.V2PromotionCode as {
       properties?: Record<string, unknown>;
     };
-    expect(promo.properties).toHaveProperty('code');
-    expect(promo.properties).toHaveProperty('coupon');
-    expect(promo.properties).toHaveProperty('valid');
+    expect(promo.properties).toHaveProperty("code");
+    expect(promo.properties).toHaveProperty("coupon");
+    expect(promo.properties).toHaveProperty("valid");
   });
 
-  test('v2 refund, change-anchor, and scheduled-change cancel are registered', () => {
+  test("v2 refund, change-anchor, and scheduled-change cancel are registered", () => {
     const refund = operationRegistry.getById(
-      'v2:POST:/v2/billing-runs/{billingRunId}/refund/',
+      "v2:POST:/v2/billing-runs/{billingRunId}/refund/",
     );
     expect(refund).toMatchObject({
-      method: 'POST',
-      apiKeyKind: 'secret',
-      tags: ['V2 Billing Runs'],
+      method: "POST",
+      apiKeyKind: "secret",
+      tags: ["V2 Billing Runs"],
     });
     expect(refund?.requestBody?.required).toBe(false);
     const refundSchema = refund?.requestBody?.schema as {
       properties?: Record<string, { description?: string }>;
     };
-    expect(refundSchema.properties).toHaveProperty('amount');
+    expect(refundSchema.properties).toHaveProperty("amount");
     expect(refund?.description).toMatch(/refundable_amount/);
     expect(refund?.description).toMatch(/partial_refund_not_supported/);
     expect(refund?.description).toMatch(/202/);
@@ -293,23 +291,23 @@ describe('askell_describe_operation payload', () => {
     expect(refund?.description).toMatch(/billing_run_id/);
 
     const transactionRefund = operationRegistry.getById(
-      'v1:POST:/transactions/{uuid}/refund/',
+      "v1:POST:/transactions/{uuid}/refund/",
     );
     expect(transactionRefund).toMatchObject({
-      method: 'POST',
-      apiKeyKind: 'secret',
-      tags: ['Transaction'],
+      method: "POST",
+      apiKeyKind: "secret",
+      tags: ["Transaction"],
     });
     expect(transactionRefund?.requestBody?.required).toBe(false);
     expect(transactionRefund?.description).toMatch(/billing_run_charge/);
 
     const paymentRefund = operationRegistry.getById(
-      'v1:POST:/payments/{uuid}/refund/',
+      "v1:POST:/payments/{uuid}/refund/",
     );
     expect(paymentRefund?.requestBody?.required).toBe(false);
-    const paymentSpec = getBundledSpec('v1');
+    const paymentSpec = getBundledSpec("v1");
     const paymentRefundPost = paymentSpec.paths?.[
-      '/payments/{uuid}/refund/'
+      "/payments/{uuid}/refund/"
     ] as
       | {
           post?: {
@@ -317,7 +315,7 @@ describe('askell_describe_operation payload', () => {
               string,
               {
                 content?: {
-                  'application/json'?: { schema?: { $ref?: string } };
+                  "application/json"?: { schema?: { $ref?: string } };
                 };
               }
             >;
@@ -325,17 +323,16 @@ describe('askell_describe_operation payload', () => {
         }
       | undefined;
     const paymentRefundSchema =
-      paymentRefundPost?.post?.responses?.['200']?.content?.[
-        'application/json'
-      ]?.schema;
+      paymentRefundPost?.post?.responses?.["200"]?.content?.["application/json"]
+        ?.schema;
     expect(paymentRefundSchema).toEqual({
-      $ref: '#/components/schemas/Payment',
+      $ref: "#/components/schemas/Payment",
     });
 
     const anchor = operationRegistry.getById(
-      'v2:POST:/v2/subscription-contracts/{contractId}/change-anchor/',
+      "v2:POST:/v2/subscription-contracts/{contractId}/change-anchor/",
     );
-    expect(anchor).toMatchObject({ method: 'POST', apiKeyKind: 'secret' });
+    expect(anchor).toMatchObject({ method: "POST", apiKeyKind: "secret" });
     const anchorSchema = anchor?.requestBody?.schema as {
       allOf?: Array<{
         required?: string[];
@@ -343,27 +340,29 @@ describe('askell_describe_operation payload', () => {
       }>;
     };
     const anchorFields = anchorSchema.allOf?.find(
-      (part) => part.properties && 'new_billing_anchor_at' in part.properties,
+      (part) => part.properties && "new_billing_anchor_at" in part.properties,
     );
-    expect(anchorFields?.required).toEqual(['new_billing_anchor_at']);
-    expect(anchorFields?.properties?.new_billing_anchor_at?.description).toMatch(
-      /one billing period/i,
-    );
+    expect(anchorFields?.required).toEqual(["new_billing_anchor_at"]);
+    expect(
+      anchorFields?.properties?.new_billing_anchor_at?.description,
+    ).toMatch(/one billing period/i);
     expect(anchor?.description).toMatch(/pending_interval_change/);
-    expect(anchor?.description).toMatch(/does not extend service entitlements/i);
+    expect(anchor?.description).toMatch(
+      /does not extend service entitlements/i,
+    );
 
     const cancel = operationRegistry.getById(
-      'v2:POST:/v2/subscription-contracts/{contractId}/scheduled-changes/{scheduledChangeId}/cancel/',
+      "v2:POST:/v2/subscription-contracts/{contractId}/scheduled-changes/{scheduledChangeId}/cancel/",
     );
-    expect(cancel).toMatchObject({ method: 'POST', apiKeyKind: 'secret' });
+    expect(cancel).toMatchObject({ method: "POST", apiKeyKind: "secret" });
     expect(cancel?.requestBody?.required).toBe(false);
     expect(cancel?.description).toMatch(/replayed: true/);
     expect(cancel?.description).toMatch(/scheduled_change_not_cancelable/);
   });
 
-  test('proration preview accepts change_anchor and update apply_at', () => {
+  test("proration preview accepts change_anchor and update apply_at", () => {
     const preview = operationRegistry.getById(
-      'v2:POST:/v2/subscription-contracts/{contractId}/proration-preview/',
+      "v2:POST:/v2/subscription-contracts/{contractId}/proration-preview/",
     );
     const schema = preview?.requestBody?.schema as {
       allOf?: Array<{
@@ -375,13 +374,13 @@ describe('askell_describe_operation payload', () => {
       }>;
     };
     const fields = schema.allOf?.find((part) => part.properties?.operation);
-    expect(fields?.properties?.operation?.enum).toContain('change_anchor');
-    expect(fields?.properties).toHaveProperty('new_billing_anchor_at');
-    expect(fields?.properties?.apply_at?.enum).toEqual(['now', 'period_end']);
+    expect(fields?.properties?.operation?.enum).toContain("change_anchor");
+    expect(fields?.properties).toHaveProperty("new_billing_anchor_at");
+    expect(fields?.properties?.apply_at?.enum).toEqual(["now", "period_end"]);
   });
 
-  test('contract patch schema includes service_entitlement_policy and omits description-only fields', () => {
-    const spec = getBundledSpec('v2');
+  test("contract patch schema includes service_entitlement_policy and omits description-only fields", () => {
+    const spec = getBundledSpec("v2");
     const patch = spec.components?.schemas?.V2SubscriptionContractPatch as {
       properties?: Record<
         string,
@@ -389,151 +388,149 @@ describe('askell_describe_operation payload', () => {
       >;
     };
     expect(Object.keys(patch.properties ?? {}).sort()).toEqual([
-      'metadata',
-      'payment_processor_override',
-      'reference',
-      'sales_channel',
-      'service_entitlement_policy',
+      "metadata",
+      "payment_processor_override",
+      "reference",
+      "sales_channel",
+      "service_entitlement_policy",
     ]);
     expect(patch.properties?.service_entitlement_policy?.enum).toEqual([
-      'on_run_created',
-      'on_run_succeeded',
+      "on_run_created",
+      "on_run_succeeded",
     ]);
-    expect(patch.properties).not.toHaveProperty('delivery_address');
-    expect(patch.properties).not.toHaveProperty('accounting_department');
-    expect(patch.properties).not.toHaveProperty('accounting_cost_center');
+    expect(patch.properties).not.toHaveProperty("delivery_address");
+    expect(patch.properties).not.toHaveProperty("accounting_department");
+    expect(patch.properties).not.toHaveProperty("accounting_cost_center");
     expect(patch.properties?.reference?.maxLength).toBe(128);
     expect(patch.properties?.metadata?.description).toMatch(
       /any of them in the request are ignored/i,
     );
 
     const operation = operationRegistry.getById(
-      'v2:PATCH:/v2/subscription-contracts/{contractId}/',
+      "v2:PATCH:/v2/subscription-contracts/{contractId}/",
     );
     expect(operation?.description).toMatch(/accounting_department/);
     expect(operation?.description).toMatch(/sales_channel/);
     expect(operation?.description).toMatch(/service_entitlement_policy/);
   });
 
-  test('v1 plan get/put/patch, payment cancel, and v2 bank claim operations & responses are registered', () => {
+  test("v1 plan get/put/patch, payment cancel, and v2 bank claim operations & responses are registered", () => {
     expect(operationRegistry.operations.length).toBe(110);
 
-    for (const method of ['GET', 'PUT', 'PATCH'] as const) {
-      const op = operationRegistry.getById(
-        `v1:${method}:/plans/{planId}/`,
-      );
+    for (const method of ["GET", "PUT", "PATCH"] as const) {
+      const op = operationRegistry.getById(`v1:${method}:/plans/{planId}/`);
       expect(op).toMatchObject({
         method,
-        apiKeyKind: 'secret',
-        tags: ['Plan'],
+        apiKeyKind: "secret",
+        tags: ["Plan"],
       });
     }
 
-    const planPut = operationRegistry.getById('v1:PUT:/plans/{planId}/');
+    const planPut = operationRegistry.getById("v1:PUT:/plans/{planId}/");
     const planPutSchema = planPut?.requestBody?.schema as {
       properties?: {
-        payment_processor?: { oneOf?: Array<{ properties?: Record<string, unknown> }> };
+        payment_processor?: {
+          oneOf?: Array<{ properties?: Record<string, unknown> }>;
+        };
       };
     };
     const objBranch = planPutSchema.properties?.payment_processor?.oneOf?.find(
-      (branch) => branch.properties && 'claim_rule_id' in branch.properties,
+      (branch) => branch.properties && "claim_rule_id" in branch.properties,
     );
-    expect(objBranch?.properties).toHaveProperty('claim_rule_id');
-    expect(objBranch?.properties).toHaveProperty('claim_template_id');
+    expect(objBranch?.properties).toHaveProperty("claim_rule_id");
+    expect(objBranch?.properties).toHaveProperty("claim_template_id");
 
     const paymentCancel = operationRegistry.getById(
-      'v1:POST:/payments/{uuid}/cancel/',
+      "v1:POST:/payments/{uuid}/cancel/",
     );
     expect(paymentCancel).toMatchObject({
-      method: 'POST',
-      apiKeyKind: 'secret',
-      tags: ['Payment'],
+      method: "POST",
+      apiKeyKind: "secret",
+      tags: ["Payment"],
     });
-    expect(paymentCancel?.responses?.['202']?.description).toMatch(
+    expect(paymentCancel?.responses?.["202"]?.description).toMatch(
       /do not treat this as a failure/i,
     );
-    expect(paymentCancel?.responses?.['409']?.errorCodes).toContain(
-      'payment_settled',
+    expect(paymentCancel?.responses?.["409"]?.errorCodes).toContain(
+      "payment_settled",
     );
-    expect(paymentCancel?.responses?.['409']?.errorCodes).toContain(
-      'payment_not_cancellable',
+    expect(paymentCancel?.responses?.["409"]?.errorCodes).toContain(
+      "payment_not_cancellable",
     );
-    expect(paymentCancel?.responses?.['502']?.errorCodes).toContain(
-      'claim_cancel_refused',
+    expect(paymentCancel?.responses?.["502"]?.errorCodes).toContain(
+      "claim_cancel_refused",
     );
 
-    expect(
-      operationRegistry.getById('v2:GET:/v2/claim-rules/'),
-    ).toMatchObject({
-      method: 'GET',
-      apiKeyKind: 'secret',
-      tags: ['V2 Claims'],
+    expect(operationRegistry.getById("v2:GET:/v2/claim-rules/")).toMatchObject({
+      method: "GET",
+      apiKeyKind: "secret",
+      tags: ["V2 Claims"],
     });
     expect(
-      operationRegistry.getById('v2:GET:/v2/claim-templates/'),
+      operationRegistry.getById("v2:GET:/v2/claim-templates/"),
     ).toMatchObject({
-      method: 'GET',
-      apiKeyKind: 'secret',
-      tags: ['V2 Claims'],
+      method: "GET",
+      apiKeyKind: "secret",
+      tags: ["V2 Claims"],
     });
 
     const cancelClaim = operationRegistry.getById(
-      'v2:POST:/v2/billing-runs/{billingRunId}/cancel-claim/',
+      "v2:POST:/v2/billing-runs/{billingRunId}/cancel-claim/",
     );
     expect(cancelClaim).toMatchObject({
-      method: 'POST',
-      apiKeyKind: 'secret',
-      tags: ['V2 Billing Runs'],
+      method: "POST",
+      apiKeyKind: "secret",
+      tags: ["V2 Billing Runs"],
     });
-    expect(cancelClaim?.responses?.['400']?.errorCodes).toEqual([
-      'billing_run_not_pending',
-      'no_open_claim',
-      'invalid_final_due_date',
+    expect(cancelClaim?.responses?.["400"]?.errorCodes).toEqual([
+      "billing_run_not_pending",
+      "no_open_claim",
+      "invalid_final_due_date",
     ]);
-    expect(cancelClaim?.responses?.['502']?.errorCodes).toEqual([
-      'claim_bank_refused',
+    expect(cancelClaim?.responses?.["502"]?.errorCodes).toEqual([
+      "claim_bank_refused",
     ]);
 
     const changeClaim = operationRegistry.getById(
-      'v2:POST:/v2/billing-runs/{billingRunId}/change-claim/',
+      "v2:POST:/v2/billing-runs/{billingRunId}/change-claim/",
     );
     const changeSchema = changeClaim?.requestBody?.schema as {
       required?: string[];
     };
-    expect(changeSchema.required).toEqual(['final_due_date']);
+    expect(changeSchema.required).toEqual(["final_due_date"]);
 
     const contractCancel = operationRegistry.getById(
-      'v2:POST:/v2/subscription-contracts/{contractId}/cancel/',
+      "v2:POST:/v2/subscription-contracts/{contractId}/cancel/",
     );
     const cancelSchema = contractCancel?.requestBody?.schema as {
       properties?: Record<string, unknown>;
     };
-    expect(cancelSchema.properties).toHaveProperty('cancel_open_claims');
+    expect(cancelSchema.properties).toHaveProperty("cancel_open_claims");
 
     // Error code search works across operations
     const foundByErrorCode = operationRegistry.find({
-      search: 'claim_cancel_refused',
+      search: "claim_cancel_refused",
     });
     expect(foundByErrorCode.map((op) => op.id)).toContain(
-      'v1:POST:/payments/{uuid}/cancel/',
+      "v1:POST:/payments/{uuid}/cancel/",
     );
   });
 
-  test('portal, one-off purchases, and scheduled-change operations', () => {
-    const spec = getBundledSpec('v2');
+  test("portal, one-off purchases, and scheduled-change operations", () => {
+    const spec = getBundledSpec("v2");
     expect(
       operationRegistry.getById(
-        'v2:GET:/v2/subscription-contracts/{contractId}/one-off-purchases/',
+        "v2:GET:/v2/subscription-contracts/{contractId}/one-off-purchases/",
       )?.apiKeyKind,
-    ).toBe('secret');
+    ).toBe("secret");
     expect(
-      operationRegistry.getById('v2:POST:/v2/customer-portal-entries/')
+      operationRegistry.getById("v2:POST:/v2/customer-portal-entries/")
         ?.apiKeyKind,
-    ).toBe('secret');
+    ).toBe("secret");
     expect(
-      operationRegistry.getById('v2:POST:/v2/customer-portal-sessions/')
+      operationRegistry.getById("v2:POST:/v2/customer-portal-sessions/")
         ?.apiKeyKind,
-    ).toBe('secret');
+    ).toBe("secret");
 
     const change = spec.components?.schemas
       ?.V2SubscriptionContractScheduledChange as {
@@ -544,9 +541,9 @@ describe('askell_describe_operation payload', () => {
       };
     };
     expect(change.properties?.operation?.enum).toEqual([
-      'update_item',
-      'add_item',
-      'remove_item',
+      "update_item",
+      "add_item",
+      "remove_item",
     ]);
     expect(change.properties?.contract_item?.nullable).toBe(true);
     expect(change.properties?.price?.nullable).toBe(true);
@@ -554,113 +551,117 @@ describe('askell_describe_operation payload', () => {
     const contract = spec.components?.schemas?.V2SubscriptionContract as {
       properties?: Record<string, unknown>;
     };
-    expect(contract.properties).toHaveProperty('sales_channel');
-    expect(contract.properties).toHaveProperty('sales_channel_id');
-    expect(contract.properties).toHaveProperty('one_off_purchases');
-    expect(contract.properties).toHaveProperty('pending_delivery_change');
+    expect(contract.properties).toHaveProperty("sales_channel");
+    expect(contract.properties).toHaveProperty("sales_channel_id");
+    expect(contract.properties).toHaveProperty("one_off_purchases");
+    expect(contract.properties).toHaveProperty("pending_delivery_change");
 
     const created = spec.components?.schemas?.V2SubscriptionContractCreate as {
       allOf?: Array<{ properties?: Record<string, unknown> }>;
     };
     const createFields = created.allOf?.find(
-      (part) => part.properties && 'sales_channel' in part.properties,
+      (part) => part.properties && "sales_channel" in part.properties,
     );
-    expect(createFields?.properties).toHaveProperty('sales_channel');
+    expect(createFields?.properties).toHaveProperty("sales_channel");
 
     const err = spec.components?.schemas?.V2CustomerPortalError as {
       properties?: { code?: { enum?: string[] } };
     };
     expect(err.properties?.code?.enum).toEqual([
-      'api_key_not_allowed',
-      'seller_verified_sessions_disabled',
-      'throttled',
+      "api_key_not_allowed",
+      "seller_verified_sessions_disabled",
+      "throttled",
     ]);
-    expect(err.properties?.code?.enum).not.toContain('self_service_unavailable');
+    expect(err.properties?.code?.enum).not.toContain(
+      "self_service_unavailable",
+    );
 
-    const sessionOp = spec.paths?.['/v2/customer-portal-sessions/']?.post as {
+    const sessionOp = spec.paths?.["/v2/customer-portal-sessions/"]?.post as {
       responses?: Record<string, { description?: string }>;
     };
-    expect(sessionOp.responses?.['403']?.description).toMatch(
+    expect(sessionOp.responses?.["403"]?.description).toMatch(
       /self_service_unavailable/,
     );
   });
 
-  test('item add/remove 409 is only on the response, and v1 guard is LegacySubscriptionGuardError', () => {
-    const spec = getBundledSpec('v2');
+  test("item add/remove 409 is only on the response, and v1 guard is LegacySubscriptionGuardError", () => {
+    const spec = getBundledSpec("v2");
     const add = spec.paths?.[
-      '/v2/subscription-contracts/{contractId}/items/add/'
+      "/v2/subscription-contracts/{contractId}/items/add/"
     ]?.post as {
       description?: string;
       responses?: Record<string, { $ref?: string }>;
     };
     expect(add.description).not.toMatch(/409/);
-    expect(add.responses?.['409']?.$ref).toBe(
-      '#/components/responses/V2ProrationConflict',
+    expect(add.responses?.["409"]?.$ref).toBe(
+      "#/components/responses/V2ProrationConflict",
     );
 
-    const v1 = getBundledSpec('v1');
+    const v1 = getBundledSpec("v1");
     const guard = v1.components?.schemas?.LegacySubscriptionGuardError as {
       required?: string[];
       properties?: { code?: { enum?: string[] } };
     };
-    expect(guard.required).toEqual(['error', 'code', 'v2_endpoint']);
+    expect(guard.required).toEqual(["error", "code", "v2_endpoint"]);
     expect(guard.properties?.code?.enum).toEqual([
-      'legacy_subscriptions_disabled',
-      'subscription_managed_by_contract',
+      "legacy_subscriptions_disabled",
+      "subscription_managed_by_contract",
     ]);
 
-    const cancel = v1.paths?.['/subscriptions/{subscriptionId}/cancel/']
+    const cancel = v1.paths?.["/subscriptions/{subscriptionId}/cancel/"]
       ?.post as {
       responses?: Record<
         string,
-        { content?: { 'application/json'?: { schema?: { anyOf?: unknown[] } } } }
+        {
+          content?: { "application/json"?: { schema?: { anyOf?: unknown[] } } };
+        }
       >;
     };
     const anyOf =
-      cancel.responses?.['400']?.content?.['application/json']?.schema?.anyOf;
-    expect(JSON.stringify(anyOf)).toContain('LegacySubscriptionGuardError');
+      cancel.responses?.["400"]?.content?.["application/json"]?.schema?.anyOf;
+    expect(JSON.stringify(anyOf)).toContain("LegacySubscriptionGuardError");
   });
 
-  test('v1 subscription discounts are keyless and create bodies expose promotion_code', () => {
+  test("v1 subscription discounts are keyless and create bodies expose promotion_code", () => {
     for (const id of [
-      'v1:POST:/subscriptions/{subscriptionId}/apply-code/',
-      'v1:GET:/subscriptions/{subscriptionId}/discount/',
-      'v1:POST:/subscriptions/{subscriptionId}/remove-discount/',
+      "v1:POST:/subscriptions/{subscriptionId}/apply-code/",
+      "v1:GET:/subscriptions/{subscriptionId}/discount/",
+      "v1:POST:/subscriptions/{subscriptionId}/remove-discount/",
     ]) {
-      expect(operationRegistry.getById(id)?.apiKeyKind).toBe('none');
+      expect(operationRegistry.getById(id)?.apiKeyKind).toBe("none");
     }
 
     const apply = operationRegistry.getById(
-      'v1:POST:/subscriptions/{subscriptionId}/apply-code/',
+      "v1:POST:/subscriptions/{subscriptionId}/apply-code/",
     );
     const applySchema = apply?.requestBody?.schema as {
       required?: string[];
       properties?: Record<string, unknown>;
     };
-    expect(apply?.requestBody?.contentTypes).toEqual(['application/json']);
-    expect(applySchema.required).toEqual(['code', 'subscription_token']);
-    expect(applySchema.properties).toHaveProperty('subscription_token');
+    expect(apply?.requestBody?.contentTypes).toEqual(["application/json"]);
+    expect(applySchema.required).toEqual(["code", "subscription_token"]);
+    expect(applySchema.properties).toHaveProperty("subscription_token");
 
     const discount = operationRegistry.getById(
-      'v1:GET:/subscriptions/{subscriptionId}/discount/',
+      "v1:GET:/subscriptions/{subscriptionId}/discount/",
     );
     expect(discount?.parameters.map((parameter) => parameter.name)).toContain(
-      'subscription_token',
+      "subscription_token",
     );
 
     const add = operationRegistry.getById(
-      'v1:POST:/customers/{customerReference}/subscriptions/add/',
+      "v1:POST:/customers/{customerReference}/subscriptions/add/",
     );
     const addSchema = add?.requestBody?.schema as {
       properties?: Record<string, { description?: string }>;
     };
-    expect(add?.requestBody?.contentTypes).toEqual(['application/json']);
-    expect(add?.apiKeyKind).toBe('secret');
+    expect(add?.requestBody?.contentTypes).toEqual(["application/json"]);
+    expect(add?.apiKeyKind).toBe("secret");
     expect(addSchema.properties?.promotion_code?.description).toMatch(
       /skips the trial/i,
     );
 
-    const multi = operationRegistry.getById('v1:POST:/subscriptions/multi/');
+    const multi = operationRegistry.getById("v1:POST:/subscriptions/multi/");
     const multiSchema = multi?.requestBody?.schema as {
       properties?: {
         subscriptions?: {
@@ -668,30 +669,30 @@ describe('askell_describe_operation payload', () => {
         };
       };
     };
-    expect(multi?.requestBody?.contentTypes).toEqual(['application/json']);
+    expect(multi?.requestBody?.contentTypes).toEqual(["application/json"]);
     expect(
       multiSchema.properties?.subscriptions?.items?.properties,
-    ).toHaveProperty('promotion_code');
+    ).toHaveProperty("promotion_code");
 
-    const checkout = operationRegistry.getById('v1:POST:/checkouts/');
+    const checkout = operationRegistry.getById("v1:POST:/checkouts/");
     const checkoutSchema = checkout?.requestBody?.schema as {
       properties?: Record<string, { description?: string }>;
     };
-    expect(checkout?.requestBody?.contentTypes).toEqual(['application/json']);
+    expect(checkout?.requestBody?.contentTypes).toEqual(["application/json"]);
     expect(checkoutSchema.properties?.promotion_code?.description).toMatch(
       /payment_method\.token/i,
     );
 
     expect(
-      operationRegistry.getById('v1:POST:/temporarypaymentmethod/')?.apiKeyKind,
-    ).toBe('public');
+      operationRegistry.getById("v1:POST:/temporarypaymentmethod/")?.apiKeyKind,
+    ).toBe("public");
     expect(
-      operationRegistry.getById('v1:GET:/subscriptions/')?.apiKeyKind,
-    ).toBe('secret');
+      operationRegistry.getById("v1:GET:/subscriptions/")?.apiKeyKind,
+    ).toBe("secret");
   });
 
-  test('v2 payment method schema includes card brand, last4, and funding', () => {
-    const spec = getBundledSpec('v2');
+  test("v2 payment method schema includes card brand, last4, and funding", () => {
+    const spec = getBundledSpec("v2");
     const card = spec.components?.schemas?.V2CustomerPaymentMethodCard as {
       properties?: {
         brand?: { description?: string; enum?: Array<string | null> };
@@ -699,16 +700,16 @@ describe('askell_describe_operation payload', () => {
         last4?: { pattern?: string };
       };
     };
-    expect(card.properties?.brand?.enum).toContain('visa');
+    expect(card.properties?.brand?.enum).toContain("visa");
     expect(card.properties?.brand?.description).toMatch(/Visa Electron/i);
     expect(card.properties?.funding?.enum).toEqual([
-      'credit',
-      'debit',
-      'prepaid',
+      "credit",
+      "debit",
+      "prepaid",
       null,
     ]);
     expect(card.properties?.funding?.description).toMatch(/Teya/);
-    expect(card.properties?.last4?.pattern).toBe('^[0-9]{4}$');
+    expect(card.properties?.last4?.pattern).toBe("^[0-9]{4}$");
 
     const method = spec.components?.schemas?.V2CustomerPaymentMethod as {
       properties?: { card?: { nullable?: boolean; description?: string } };
@@ -717,14 +718,14 @@ describe('askell_describe_operation payload', () => {
     expect(method.properties?.card?.description).toMatch(/claim and invoice/i);
   });
 
-  test('every bundled operation parses as describe output', () => {
+  test("every bundled operation parses as describe output", () => {
     for (const operation of operationRegistry.operations) {
       const result = operationDetailSchema.safeParse(operation);
       expect(result.success).toBe(true);
     }
   });
 
-  test('output JSON Schema forbids extra parameter keys', () => {
+  test("output JSON Schema forbids extra parameter keys", () => {
     const jsonSchema = z.toJSONSchema(operationDetailSchema) as unknown as {
       properties: {
         parameters: { items: { additionalProperties?: boolean } };

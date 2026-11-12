@@ -1,6 +1,6 @@
 ---
 name: typescript-mcp-server-generator
-description: 'Generate a complete MCP server project in TypeScript using the MCP TypeScript SDK v2 (@modelcontextprotocol/server) with tools, resources, and proper configuration'
+description: "Generate a complete MCP server project in TypeScript using the MCP TypeScript SDK v2 (@modelcontextprotocol/server) with tools, resources, and proper configuration"
 ---
 
 # Generate TypeScript MCP Server
@@ -23,6 +23,7 @@ Create a complete Model Context Protocol (MCP) server in TypeScript using the **
 ## Implementation Details
 
 ### Project Setup
+
 - Initialize with `npm init` and create package.json
 - Install dependencies: `@modelcontextprotocol/server`, `zod@^4.2`, and the transport package — `@modelcontextprotocol/node` for plain Node HTTP, or a framework adapter together with its peer framework (e.g. `npm install @modelcontextprotocol/express express`)
 - Configure TypeScript with ES modules: `"type": "module"` in package.json
@@ -30,6 +31,7 @@ Create a complete Model Context Protocol (MCP) server in TypeScript using the **
 - Create proper .gitignore file
 
 ### Server Configuration
+
 - Use `McpServer` class from `@modelcontextprotocol/server` for high-level implementation
 - Set server name and version
 - Choose the appropriate transport:
@@ -40,14 +42,19 @@ Create a complete Model Context Protocol (MCP) server in TypeScript using the **
 - Note that v2 uses Web Standard `Headers`/`Request` types; read headers with `ctx.http?.req?.headers.get('x-custom')`
 
 ### Tool Implementation
+
 - Use `registerTool()` with a config object — v1 variadic `.tool()` signatures are gone:
   ```typescript
-  server.registerTool('greet', {
-    description: 'Greet user',
-    inputSchema: z.object({ name: z.string() })
-  }, async ({ name }, ctx) => {
-    return { content: [{ type: 'text', text: `Hello, ${name}!` }] };
-  });
+  server.registerTool(
+    "greet",
+    {
+      description: "Greet user",
+      inputSchema: z.object({ name: z.string() }),
+    },
+    async ({ name }, ctx) => {
+      return { content: [{ type: "text", text: `Hello, ${name}!` }] };
+    },
+  );
   ```
 - Schemas must be full Zod objects (`z.object({...})`) — raw shape objects (`{ name: z.string() }`) are deprecated
 - Provide clear `title` and `description` fields
@@ -57,11 +64,13 @@ Create a complete Model Context Protocol (MCP) server in TypeScript using the **
 - Support async operations where appropriate
 
 ### Resource/Prompt Setup (Optional)
+
 - Add resources using `registerResource()` with ResourceTemplate for dynamic URIs
 - Add prompts using `registerPrompt()` with argument schemas (same config-object style as `registerTool()`)
 - Consider adding completion support for better UX; note the v2 `completable()` wrapper order: `completable(z.string(), callback).optional()` (optional applied outside)
 
 ### Code Quality
+
 - Use TypeScript for type safety
 - Follow async/await patterns consistently
 - Implement proper cleanup on transport close events
@@ -70,6 +79,7 @@ Create a complete Model Context Protocol (MCP) server in TypeScript using the **
 - Structure code with clear separation of concerns
 
 ## Example Tool Types to Consider
+
 - Data processing and transformation
 - External API integrations
 - File system operations (read, search, analyze)
@@ -78,25 +88,28 @@ Create a complete Model Context Protocol (MCP) server in TypeScript using the **
 - System information retrieval
 
 ## Configuration Options
-- **For HTTP Servers**: 
+
+- **For HTTP Servers**:
   - Port configuration via environment variables
   - CORS setup for browser clients
   - Session management (stateless vs stateful)
   - DNS rebinding protection for local servers
   - Strict `Content-Type` handling: v2 rejects non-`application/json` POST bodies
-  
+
 - **For stdio Servers**:
   - Proper stdin/stdout handling
   - Environment-based configuration
   - Process lifecycle management
 
 ## Migrating an Existing v1 Server
+
 - Run the official codemod first: `npx @modelcontextprotocol/codemod@latest v1-to-v2 .`
 - Then search for `@mcp-codemod-error` markers for the parts requiring manual judgment (transport choice, header reads, error classification)
 - Swap `McpError + ErrorCode` checks for the new error classes; HTTP status now lives on `error.status`, not `error.code`
 - `Server.createMessage()`, `listRoots()`, `sendLoggingMessage()` and the `roots`/`sampling`/`logging` capability fields are deprecated in v2 — avoid them in new code
 
 ## Testing Guidance
+
 - Explain how to run the server (`npm start` or `npx tsx server.ts`)
 - Provide MCP Inspector command: `npx @modelcontextprotocol/inspector`
 - For HTTP servers, include connection URL: `http://localhost:PORT/mcp`
@@ -104,6 +117,7 @@ Create a complete Model Context Protocol (MCP) server in TypeScript using the **
 - Add troubleshooting tips for common issues
 
 ## Additional Features to Consider
+
 - LLM-powered tools using the multi-round `input_required` pattern (the v2 replacement for the deprecated sampling subsystem)
 - User input elicitation for interactive workflows
 - Dynamic tool registration with enable/disable capabilities

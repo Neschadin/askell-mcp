@@ -1,12 +1,12 @@
-export type ApiVersion = 'v1' | 'v2';
+export type ApiVersion = "v1" | "v2";
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD';
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD";
 
-export type ApiKeyKind = 'secret' | 'public' | 'none';
+export type ApiKeyKind = "secret" | "public" | "none";
 
 export interface OpenApiParameter {
   name?: string;
-  in?: 'query' | 'path' | 'header' | 'cookie';
+  in?: "query" | "path" | "header" | "cookie";
   required?: boolean;
   description?: string;
   schema?: unknown;

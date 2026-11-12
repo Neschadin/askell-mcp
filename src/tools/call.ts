@@ -5,38 +5,40 @@ import {
   type CallToolResult,
   type InputRequiredResult,
   type McpServer,
-} from '@modelcontextprotocol/server';
-import * as z from 'zod';
+} from "@modelcontextprotocol/server";
+import * as z from "zod";
 
-import { AskellClient, type AskellRequest } from '../client/askell-client.ts';
-import { normalizeApiPath, openApiPathMatches } from '../client/paths.ts';
-import type { AppConfig } from '../config.ts';
-import { operationRegistry } from '../openapi/registry.ts';
-import type { ApiKeyKind, HttpMethod } from '../openapi/types.ts';
+import { AskellClient, type AskellRequest } from "../client/askell-client.ts";
+import { normalizeApiPath, openApiPathMatches } from "../client/paths.ts";
+import type { AppConfig } from "../config.ts";
+import { operationRegistry } from "../openapi/registry.ts";
+import type { ApiKeyKind, HttpMethod } from "../openapi/types.ts";
 import {
   clientSupportsFormElicitation,
   decideMutationGate,
   readClientCapabilities,
-} from './mutation-gate.ts';
+} from "./mutation-gate.ts";
 
 const confirmationSchema = z.object({
-  confirm: z.boolean().meta({ title: 'Confirm mutating Askell API request' }),
+  confirm: z.boolean().meta({ title: "Confirm mutating Askell API request" }),
 });
 
 const sharedCallFields = {
   path: z
     .string()
-    .describe('API path relative to apiBaseUrl, e.g. /v2/subscription-contracts/'),
+    .describe(
+      "API path relative to apiBaseUrl, e.g. /v2/subscription-contracts/",
+    ),
   query: z
     .record(z.string(), z.json())
     .optional()
-    .describe('Query string parameters'),
-  body: z.json().optional().describe('JSON request body'),
+    .describe("Query string parameters"),
+  body: z.json().optional().describe("JSON request body"),
   apiKeyKind: z
-    .enum(['secret', 'public', 'none'])
+    .enum(["secret", "public", "none"])
     .optional()
     .describe(
-      'Which configured API key to send. Omit to use the operation from askell_describe_operation: secret, public, or none (no Authorization header). v1 subscription discount paths are none and authenticate with subscription_token',
+      "Which configured API key to send. Omit to use the operation from askell_describe_operation: secret, public, or none (no Authorization header). v1 subscription discount paths are none and authenticate with subscription_token",
     ),
 };
 
@@ -57,18 +59,18 @@ export function resolveCallApiKeyKind(
   );
   const exact = matches.find((operation) => operation.path === normalized);
 
-  return (exact ?? matches[0])?.apiKeyKind ?? 'secret';
+  return (exact ?? matches[0])?.apiKeyKind ?? "secret";
 }
 
 const callInputSchema = z.object({
-  method: z.enum(['GET', 'HEAD']).describe('HTTP method (read-only)'),
+  method: z.enum(["GET", "HEAD"]).describe("HTTP method (read-only)"),
   ...sharedCallFields,
 });
 
 const mutateInputSchema = z.object({
   method: z
-    .enum(['POST', 'PUT', 'PATCH', 'DELETE'])
-    .describe('HTTP method (mutating)'),
+    .enum(["POST", "PUT", "PATCH", "DELETE"])
+    .describe("HTTP method (mutating)"),
   ...sharedCallFields,
 });
 
@@ -90,21 +92,21 @@ function buildApprovalMessage(input: MutateInput): string {
     input.apiKeyKind,
   );
   const lines = [
-    'Approve this Askell API request?',
-    '',
+    "Approve this Askell API request?",
+    "",
     `${input.method} ${input.path}`,
     `apiKeyKind: ${apiKeyKind}`,
   ];
 
   if (input.query && Object.keys(input.query).length > 0) {
-    lines.push('', 'Query:', JSON.stringify(input.query, null, 2));
+    lines.push("", "Query:", JSON.stringify(input.query, null, 2));
   }
 
   if (input.body !== undefined) {
-    lines.push('', 'Body:', JSON.stringify(input.body, null, 2));
+    lines.push("", "Body:", JSON.stringify(input.body, null, 2));
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 async function executeAskellRequest(
@@ -125,14 +127,14 @@ async function executeAskellRequest(
   try {
     const response = await client.request(request);
     return {
-      content: [{ type: 'text', text: response.text }],
+      content: [{ type: "text", text: response.text }],
       isError: !response.ok,
     };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : 'Unknown Askell API error';
+      error instanceof Error ? error.message : "Unknown Askell API error";
     return {
-      content: [{ type: 'text', text: message }],
+      content: [{ type: "text", text: message }],
       isError: true,
     };
   }
@@ -143,20 +145,20 @@ function mutationConfirmation(
   input: MutateInput,
   ctx: ToolCtx,
 ): CallToolResult | InputRequiredResult | undefined {
-  const declined = inputResponse(ctx.mcpReq.inputResponses, 'confirm');
+  const declined = inputResponse(ctx.mcpReq.inputResponses, "confirm");
   if (
-    declined.kind === 'elicit' &&
-    (declined.action === 'decline' || declined.action === 'cancel')
+    declined.kind === "elicit" &&
+    (declined.action === "decline" || declined.action === "cancel")
   ) {
     return {
-      content: [{ type: 'text', text: 'Mutation cancelled by operator.' }],
+      content: [{ type: "text", text: "Mutation cancelled by operator." }],
       isError: true,
     };
   }
 
   const confirmed = acceptedContent(
     ctx.mcpReq.inputResponses,
-    'confirm',
+    "confirm",
     confirmationSchema,
   );
 
@@ -168,7 +170,7 @@ function mutationConfirmation(
     ),
   });
 
-  if (decision.action === 'execute') {
+  if (decision.action === "execute") {
     return undefined;
   }
 
@@ -188,11 +190,11 @@ export function registerCallTools(
   config: AppConfig,
 ): void {
   server.registerTool(
-    'askell_call',
+    "askell_call",
     {
-      title: 'Call Askell API (read)',
+      title: "Call Askell API (read)",
       description:
-        'Read-only Askell API call (GET, HEAD) for any v1/v2 path. For POST/PUT/PATCH/DELETE use askell_mutate. Discover paths with askell_list_operations and askell_describe_operation first. Omit apiKeyKind to follow the operation (none sends no Authorization header). Webhook hmac_secret is redacted in the response.',
+        "Read-only Askell API call (GET, HEAD) for any v1/v2 path. For POST/PUT/PATCH/DELETE use askell_mutate. Discover paths with askell_list_operations and askell_describe_operation first. Omit apiKeyKind to follow the operation (none sends no Authorization header). Webhook hmac_secret is redacted in the response.",
       inputSchema: callInputSchema,
       annotations: {
         readOnlyHint: true,
@@ -207,11 +209,11 @@ export function registerCallTools(
   );
 
   server.registerTool(
-    'askell_mutate',
+    "askell_mutate",
     {
-      title: 'Mutate Askell API',
+      title: "Mutate Askell API",
       description:
-        'Mutating Askell API call (POST, PUT, PATCH, DELETE). Clients that declared form elicitation get a confirmation form; others rely on the client tool-approval UI. Use askell_call for GET. Discover paths with askell_list_operations and askell_describe_operation first. Omit apiKeyKind to follow the operation (none sends no Authorization header). Webhook hmac_secret is redacted in the response (including POST /webhooks/ create).',
+        "Mutating Askell API call (POST, PUT, PATCH, DELETE). Clients that declared form elicitation get a confirmation form; others rely on the client tool-approval UI. Use askell_call for GET. Discover paths with askell_list_operations and askell_describe_operation first. Omit apiKeyKind to follow the operation (none sends no Authorization header). Webhook hmac_secret is redacted in the response (including POST /webhooks/ create).",
       inputSchema: mutateInputSchema,
       annotations: {
         readOnlyHint: false,

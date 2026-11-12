@@ -1,54 +1,54 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 import {
   InMemoryTransport,
   McpServer,
   type JSONRPCMessage,
-} from '@modelcontextprotocol/server';
+} from "@modelcontextprotocol/server";
 
-import type { AskellClient, AskellRequest } from '../client/askell-client.ts';
-import { registerAnalysisTools, summarizeApiFailure } from './analysis.ts';
+import type { AskellClient, AskellRequest } from "../client/askell-client.ts";
+import { registerAnalysisTools, summarizeApiFailure } from "./analysis.ts";
 
-describe('summarizeApiFailure', () => {
-  test('keeps DRF detail and drops the rest of the body', () => {
-    expect(summarizeApiFailure(404, { detail: 'Not found.' })).toBe(
-      'HTTP 404: Not found.',
+describe("summarizeApiFailure", () => {
+  test("keeps DRF detail and drops the rest of the body", () => {
+    expect(summarizeApiFailure(404, { detail: "Not found." })).toBe(
+      "HTTP 404: Not found.",
     );
   });
 
-  test('summarizes flat field errors', () => {
+  test("summarizes flat field errors", () => {
     expect(
-      summarizeApiFailure(400, { reference: ['This field is required.'] }),
-    ).toBe('HTTP 400: reference: This field is required.');
+      summarizeApiFailure(400, { reference: ["This field is required."] }),
+    ).toBe("HTTP 400: reference: This field is required.");
   });
 
-  test('does not flatten a resource object', () => {
+  test("does not flatten a resource object", () => {
     expect(summarizeApiFailure(500, { id: 1, customer: { id: 2 } })).toBe(
-      'HTTP 500',
+      "HTTP 500",
     );
   });
 
-  test('formats Askell {error, code} envelopes even when numeric metadata is present', () => {
+  test("formats Askell {error, code} envelopes even when numeric metadata is present", () => {
     expect(
       summarizeApiFailure(400, {
-        error: 'This subscription is managed by contract 123.',
-        code: 'subscription_managed_by_contract',
+        error: "This subscription is managed by contract 123.",
+        code: "subscription_managed_by_contract",
         migrated_to_contract_id: 123,
-        v2_endpoint: '/api/v2/subscription-contracts/123/cancel/',
+        v2_endpoint: "/api/v2/subscription-contracts/123/cancel/",
       }),
     ).toBe(
-      'HTTP 400: [subscription_managed_by_contract] This subscription is managed by contract 123.',
+      "HTTP 400: [subscription_managed_by_contract] This subscription is managed by contract 123.",
     );
   });
 
-  test('summarizes nested field validation errors such as PlanUpdate.payment_processor', () => {
+  test("summarizes nested field validation errors such as PlanUpdate.payment_processor", () => {
     expect(
       summarizeApiFailure(400, {
         payment_processor: {
-          claim_rule_id: ['Active claim rule not found for this account.'],
+          claim_rule_id: ["Active claim rule not found for this account."],
         },
       }),
     ).toBe(
-      'HTTP 400: payment_processor.claim_rule_id: Active claim rule not found for this account.',
+      "HTTP 400: payment_processor.claim_rule_id: Active claim rule not found for this account.",
     );
   });
 });
@@ -81,18 +81,22 @@ async function callTool(
   name: string,
   args: Record<string, unknown>,
 ): Promise<{ isError: boolean; body: Record<string, unknown>; text: string }> {
-  const server = new McpServer({ name: 'askell-mcp-test', version: '0.0.0' });
+  const server = new McpServer({ name: "askell-mcp-test", version: "0.0.0" });
   registerAnalysisTools(server, client);
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const [clientTransport, serverTransport] =
+    InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
 
   const response = await new Promise<JSONRPCMessage>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('tools/call timed out')), 2000);
+    const timer = setTimeout(
+      () => reject(new Error("tools/call timed out")),
+      2000,
+    );
     clientTransport.onmessage = (message) => {
       if (
         message &&
-        typeof message === 'object' &&
-        'id' in message &&
+        typeof message === "object" &&
+        "id" in message &&
         message.id === 1
       ) {
         clearTimeout(timer);
@@ -101,9 +105,9 @@ async function callTool(
     };
     void clientTransport.start().then(() =>
       clientTransport.send({
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id: 1,
-        method: 'tools/call',
+        method: "tools/call",
         params: { name, arguments: args },
       }),
     );
@@ -111,7 +115,7 @@ async function callTool(
 
   await server.close();
 
-  if (!('result' in response) || response.result == null) {
+  if (!("result" in response) || response.result == null) {
     throw new Error(`expected tool result, got ${JSON.stringify(response)}`);
   }
 
@@ -119,7 +123,7 @@ async function callTool(
     isError?: boolean;
     content?: Array<{ text?: string }>;
   };
-  const text = result.content?.[0]?.text ?? '';
+  const text = result.content?.[0]?.text ?? "";
   return {
     isError: result.isError === true,
     body: JSON.parse(text) as Record<string, unknown>,
@@ -127,32 +131,32 @@ async function callTool(
   };
 }
 
-describe('analysis tool errors', () => {
-  test('customer overview is an error when the customer fetch fails', async () => {
+describe("analysis tool errors", () => {
+  test("customer overview is an error when the customer fetch fails", async () => {
     const result = await callTool(
       fakeClient({
-        'GET /customers/cust_1/': {
+        "GET /customers/cust_1/": {
           status: 404,
-          body: { detail: 'Not found.' },
+          body: { detail: "Not found." },
         },
-        'GET /customers/cust_1/subscriptions/': {
+        "GET /customers/cust_1/subscriptions/": {
           status: 200,
           body: [{ id: 7 }],
         },
       }),
-      'askell_customer_overview',
-      { customerReference: 'cust_1' },
+      "askell_customer_overview",
+      { customerReference: "cust_1" },
     );
 
     expect(result.isError).toBe(true);
-    expect(result.body.failures).toEqual(['customer']);
+    expect(result.body.failures).toEqual(["customer"]);
     expect(result.body.hint).toBe(
-      'Verify the customerReference with askell_call GET /customers/ or askell_paginate_all.',
+      "Verify the customerReference with askell_call GET /customers/ or askell_paginate_all.",
     );
     expect(result.body.customer).toEqual({
       ok: false,
-      data: { detail: 'Not found.' },
-      error: 'HTTP 404: Not found.',
+      data: { detail: "Not found." },
+      error: "HTTP 404: Not found.",
     });
     expect(result.body.subscriptions).toEqual({
       ok: true,
@@ -161,54 +165,57 @@ describe('analysis tool errors', () => {
     expect(result.text).not.toContain('"headers"');
   });
 
-  test('subscription failure stays a successful tool result', async () => {
+  test("subscription failure stays a successful tool result", async () => {
     const result = await callTool(
       fakeClient({
-        'GET /customers/cust_1/': { status: 200, body: { reference: 'cust_1' } },
-        'GET /customers/cust_1/subscriptions/': {
+        "GET /customers/cust_1/": {
+          status: 200,
+          body: { reference: "cust_1" },
+        },
+        "GET /customers/cust_1/subscriptions/": {
           status: 500,
-          body: { detail: 'boom' },
+          body: { detail: "boom" },
         },
       }),
-      'askell_customer_overview',
-      { customerReference: 'cust_1' },
+      "askell_customer_overview",
+      { customerReference: "cust_1" },
     );
 
     expect(result.isError).toBe(false);
-    expect(result.body.failures).toEqual(['subscriptions']);
+    expect(result.body.failures).toEqual(["subscriptions"]);
     expect(result.body.hint).toBeUndefined();
   });
 
-  test('billing triage lists a failed contract without failing the tool', async () => {
+  test("billing triage lists a failed contract without failing the tool", async () => {
     const result = await callTool(
       fakeClient({
-        'GET /v2/billing-runs/42/': {
+        "GET /v2/billing-runs/42/": {
           status: 200,
           body: { id: 42, contract: 9 },
         },
-        'GET /v2/subscription-contracts/9/': {
+        "GET /v2/subscription-contracts/9/": {
           status: 404,
-          body: { detail: 'Not found.' },
+          body: { detail: "Not found." },
         },
       }),
-      'askell_billing_run_triage',
+      "askell_billing_run_triage",
       { billingRunId: 42, includeContract: true },
     );
 
     expect(result.isError).toBe(false);
-    expect(result.body.failures).toEqual(['contract']);
+    expect(result.body.failures).toEqual(["contract"]);
     expect(result.body.contract).toMatchObject({
       ok: false,
-      error: 'HTTP 404: Not found.',
+      error: "HTTP 404: Not found.",
     });
   });
 
-  test('a thrown request becomes a short error and valid JSON', async () => {
+  test("a thrown request becomes a short error and valid JSON", async () => {
     const result = await callTool(
       fakeClient({
-        'GET /webhooks/': new Error('secretApiKey is not configured'),
+        "GET /webhooks/": new Error("secretApiKey is not configured"),
       }),
-      'askell_list_webhooks',
+      "askell_list_webhooks",
       {},
     );
 
@@ -216,34 +223,34 @@ describe('analysis tool errors', () => {
     expect(result.body).toEqual({
       ok: false,
       data: null,
-      error: 'secretApiKey is not configured',
+      error: "secretApiKey is not configured",
     });
   });
 
-  test('customer overview optionally fetches v2 contracts in parallel', async () => {
+  test("customer overview optionally fetches v2 contracts in parallel", async () => {
     const result = await callTool(
       fakeClient({
-        'GET /customers/cust_1/': {
+        "GET /customers/cust_1/": {
           status: 200,
-          body: { customer_reference: 'cust_1' },
+          body: { customer_reference: "cust_1" },
         },
-        'GET /customers/cust_1/subscriptions/': {
+        "GET /customers/cust_1/subscriptions/": {
           status: 200,
           body: [],
         },
-        'GET /v2/subscription-contracts/': {
+        "GET /v2/subscription-contracts/": {
           status: 200,
-          body: { results: [{ id: 99, state: 'active' }] },
+          body: { results: [{ id: 99, state: "active" }] },
         },
       }),
-      'askell_customer_overview',
-      { customerReference: 'cust_1', includeV2Contracts: true },
+      "askell_customer_overview",
+      { customerReference: "cust_1", includeV2Contracts: true },
     );
 
     expect(result.isError).toBe(false);
     expect(result.body.contracts).toEqual({
       ok: true,
-      data: { results: [{ id: 99, state: 'active' }] },
+      data: { results: [{ id: 99, state: "active" }] },
     });
   });
 });

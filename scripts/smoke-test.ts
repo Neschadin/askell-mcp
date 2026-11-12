@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 
-import { spawn } from 'bun';
+import { spawn } from "bun";
 
-import { AskellClient } from '../src/client/askell-client.ts';
-import { readJsonRpcLine } from './stdio-session.ts';
-import { ConfigSchema, loadConfig, type AppConfig } from '../src/config.ts';
-import { operationRegistry } from '../src/openapi/registry.ts';
-import { createServer } from '../src/server.ts';
+import { AskellClient } from "../src/client/askell-client.ts";
+import { readJsonRpcLine } from "./stdio-session.ts";
+import { ConfigSchema, loadConfig, type AppConfig } from "../src/config.ts";
+import { operationRegistry } from "../src/openapi/registry.ts";
+import { createServer } from "../src/server.ts";
 
 function fail(message: string): never {
   console.error(`FAIL: ${message}`);
@@ -24,7 +24,7 @@ function buildConfigFromEnv(): AppConfig {
 
   if (!secretApiKey) {
     fail(
-      'Set ASKELL_PRIVATE_API_KEY (or ASKELL_SECRET_API_KEY) in .env or environment',
+      "Set ASKELL_PRIVATE_API_KEY (or ASKELL_SECRET_API_KEY) in .env or environment",
     );
   }
 
@@ -36,7 +36,7 @@ function buildConfigFromEnv(): AppConfig {
     secretApiKey,
     publicApiKey,
     responseMaxBytes: 131_072,
-    mutationGate: 'auto',
+    mutationGate: "auto",
   });
 }
 
@@ -45,10 +45,10 @@ async function testConfig(): Promise<AppConfig> {
   const loaded = await loadConfig();
 
   if (loaded.secretApiKey !== expected.secretApiKey) {
-    fail('loadConfig did not return the expected secretApiKey');
+    fail("loadConfig did not return the expected secretApiKey");
   }
 
-  pass('config load from environment');
+  pass("config load from environment");
   return loaded;
 }
 
@@ -58,9 +58,9 @@ function testRegistry(): void {
     fail(`expected bundled operations, got ${total}`);
   }
 
-  const hello = operationRegistry.getById('v1:GET:/hello/');
+  const hello = operationRegistry.getById("v1:GET:/hello/");
   if (!hello) {
-    fail('missing v1:GET:/hello/ operation');
+    fail("missing v1:GET:/hello/ operation");
   }
 
   pass(`openapi registry (${total} operations)`);
@@ -69,17 +69,17 @@ function testRegistry(): void {
 function testServerFactory(config: AppConfig): void {
   const server = createServer(config);
   if (!server) {
-    fail('createServer returned empty value');
+    fail("createServer returned empty value");
   }
 
-  pass('MCP server factory');
+  pass("MCP server factory");
 }
 
 async function testLiveApi(config: AppConfig): Promise<void> {
   const client = new AskellClient(config);
   const response = await client.request({
-    method: 'GET',
-    path: '/hello/',
+    method: "GET",
+    path: "/hello/",
   });
 
   if (!response.ok) {
@@ -90,17 +90,17 @@ async function testLiveApi(config: AppConfig): Promise<void> {
   pass(`live API GET /hello/ (${response.status})`);
 
   if (payload.body == null) {
-    fail('GET /hello/ response had no parsed body');
+    fail("GET /hello/ response had no parsed body");
   }
 }
 
 async function testStdioMcp(): Promise<void> {
   const proc = spawn({
-    cmd: ['bun', 'run', 'src/index.ts'],
+    cmd: ["bun", "run", "src/index.ts"],
     cwd: `${import.meta.dir}/..`,
-    stdin: 'pipe',
-    stdout: 'pipe',
-    stderr: 'pipe',
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "pipe",
     env: { ...Bun.env },
   });
 
@@ -109,13 +109,13 @@ async function testStdioMcp(): Promise<void> {
   };
 
   send({
-    jsonrpc: '2.0',
+    jsonrpc: "2.0",
     id: 1,
-    method: 'initialize',
+    method: "initialize",
     params: {
-      protocolVersion: '2024-11-05',
+      protocolVersion: "2024-11-05",
       capabilities: {},
-      clientInfo: { name: 'askell-mcp-smoke', version: '0.0.0' },
+      clientInfo: { name: "askell-mcp-smoke", version: "0.0.0" },
     },
   });
 
@@ -125,16 +125,16 @@ async function testStdioMcp(): Promise<void> {
   };
 
   if (initResponse.error) {
-    fail(`initialize failed: ${initResponse.error.message ?? 'unknown error'}`);
+    fail(`initialize failed: ${initResponse.error.message ?? "unknown error"}`);
   }
 
-  if (initResponse.result?.serverInfo?.name !== 'askell-mcp') {
-    fail('initialize returned unexpected serverInfo');
+  if (initResponse.result?.serverInfo?.name !== "askell-mcp") {
+    fail("initialize returned unexpected serverInfo");
   }
 
-  send({ jsonrpc: '2.0', method: 'notifications/initialized' });
+  send({ jsonrpc: "2.0", method: "notifications/initialized" });
 
-  send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
+  send({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
   const toolsResponse = (await readJsonRpcLine(proc.stdout)) as {
     result?: { tools?: Array<{ name: string }> };
     error?: { message?: string };
@@ -142,7 +142,7 @@ async function testStdioMcp(): Promise<void> {
 
   if (toolsResponse.error) {
     fail(
-      `tools/list failed: ${toolsResponse.error.message ?? 'unknown error'}`,
+      `tools/list failed: ${toolsResponse.error.message ?? "unknown error"}`,
     );
   }
 
@@ -150,15 +150,15 @@ async function testStdioMcp(): Promise<void> {
     toolsResponse.result?.tools?.map((tool) => tool.name) ?? [],
   );
   const expectedTools = [
-    'askell_list_operations',
-    'askell_describe_operation',
-    'askell_call',
-    'askell_mutate',
-    'askell_paginate_all',
-    'askell_customer_overview',
-    'askell_contract_overview',
-    'askell_billing_run_triage',
-    'askell_list_webhooks',
+    "askell_list_operations",
+    "askell_describe_operation",
+    "askell_call",
+    "askell_mutate",
+    "askell_paginate_all",
+    "askell_customer_overview",
+    "askell_contract_overview",
+    "askell_billing_run_triage",
+    "askell_list_webhooks",
   ];
 
   for (const name of expectedTools) {
@@ -168,12 +168,12 @@ async function testStdioMcp(): Promise<void> {
   }
 
   send({
-    jsonrpc: '2.0',
+    jsonrpc: "2.0",
     id: 3,
-    method: 'tools/call',
+    method: "tools/call",
     params: {
-      name: 'askell_list_operations',
-      arguments: { apiVersion: 'v1', limit: 2 },
+      name: "askell_list_operations",
+      arguments: { apiVersion: "v1", limit: 2 },
     },
   });
 
@@ -184,13 +184,13 @@ async function testStdioMcp(): Promise<void> {
 
   if (callResponse.error) {
     fail(
-      `tools/call askell_list_operations failed: ${callResponse.error.message ?? 'unknown error'}`,
+      `tools/call askell_list_operations failed: ${callResponse.error.message ?? "unknown error"}`,
     );
   }
 
   const text = callResponse.result?.content?.[0]?.text;
   if (!text?.includes('"operations"')) {
-    fail('askell_list_operations returned unexpected payload');
+    fail("askell_list_operations returned unexpected payload");
   }
 
   proc.kill();
@@ -200,7 +200,7 @@ async function testStdioMcp(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  console.error('askell-mcp smoke test');
+  console.error("askell-mcp smoke test");
 
   const config = await testConfig();
   testRegistry();
@@ -208,7 +208,7 @@ async function main(): Promise<void> {
   await testLiveApi(config);
   await testStdioMcp();
 
-  console.error('smoke test passed');
+  console.error("smoke test passed");
 }
 
 main().catch((error) => {

@@ -76,9 +76,7 @@
   "paths": {
     "/v2/catalog/products/": {
       "get": {
-        "tags": [
-          "V2 Catalog"
-        ],
+        "tags": ["V2 Catalog"],
         "summary": "List V2 catalog products",
         "description": "Lists catalog products for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -109,9 +107,7 @@
     },
     "/v2/catalog/products/{productId}/": {
       "get": {
-        "tags": [
-          "V2 Catalog"
-        ],
+        "tags": ["V2 Catalog"],
         "summary": "Get a V2 catalog product",
         "description": "Returns a catalog product and its prices for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -139,9 +135,7 @@
     },
     "/v2/catalog/prices/": {
       "get": {
-        "tags": [
-          "V2 Catalog"
-        ],
+        "tags": ["V2 Catalog"],
         "summary": "List V2 catalog prices",
         "description": "Lists catalog prices for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -179,10 +173,7 @@
             "name": "billing_type",
             "schema": {
               "type": "string",
-              "enum": [
-                "recurring",
-                "one_time"
-              ]
+              "enum": ["recurring", "one_time"]
             },
             "description": "Filter by price billing type."
           },
@@ -215,9 +206,7 @@
     },
     "/v2/catalog/prices/{priceId}/": {
       "get": {
-        "tags": [
-          "V2 Catalog"
-        ],
+        "tags": ["V2 Catalog"],
         "summary": "Get a V2 catalog price",
         "description": "Returns a catalog price for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -245,9 +234,7 @@
     },
     "/v2/bundle-templates/": {
       "get": {
-        "tags": [
-          "V2 Bundles"
-        ],
+        "tags": ["V2 Bundles"],
         "summary": "List V2 bundle templates",
         "description": "Lists bundle templates for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -278,9 +265,7 @@
     },
     "/v2/bundle-templates/{bundleTemplateId}/": {
       "get": {
-        "tags": [
-          "V2 Bundles"
-        ],
+        "tags": ["V2 Bundles"],
         "summary": "Get a V2 bundle template",
         "description": "Returns a bundle template and its selectable item prices for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -308,9 +293,7 @@
     },
     "/v2/bundle-templates/{bundleTemplateId}/addons/": {
       "post": {
-        "tags": [
-          "V2 Bundles"
-        ],
+        "tags": ["V2 Bundles"],
         "summary": "Discover V2 bundle add-ons",
         "description": "Returns product and bundle add-ons available for a selected bundle configuration. Requires a secret key.",
         "parameters": [
@@ -348,9 +331,7 @@
     },
     "/v2/subscription-offer-quotes/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Quote a V2 subscription offer",
         "description": "Compiles a bundle or direct catalog item offer without creating a contract. Recurring quote lines reflect first-period start proration when the offer begins between anchor dates. Requires a secret key.",
         "requestBody": {
@@ -380,9 +361,7 @@
     },
     "/v2/customers/{customerReference}/payment-methods/": {
       "get": {
-        "tags": [
-          "V2 Customer Payment Methods"
-        ],
+        "tags": ["V2 Customer Payment Methods"],
         "summary": "List V2 customer payment methods",
         "description": "Lists active verified payment methods for a customer identified by customer reference. Canceled methods are omitted from the list. Requires a secret key.",
         "parameters": [
@@ -405,9 +384,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "V2 Customer Payment Methods"
-        ],
+        "tags": ["V2 Customer Payment Methods"],
         "summary": "Create or replace a V2 customer payment method",
         "description": "Creates a card payment method or creates/replaces the active claim or invoice setup for the selected account payment processor. The account payment processor is always explicit. Card imports create a new row and cancel conflicting active card methods; claim and invoice creation replaces only the matching active setup. Requires a secret key.",
         "parameters": [
@@ -445,9 +422,7 @@
     },
     "/v2/customers/{customerReference}/payment-methods/{paymentMethodId}/": {
       "get": {
-        "tags": [
-          "V2 Customer Payment Methods"
-        ],
+        "tags": ["V2 Customer Payment Methods"],
         "summary": "Get a V2 customer payment method",
         "description": "Returns a sanitized payment method by id for the customer, including canceled methods. Token data is never returned. Requires a secret key.",
         "parameters": [
@@ -473,9 +448,7 @@
         ]
       },
       "patch": {
-        "tags": [
-          "V2 Customer Payment Methods"
-        ],
+        "tags": ["V2 Customer Payment Methods"],
         "summary": "Update a V2 customer payment method",
         "description": "Partially updates mutable setup fields for an active payment method. Metadata is shallow-merged and null values remove metadata keys. The collection method and account payment processor are immutable; create a new payment method to change them. Requires a secret key.",
         "parameters": [
@@ -514,9 +487,7 @@
         ]
       },
       "delete": {
-        "tags": [
-          "V2 Customer Payment Methods"
-        ],
+        "tags": ["V2 Customer Payment Methods"],
         "summary": "Cancel a V2 customer payment method",
         "description": "Soft-cancels the payment method, clears stored setup data, and returns 204. Repeating the delete for an already canceled method is idempotent. Requires a secret key.",
         "parameters": [
@@ -544,9 +515,7 @@
     },
     "/v2/customer-entitlements/": {
       "get": {
-        "tags": [
-          "V2 Entitlements"
-        ],
+        "tags": ["V2 Entitlements"],
         "summary": "Evaluate V2 customer service entitlements",
         "description": "Returns current or time-specific service entitlement state for a customer, optionally filtered by catalog product reference. Requires a secret key. Use `service_active` as the integration-facing access flag; do not infer access from payment state.",
         "parameters": [
@@ -597,9 +566,7 @@
     },
     "/v2/subscription-contracts/": {
       "get": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "List V2 subscription contracts",
         "description": "Lists subscription contracts for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -654,9 +621,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Create a V2 subscription contract",
         "description": "Creates a subscription contract from either a bundle template or direct recurring catalog prices. Use `initial_billing_mode` to choose first-period billing behavior: `none` creates only the recurring schedules, `create_initial_run` creates a scheduled initial BillingRun, and `next_invoice` defers first-period recurring proration lines to the first scheduled invoice. Initial one-time items require `initial_billing_mode=create_initial_run`. Requires a secret key.",
         "requestBody": {
@@ -686,9 +651,7 @@
     },
     "/v2/subscription-contracts/{contractId}/": {
       "get": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Get a V2 subscription contract",
         "description": "Returns a subscription contract for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -711,9 +674,7 @@
         ]
       },
       "patch": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Partially update a V2 subscription contract",
         "description": "Restricted patch endpoint. Only `metadata`, `reference`, `payment_processor_override`, `sales_channel`, `delivery_address`, `accounting_department`, `accounting_cost_center` and `service_entitlement_policy` may be updated. Requires a secret key.",
         "parameters": [
@@ -751,9 +712,7 @@
     },
     "/v2/subscription-contracts/{contractId}/proration-preview/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Preview a V2 subscription contract proration",
         "description": "Previews the proration impact of updating an existing V2 subscription contract item. With `operation=update_item`, `apply_at` selects when the change takes effect: `now` (default) prorates from `effective_at`, which must not be in the future (a future value returns a 400 with code `future_effective_at_not_supported`); `period_end` previews a change scheduled for the item's next renewal (nothing due now, no lines, `next_billing_estimate` at the new values, and `scheduled_for`). An immediate change to a price with a different billing interval credits the unused current period, charges a full new period from `effective_at` and restarts the item's billing period (single-item contracts only, settled with `invoice_now`). update_item previews also return `next_billing_at_after_change`, `billing_cadence_after_change` and `applies_on_payment` (send the same `apply_on_payment` as the update: a preview token only validates an update with the same value). Requires a secret key.",
         "parameters": [
@@ -798,9 +757,7 @@
     },
     "/v2/subscription-contracts/{contractId}/items/update/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Update a V2 subscription contract item with proration",
         "description": "Updates an existing V2 subscription contract item. With `apply_at=now` (default) the change applies immediately and `effective_at` only positions the proration window, so it must not be in the future (a future value returns a 400 with code `future_effective_at_not_supported`). With `apply_at=period_end` nothing is changed or charged now: the change is stored as a scheduled change (returned in `scheduled_change`, with `change_id` null) and applied to the item when its next renewal billing run is created. `effective_at`, `settlement_behavior` and `include_pending_adjustments` cannot be combined with `period_end`. An item with a pending scheduled change rejects further updates with a 409 (`scheduled_change_exists`) until it is canceled. An immediate billing-interval change with an amount due only switches the item once its proration run is collected (`applies_on_payment: true`, item `pending_interval_change` and `pending_change`); meanwhile other changes to the item return a 409 (`pending_interval_change`). With `apply_on_payment: true` a same-interval change (for example an upgrade) waits for its charge the same way, keeping the item's billing schedule: the item stays on its current values and shows the change in `pending_change`, its renewal is held, other changes to it (and `change-anchor`) return a 409 (`pending_change`), and a terminal payment failure leaves it unchanged. A later manual retry that succeeds still applies it unless the item was changed or its renewal billed in the meantime; the payment is then credited to the contract balance. `apply_on_payment` needs `invoice_now` (400 `apply_on_payment_requires_invoice_now`) and cannot be combined with `period_end` (400 `invalid_apply_at`). Requires a secret key.",
         "parameters": [
@@ -848,9 +805,7 @@
     },
     "/v2/subscription-contracts/{contractId}/scheduled-changes/{scheduledChangeId}/cancel/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Cancel a scheduled V2 subscription contract item change",
         "description": "Cancels an item change scheduled with `apply_at=period_end` that has not been applied yet; the item then renews at its current values. Canceling an already canceled change replays (`replayed: true`); an applied or failed change returns a 409 with code `scheduled_change_not_cancelable`. Requires a secret key.",
         "parameters": [
@@ -909,9 +864,7 @@
     },
     "/v2/subscription-contracts/{contractId}/one-off-purchases/": {
       "get": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "List a V2 subscription contract's one-off purchases",
         "description": "One-time products added to an order to come, in every state, the order they are for first: `pending` while they wait for their order (also on the contract as `one_off_purchases`), `billed` once that order's billing run has succeeded, `canceled`, and `failed` when the order's billing run failed for good. Without `page_size` the whole list is returned as an array.",
         "parameters": [
@@ -925,12 +878,7 @@
             "description": "Only purchases in this state.",
             "schema": {
               "type": "string",
-              "enum": [
-                "pending",
-                "billed",
-                "canceled",
-                "failed"
-              ]
+              "enum": ["pending", "billed", "canceled", "failed"]
             }
           },
           {
@@ -981,9 +929,7 @@
     },
     "/v2/subscription-contracts/{contractId}/items/add/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Add a V2 subscription contract item with proration",
         "description": "Executes a prorated add-item change for an existing V2 subscription contract. Requires a secret key.",
         "parameters": [
@@ -1031,9 +977,7 @@
     },
     "/v2/subscription-contracts/{contractId}/items/remove/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Remove a V2 subscription contract item with proration",
         "description": "Executes a prorated remove-item change for an existing V2 subscription contract. Requires a secret key.",
         "parameters": [
@@ -1081,9 +1025,7 @@
     },
     "/v2/subscription-contracts/{contractId}/change-anchor/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Change the billing anchor of a V2 subscription contract with proration",
         "description": "Moves the next renewal of an active V2 subscription contract, and of all its active items, to new_billing_anchor_at. With proration, the unused part of the paid period is credited and the stretch from effective_at to the new anchor is charged, on the next invoice at the new date (next_invoice) or in a proration billing run now (invoice_now). Does not extend service entitlements. While an immediate billing-interval change on an item awaits its payment (item `pending_interval_change`) it returns a 409 (`pending_interval_change`); an interval change whose payment failed is abandoned, so a later retry of its charge no longer applies it. Requires a secret key.",
         "parameters": [
@@ -1131,9 +1073,7 @@
     },
     "/v2/subscription-contracts/{contractId}/cancel/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Cancel a V2 subscription contract",
         "description": "Cancels a V2 subscription contract immediately or schedules cancellation at the end of the current billing cycle. Requires a secret key.\n\nAn immediate cancellation also cancels at the bank the open claims of the periods the customer will not be served, unless `cancel_open_claims` is `false`: see `cancel_open_claims`.",
         "parameters": [
@@ -1170,9 +1110,7 @@
     },
     "/v2/subscription-contracts/{contractId}/restart/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Restart renewals for a V2 subscription contract",
         "description": "Clears a pending period-end cancellation or reactivates a canceled V2 subscription contract. Requires a secret key.",
         "parameters": [
@@ -1209,9 +1147,7 @@
     },
     "/v2/subscription-contracts/{contractId}/pause/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Pause renewals for a V2 subscription contract",
         "description": "Creates a finite pause window for a V2 subscription contract. Current pauses move the contract to paused and future pauses are scheduled. Requires a secret key.",
         "parameters": [
@@ -1248,9 +1184,7 @@
     },
     "/v2/subscription-contracts/{contractId}/resume/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Resume renewals for a paused V2 subscription contract",
         "description": "Cancels the current pause and resumes renewals for a paused V2 subscription contract. Requires a secret key.",
         "parameters": [
@@ -1287,9 +1221,7 @@
     },
     "/v2/subscription-contracts/{contractId}/pause/{pauseId}/": {
       "delete": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Delete a future V2 subscription contract pause",
         "description": "Soft-cancels a future scheduled pause for a V2 subscription contract. Requires a secret key.",
         "parameters": [
@@ -1325,9 +1257,7 @@
     },
     "/v2/subscription-contracts/{contractId}/activate/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Activate a V2 subscription contract",
         "description": "Transitions an inactive V2 subscription contract to active. Use the resume endpoint for paused contracts. Requires a secret key.",
         "parameters": [
@@ -1355,9 +1285,7 @@
     },
     "/v2/subscription-contracts/{contractId}/apply-code/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Apply a promotion code to a V2 subscription contract",
         "description": "Validates and redeems a promotion code for the contract, creating an active discount that is applied to subsequent billing runs. A contract can only carry one active discount at a time. Requires a secret key.",
         "parameters": [
@@ -1370,9 +1298,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "promotion_code"
-                ],
+                "required": ["promotion_code"],
                 "properties": {
                   "promotion_code": {
                     "type": "string"
@@ -1421,9 +1347,7 @@
     },
     "/v2/subscription-contracts/{contractId}/discount/": {
       "get": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Get the active discount for a V2 subscription contract",
         "description": "Returns the contract's active coupon discount, or null when none is active. Requires a secret key.",
         "parameters": [
@@ -1465,9 +1389,7 @@
     },
     "/v2/subscription-contracts/{contractId}/remove-discount/": {
       "post": {
-        "tags": [
-          "V2 Subscription Contracts"
-        ],
+        "tags": ["V2 Subscription Contracts"],
         "summary": "Remove the active discount from a V2 subscription contract",
         "description": "Ends the contract's active coupon discount. Subsequent billing runs are charged at full price. Requires a secret key.",
         "parameters": [
@@ -1510,9 +1432,7 @@
     },
     "/v2/checkouts/": {
       "post": {
-        "tags": [
-          "V2 Checkouts"
-        ],
+        "tags": ["V2 Checkouts"],
         "summary": "Create a V2 hosted checkout",
         "description": "Creates a pending hosted checkout from either a bundle template or direct catalog prices, returning a token, checkout URL, and quote snapshot. An explicit account payment processor can be supplied when more than one compatible processor is configured. Requires a secret key.",
         "requestBody": {
@@ -1542,9 +1462,7 @@
     },
     "/v2/payment-processor-options/": {
       "post": {
-        "tags": [
-          "V2 Checkouts"
-        ],
+        "tags": ["V2 Checkouts"],
         "summary": "Discover eligible V2 payment processors",
         "description": "Compiles the requested V2 offer and returns the eligible account payment processors for the resolved currency and collection method. Use this before checkout creation when the client must choose between multiple compatible processors. Requires a secret key.",
         "requestBody": {
@@ -1574,9 +1492,7 @@
     },
     "/v2/checkouts/{token}/": {
       "get": {
-        "tags": [
-          "V2 Checkouts"
-        ],
+        "tags": ["V2 Checkouts"],
         "summary": "Get a V2 checkout",
         "description": "Returns a pending or finalized V2 checkout for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -1601,9 +1517,7 @@
     },
     "/v2/checkouts/{token}/payment-method-registrations/": {
       "post": {
-        "tags": [
-          "V2 Checkouts"
-        ],
+        "tags": ["V2 Checkouts"],
         "summary": "Create a hosted V2 payment method registration",
         "description": "Creates a checkout-bound hosted payment method registration session for the checkout's selected account payment processor. The response contains a public hosted card-form URL and private status URL. Requires a secret key.",
         "parameters": [
@@ -1640,9 +1554,7 @@
     },
     "/v2/payment-method-registrations/{token}/": {
       "get": {
-        "tags": [
-          "V2 Checkouts"
-        ],
+        "tags": ["V2 Checkouts"],
         "summary": "Get a V2 payment method registration",
         "description": "Returns the status of a checkout-bound payment method registration and confirms a verified payment method when the processor has completed tokenization. Requires a secret key.",
         "parameters": [
@@ -1667,9 +1579,7 @@
     },
     "/v2/checkouts/{token}/finalize/": {
       "post": {
-        "tags": [
-          "V2 Checkouts"
-        ],
+        "tags": ["V2 Checkouts"],
         "summary": "Finalize a V2 checkout",
         "description": "Creates the subscription contract and initial billing run, then executes payment. The contract is activated only after successful payment. An offer with recurring items requires a verified payment method for the customer even when the initial total is zero (trial period or fully discounted first period); the card is charged when the first paid period arrives. Only a free one-time purchase finalizes without one. Requires a secret key.",
         "parameters": [
@@ -1706,9 +1616,7 @@
     },
     "/v2/checkout-sessions/": {
       "post": {
-        "tags": [
-          "V2 Embedded Checkout Sessions"
-        ],
+        "tags": ["V2 Embedded Checkout Sessions"],
         "summary": "Create an embedded checkout session",
         "description": "Creates a short-lived checkout session from a sales channel. The seller backend calls this endpoint with a secret API key and sends only the returned session token to the browser widget. Sales-channel offer, origin, payment-processor, metadata, theme, and terms policies are snapshotted onto the session.",
         "requestBody": {
@@ -1738,9 +1646,7 @@
     },
     "/v2/checkout-sessions/{token}/": {
       "get": {
-        "tags": [
-          "V2 Embedded Checkout Sessions"
-        ],
+        "tags": ["V2 Embedded Checkout Sessions"],
         "summary": "Get an embedded checkout session",
         "description": "Returns private checkout-session state for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -1765,9 +1671,7 @@
     },
     "/v2/customer-portal-entries/": {
       "post": {
-        "tags": [
-          "V2 Customer Portal"
-        ],
+        "tags": ["V2 Customer Portal"],
         "summary": "Create a sign-in link to the hosted subscription page",
         "description": "Creates a single-use link that signs the customer in to Áskell's hosted subscription page without the email code, as your statement that the customer is signed in on your site. Send the customer's browser to the returned `url`; it works once and expires after 5 minutes. The page asks the customer to press Continue before the link is spent, so link previews do not use it. The sales channel's self-service settings must allow seller-verified sessions, and only a secret API key is accepted (not the legacy token). The session that starts can change only the customer's subscriptions whose own self-service settings allow seller-verified sessions. Turning the setting off, or revoking the key, ends such sessions at their next request and stops unused links. Throttled to 60 links per key per minute.",
         "requestBody": {
@@ -1827,9 +1731,7 @@
     },
     "/v2/customer-portal-sessions/": {
       "post": {
-        "tags": [
-          "V2 Customer Portal"
-        ],
+        "tags": ["V2 Customer Portal"],
         "summary": "Start the subscription widget for a customer",
         "description": "Starts Áskell's subscription widget on your site for one of your customers. Hand the returned `token` to the customer's browser, which sends it as `Authorization: Customer-Session <token>` to the customer-portal API (the `@askell/browser` SDK does this). With `seller_verified: true`, and when the sales channel's self-service settings allow seller-verified sessions, the token is an editing session (`type: session`) that may change the customer's subscriptions whose own self-service settings allow seller-verified sessions, without the email code: the request is your statement that the customer is signed in on your site. Otherwise it is a read-only handle (`type: handle`) that reads the customer's subscriptions and asks for the email code, which exchanges it for an editing session. Every browser call must come from one of the sales channel's allowed origins (`https`), so the channel must list at least one. Ask for a new token on every page load: it lasts 30 minutes without use and 4 hours at most. Only a secret API key is accepted (not the legacy token). Turning the setting or the account's self-service off, removing the origin from the channel, or revoking the key ends the widget at its next call. Throttled to 300 tokens per key per minute.",
         "requestBody": {
@@ -1889,9 +1791,7 @@
     },
     "/v2/billing-runs/": {
       "get": {
-        "tags": [
-          "V2 Billing Runs"
-        ],
+        "tags": ["V2 Billing Runs"],
         "summary": "List V2 billing runs",
         "description": "Returns V2 billing runs for the authenticated account, including lines and attempts. Requires a secret key.",
         "parameters": [
@@ -1948,9 +1848,7 @@
     },
     "/v2/billing-runs/{billingRunId}/": {
       "get": {
-        "tags": [
-          "V2 Billing Runs"
-        ],
+        "tags": ["V2 Billing Runs"],
         "summary": "Get a V2 billing run",
         "description": "Returns a V2 billing run with lines and attempts for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -1975,9 +1873,7 @@
     },
     "/v2/billing-runs/{billingRunId}/retry/": {
       "post": {
-        "tags": [
-          "V2 Billing Runs"
-        ],
+        "tags": ["V2 Billing Runs"],
         "summary": "Retry a V2 billing run",
         "description": "Schedules a manual retry for a retryable V2 billing run. A reason is required and is recorded in billing-run metadata. Requires a secret key.",
         "parameters": [
@@ -2015,9 +1911,7 @@
     },
     "/v2/billing-runs/{billingRunId}/refund/": {
       "post": {
-        "tags": [
-          "V2 Billing Runs"
-        ],
+        "tags": ["V2 Billing Runs"],
         "summary": "Refund a V2 billing run, in full or in part",
         "description": "Refunds the charge a succeeded V2 billing run settled, to the payment method it was charged to. Only runs in the `succeeded` state with a settled transaction can be refunded, and the payment processor must support refunds. Requires a secret key (public keys and legacy tokens are rejected).\n\nThe optional `amount` is how much to refund; without it everything left to refund is refunded. A run can be refunded in several parts. What is left to refund is the run's `refundable_amount`: the charge, less what was refunded and what pending refunds hold back, and never more than what is left of the run's original total (contract balance included) once that and what was already credited to the customer from the run (proration credits from later changes to the contract) are taken off, so a refund and a credit never pay the same money back twice. Credits computed after a refund are likewise reduced by the share of the run's original total that was refunded. A processor that only refunds the whole charge cannot refund what is left once part of it was refunded or credited: `refundable_amount` is then `0.00` and a refund is answered with 400 `partial_refund_not_supported`. Partial refunds depend on the payment processor (see `POST /api/payments/{uuid}/refund/`).\n\n**200**: the refund succeeded. Once the whole charge is refunded the returned run is `refunded` (with the refund recorded under `metadata.transaction_refund`); while it is partly refunded the run stays `succeeded` and shows what was refunded in `refunded_amount`. Either way a `billing_run.changed` webhook is sent.\n\n**202**: the refund is not reflected on the returned run yet, which is still `succeeded`. Either the processor accepted the refund but has not completed it (for example Teya answering PENDING) or did not say how it ended (no answer, or a server error), or the processor refunded the whole charge and the run is still being updated. Wait for the `billing_run.changed` webhook, or re-read the run, to see it move on. Do not treat a 202 as a failure and do not immediately resend the request. Sending it again without `amount` while pending refunds hold back everything left to refund asks the processor about them again under the same keys where its gateway recognises a repeated key (Teya, Verifone), so they are not refunded twice; any other processor is not asked again, since it could refund twice, and the request is answered with 400 `refund_pending`: check the pending refund at the processor. If anything is left beyond what they hold back, a request without `amount` refunds that remainder as a new refund instead.\n\nEvery refund that succeeded or is pending is recorded under `metadata.refund_requests`, with its `amount`, `refund_uuid` and `outcome` (`refunded` or `pending`).\n\n**400**: `{\"error\": ..., \"code\": ...}`. `billing_run_not_refundable`: the run is not `succeeded` or has no settled transaction (for example a zero-amount run, or a charge already refunded). `refunds_not_supported`: its payment processor does not support refunds. `invalid_refund_amount`, `refund_amount_exceeds_refundable` and `partial_refund_not_supported`: see the codes on `POST /api/payments/{uuid}/refund/`. `refund_failed`: the processor did not make the refund. `refund_pending`: pending refunds hold back everything left, at a processor that cannot be asked about them again; check them at the processor.\n\nConcurrent refund requests for the same run are serialized. If a request gets no response (for example a timeout), read the run with `GET /api/v2/billing-runs/{billingRunId}/` and check its `state`, `refunded_amount` and `metadata.refund_requests` before sending the request again.\n\nThe `billing_run_id` in `payment.*` webhook payloads identifies the run to refund.",
         "parameters": [
@@ -2058,9 +1952,7 @@
     },
     "/v2/billing-runs/{billingRunId}/cancel-claim/": {
       "post": {
-        "tags": [
-          "V2 Billing Runs"
-        ],
+        "tags": ["V2 Billing Runs"],
         "summary": "Cancel the open bank claim of a V2 billing run",
         "description": "Cancels at the bank the open claim a `pending_external` billing run is waiting on, as \"Fella niður\" does in the dashboard: the run must be `pending_external` and waiting on an open claim, one sent to the bank and unpaid there (its `claim.state` `sent_to_bank` and `claim.status` `unpaid`). That is the run's `claim`: the claim of its latest pending attempt whose claim is open. A newer pending attempt whose claim failed as it was created (`claim.state` `failed`) is passed over; Áskell re-checks such a claim at the bank itself. Requires a secret key (public keys and legacy tokens are rejected). Takes no body.\n\n**200**: the bank cancelled the claim and the run is completed. On an active contract the run fails terminally (`failed_terminal`, the attempt's `fail_code` `claim_cancelled`), with the failure emails, `billing_run.failed` and the account's payment failure policy, as when a seller cancels the claim in the dashboard. On a canceled or ended contract the run is `canceled` instead (`metadata.cancellation.reason` `claim_cancelled_contract_closed`), with no failure emails, no `billing_run.failed` and no payment failure policy. The active-contract outcome sends a `billing_run.failed` webhook and the closed-contract outcome a `billing_run.changed` webhook; both send `payment.changed`. When a newer attempt of the run is still pending on a claim that failed as it was created, the run is not completed: only the cancelled claim's attempt fails, and the run stays `pending_external` until Áskell has re-checked the other claim at the bank.\n\n**202**: the bank cancelled the claim but Áskell has not read it back yet; the run is completed once it has. Wait for the run's `billing_run.failed` webhook (active contract) or `billing_run.changed` webhook (canceled or ended contract), or re-read the run; do not resend the request.\n\n**400**: `{\"error\": ..., \"code\": ...}`, `billing_run_not_pending` (the run is not `pending_external`) or `no_open_claim` (the run is not waiting on an open claim: it was paid or cancelled, or never reached the bank, or the run is charged another way). **502** `claim_bank_refused`: the bank did not cancel the claim (for example because it was paid in the meantime); `error` gives the bank's reason when it gave one, and nothing was changed. **403** `bank_claims_not_enabled`: bank claims are not enabled for the account on this test server; nothing was sent to the bank. Contact Áskell. **503** `bank_connection_unavailable`: the connection to the bank is not available on a test server; try again later.\n\nTwo requests for the same claim at the same time may both reach the bank; the second is answered with 502.",
         "parameters": [
@@ -2100,9 +1992,7 @@
     },
     "/v2/billing-runs/{billingRunId}/change-claim/": {
       "post": {
-        "tags": [
-          "V2 Billing Runs"
-        ],
+        "tags": ["V2 Billing Runs"],
         "summary": "Change the final due date of a V2 billing run's open bank claim",
         "description": "Moves the final due date (eindagi) of the open claim a `pending_external` billing run is waiting on, at the bank, as the dashboard does. The run must be `pending_external` and its claim open, as for `cancel-claim/`. Requires a secret key (public keys and legacy tokens are rejected).\n\n**200**: the bank accepted the change; the run's `claim.final_due_date` is the new date.\n\n**400**: `{\"error\": ..., \"code\": ...}`, `billing_run_not_pending`, `no_open_claim` or `invalid_final_due_date` (missing, not `YYYY-MM-DD`, in the past, or after the claim's cancellation date). **502** `claim_bank_refused`: the bank did not change the date; the claim keeps its date. **403** `bank_claims_not_enabled`: bank claims are not enabled for the account on this test server; nothing was sent to the bank. Contact Áskell. **503** `bank_connection_unavailable`: the connection to the bank is not available on a test server; try again later.",
         "parameters": [
@@ -2149,9 +2039,7 @@
     },
     "/v2/fulfillment-orders/": {
       "get": {
-        "tags": [
-          "V2 Fulfillment"
-        ],
+        "tags": ["V2 Fulfillment"],
         "summary": "List fulfillment orders",
         "description": "Returns the authenticated account's fulfillment orders, newest first, with the same body the `fulfillment_order.*` webhooks carry. Intended for backfill and for polling-based reconciliation after a missed webhook delivery. Read-only. Requires a secret key, that the account uses subscription contracts, and that shipping is enabled for the account.",
         "parameters": [
@@ -2160,12 +2048,7 @@
             "name": "status",
             "schema": {
               "type": "string",
-              "enum": [
-                "open",
-                "partially_fulfilled",
-                "fulfilled",
-                "cancelled"
-              ]
+              "enum": ["open", "partially_fulfilled", "fulfilled", "cancelled"]
             },
             "description": "Filter by fulfillment status."
           },
@@ -2232,9 +2115,7 @@
     },
     "/v2/fulfillment-orders/{fulfillmentOrderId}/": {
       "get": {
-        "tags": [
-          "V2 Fulfillment"
-        ],
+        "tags": ["V2 Fulfillment"],
         "summary": "Get a fulfillment order",
         "description": "Returns one fulfillment order belonging to the authenticated account, with its lines, delivery address, shipping selection and booked shipments. Orders belonging to another account return `404`. Read-only. Requires a secret key.",
         "parameters": [
@@ -2262,9 +2143,7 @@
     },
     "/v2/fulfillment-orders/{fulfillmentOrderId}/fulfill/": {
       "post": {
-        "tags": [
-          "V2 Fulfillment"
-        ],
+        "tags": ["V2 Fulfillment"],
         "summary": "Report a fulfillment order as shipped",
         "description": "Records a shipment your own system made and completes the order: every line is marked fulfilled, the order moves to `fulfilled`, the customer is sent the shipped notification and the `fulfillment_order.fulfilled` webhook fires, exactly as when an order is fulfilled from the dashboard. The body is optional — a seller who delivers by hand has no tracking details to report. Idempotent: an order that is already fulfilled comes back unchanged with `200` and nothing is created, emailed or dispatched again. Available whether the account fulfills in Áskell or in an external system, but not while fulfillment is switched off for the account. Requires a secret key.",
         "parameters": [
@@ -2308,9 +2187,7 @@
     },
     "/v2/fulfillment-orders/{fulfillmentOrderId}/cancel/": {
       "post": {
-        "tags": [
-          "V2 Fulfillment"
-        ],
+        "tags": ["V2 Fulfillment"],
         "summary": "Cancel a fulfillment order",
         "description": "Cancels an order that is not going to be shipped. A booking that has not left the provider's hands is retired on the Áskell side and flagged for you to cancel with the carrier itself. Takes no body. Idempotent: an order that is already cancelled comes back with `200` and the `fulfillment_order.cancelled` webhook is not sent again. Requires a secret key and that fulfillment is enabled for the account.",
         "parameters": [
@@ -2341,9 +2218,7 @@
     },
     "/v2/coupons/": {
       "get": {
-        "tags": [
-          "V2 Coupons"
-        ],
+        "tags": ["V2 Coupons"],
         "summary": "List V2 coupons",
         "description": "Lists coupons for the authenticated account. Soft-deleted resources are never returned. Requires a secret key.",
         "parameters": [
@@ -2352,10 +2227,7 @@
             "name": "valid",
             "schema": {
               "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ]
+              "enum": ["true", "false"]
             },
             "description": "Filter by whether the coupon can currently be redeemed (live, not expired, redemptions left)."
           },
@@ -2364,11 +2236,7 @@
             "name": "duration",
             "schema": {
               "type": "string",
-              "enum": [
-                "forever",
-                "once",
-                "repeating"
-              ]
+              "enum": ["forever", "once", "repeating"]
             },
             "description": "Filter by duration."
           },
@@ -2407,9 +2275,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "V2 Coupons"
-        ],
+        "tags": ["V2 Coupons"],
         "summary": "Create a V2 coupon",
         "description": "Creates a coupon. Exactly one of `amount_off` (with `currency`) or `percent_off` must be set. `duration_in_months` is required when `duration` is `repeating` and must be omitted otherwise. `redeem_by` must be in the future. Requires a secret key.",
         "requestBody": {
@@ -2439,9 +2305,7 @@
     },
     "/v2/coupons/{couponId}/": {
       "get": {
-        "tags": [
-          "V2 Coupons"
-        ],
+        "tags": ["V2 Coupons"],
         "summary": "Get a V2 coupon",
         "description": "Returns a single coupon for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -2464,9 +2328,7 @@
         ]
       },
       "patch": {
-        "tags": [
-          "V2 Coupons"
-        ],
+        "tags": ["V2 Coupons"],
         "summary": "Update a V2 coupon",
         "description": "Partially updates a coupon. To switch from `percent_off` to `amount_off` (or back) send the old field as `null` in the same request. `id` and `times_redeemed` cannot be changed. Requires a secret key.",
         "parameters": [
@@ -2502,9 +2364,7 @@
         ]
       },
       "delete": {
-        "tags": [
-          "V2 Coupons"
-        ],
+        "tags": ["V2 Coupons"],
         "summary": "Delete a V2 coupon",
         "description": "Soft-deletes a coupon so it can no longer be redeemed and is hidden from list and detail responses. Coupons that have already been redeemed cannot be deleted; retire them with `redeem_by` or `max_redemptions` instead. Requires a secret key.",
         "parameters": [
@@ -2532,9 +2392,7 @@
     },
     "/v2/promotion-codes/": {
       "get": {
-        "tags": [
-          "V2 Coupons"
-        ],
+        "tags": ["V2 Coupons"],
         "summary": "List V2 promotion codes",
         "description": "Lists promotion codes for the authenticated account. Soft-deleted resources are never returned. Requires a secret key.",
         "parameters": [
@@ -2559,10 +2417,7 @@
             "name": "active",
             "schema": {
               "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ]
+              "enum": ["true", "false"]
             },
             "description": "Filter by the active flag."
           },
@@ -2571,10 +2426,7 @@
             "name": "valid",
             "schema": {
               "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ]
+              "enum": ["true", "false"]
             },
             "description": "Filter by whether the code can currently be redeemed (active, not expired, redemptions left, and coupon valid)."
           },
@@ -2605,9 +2457,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "V2 Coupons"
-        ],
+        "tags": ["V2 Coupons"],
         "summary": "Create a V2 promotion code",
         "description": "Creates a promotion code for a coupon owned by the authenticated account. `code` is normalised to upper case and generated when omitted; it must be unique among active codes for the account. Restrict the code to one customer with either `customer` (id) or `customer_reference`. Requires a secret key.",
         "requestBody": {
@@ -2637,9 +2487,7 @@
     },
     "/v2/promotion-codes/{promotionCodeId}/": {
       "get": {
-        "tags": [
-          "V2 Coupons"
-        ],
+        "tags": ["V2 Coupons"],
         "summary": "Get a V2 promotion code",
         "description": "Returns a single promotion code for the authenticated account. Requires a secret key.",
         "parameters": [
@@ -2662,9 +2510,7 @@
         ]
       },
       "patch": {
-        "tags": [
-          "V2 Coupons"
-        ],
+        "tags": ["V2 Coupons"],
         "summary": "Update a V2 promotion code",
         "description": "Partially updates a promotion code. Send `customer` or `customer_reference` as `null` to remove a customer restriction. Set `active` to `false` to retire a code without deleting it; the code can then be reused by a new promotion code. `id` and `times_redeemed` cannot be changed. Requires a secret key.",
         "parameters": [
@@ -2700,9 +2546,7 @@
         ]
       },
       "delete": {
-        "tags": [
-          "V2 Coupons"
-        ],
+        "tags": ["V2 Coupons"],
         "summary": "Delete a V2 promotion code",
         "description": "Soft-deletes a promotion code, freeing its code for reuse. Promotion codes that have already been redeemed cannot be deleted; set `active` to `false` instead. Requires a secret key.",
         "parameters": [
@@ -2730,9 +2574,7 @@
     },
     "/v2/claim-rules/": {
       "get": {
-        "tags": [
-          "V2 Claims"
-        ],
+        "tags": ["V2 Claims"],
         "summary": "List V2 claim rules",
         "description": "Lists the account's active claim rules, ordered by id. A claim rule sets the due date, final due date, cancellation date, fee and default interest of the bank claims a claim payment method issues. Pass a rule's `id` as `claim_rule_id` to `POST /api/v2/customers/{customerReference}/payment-methods/` (or its PATCH); when `claim_rule_id` is omitted, the first rule in this list is used. This list is exactly the set of rules that endpoint accepts. Requires a secret key: public keys and legacy token authentication are refused.",
         "parameters": [
@@ -2754,9 +2596,7 @@
     },
     "/v2/claim-templates/": {
       "get": {
-        "tags": [
-          "V2 Claims"
-        ],
+        "tags": ["V2 Claims"],
         "summary": "List V2 claim templates",
         "description": "Lists the account's claim templates that a claim payment method can use, ordered by id: active templates the bank has finished setting up (templates still being set up, or that the bank rejected, are left out). A claim template is the claimant kennitala, the bank account the claims are paid into and the claim category. Pass a template's `id` as `claim_template_id` to `POST /api/v2/customers/{customerReference}/payment-methods/` (or its PATCH); when `claim_template_id` is omitted, the first template in this list is used. This list is exactly the set of templates that endpoint accepts. Requires a secret key: public keys and legacy token authentication are refused.",
         "parameters": [
@@ -2837,10 +2677,7 @@
           },
           "billing_type": {
             "type": "string",
-            "enum": [
-              "recurring",
-              "one_time"
-            ]
+            "enum": ["recurring", "one_time"]
           },
           "recurrence_type": {
             "type": "string",
@@ -3115,9 +2952,7 @@
       },
       "V2ContractItemInput": {
         "type": "object",
-        "required": [
-          "price"
-        ],
+        "required": ["price"],
         "properties": {
           "price": {
             "type": "integer"
@@ -3158,9 +2993,7 @@
       },
       "V2BundleItemSelection": {
         "type": "object",
-        "required": [
-          "bundle_item"
-        ],
+        "required": ["bundle_item"],
         "properties": {
           "bundle_item": {
             "type": "integer"
@@ -3204,9 +3037,7 @@
       },
       "V2AdditionalBundle": {
         "type": "object",
-        "required": [
-          "rule_id"
-        ],
+        "required": ["rule_id"],
         "properties": {
           "rule_id": {
             "type": "integer"
@@ -3382,11 +3213,7 @@
               },
               "duration": {
                 "type": "string",
-                "enum": [
-                  "forever",
-                  "once",
-                  "repeating"
-                ]
+                "enum": ["forever", "once", "repeating"]
               },
               "duration_in_months": {
                 "type": "integer",
@@ -3496,12 +3323,7 @@
               },
               "state": {
                 "type": "string",
-                "enum": [
-                  "inactive",
-                  "active",
-                  "paused",
-                  "canceled"
-                ],
+                "enum": ["inactive", "active", "paused", "canceled"],
                 "default": "inactive"
               },
               "billing_anchor_at": {
@@ -3538,20 +3360,13 @@
               },
               "initial_billing_mode": {
                 "type": "string",
-                "enum": [
-                  "none",
-                  "create_initial_run",
-                  "next_invoice"
-                ],
+                "enum": ["none", "create_initial_run", "next_invoice"],
                 "default": "none",
                 "description": "`none` creates recurring schedules without a first-period billing artifact. `create_initial_run` creates a scheduled initial BillingRun with first-period recurring lines and one-time initial items. `next_invoice` creates pending first-period recurring proration lines for the first scheduled invoice."
               },
               "service_entitlement_policy": {
                 "type": "string",
-                "enum": [
-                  "on_run_created",
-                  "on_run_succeeded"
-                ],
+                "enum": ["on_run_created", "on_run_succeeded"],
                 "description": "When the contract's items get access to a billing period. `on_run_created` grants it when the period's billing run is created, before it is paid; `on_run_succeeded` grants it once the run is paid. Optional; defaults to the account's setting (dashboard billing settings, `on_run_succeeded` unless changed). A failed payment does not take back a period already granted. The contract must still be active for its items to have access."
               }
             }
@@ -3586,10 +3401,7 @@
           },
           "service_entitlement_policy": {
             "type": "string",
-            "enum": [
-              "on_run_created",
-              "on_run_succeeded"
-            ],
+            "enum": ["on_run_created", "on_run_succeeded"],
             "description": "When the contract's items get access to a billing period: `on_run_created` when the period's billing run is created, `on_run_succeeded` once it is paid. Applies to billing runs created from now on; a run already open keeps the policy it was created under, and nothing already granted is recalculated."
           }
         }
@@ -3617,11 +3429,7 @@
           },
           "proration_behavior": {
             "type": "string",
-            "enum": [
-              "none",
-              "create_prorations",
-              "always_invoice"
-            ],
+            "enum": ["none", "create_prorations", "always_invoice"],
             "nullable": true
           },
           "settlement_behavior": {
@@ -3667,11 +3475,7 @@
           },
           "proration_behavior": {
             "type": "string",
-            "enum": [
-              "none",
-              "create_prorations",
-              "always_invoice"
-            ],
+            "enum": ["none", "create_prorations", "always_invoice"],
             "nullable": true
           },
           "settlement_behavior": {
@@ -3700,10 +3504,7 @@
       },
       "V2SubscriptionContractPause": {
         "type": "object",
-        "required": [
-          "start_date",
-          "end_date"
-        ],
+        "required": ["start_date", "end_date"],
         "properties": {
           "start_date": {
             "type": "string",
@@ -3719,11 +3520,7 @@
           },
           "proration_behavior": {
             "type": "string",
-            "enum": [
-              "none",
-              "create_prorations",
-              "always_invoice"
-            ],
+            "enum": ["none", "create_prorations", "always_invoice"],
             "nullable": true
           },
           "settlement_behavior": {
@@ -3764,11 +3561,7 @@
           },
           "proration_behavior": {
             "type": "string",
-            "enum": [
-              "none",
-              "create_prorations",
-              "always_invoice"
-            ],
+            "enum": ["none", "create_prorations", "always_invoice"],
             "nullable": true
           },
           "settlement_behavior": {
@@ -3805,11 +3598,7 @@
           },
           "proration_behavior": {
             "type": "string",
-            "enum": [
-              "none",
-              "create_prorations",
-              "always_invoice"
-            ],
+            "enum": ["none", "create_prorations", "always_invoice"],
             "nullable": true
           },
           "settlement_behavior": {
@@ -3907,10 +3696,7 @@
               },
               "apply_at": {
                 "type": "string",
-                "enum": [
-                  "now",
-                  "period_end"
-                ],
+                "enum": ["now", "period_end"],
                 "default": "now",
                 "description": "Only applies to update_item. `now` changes the item immediately with proration; `period_end` schedules the change for the item's next renewal (cannot be combined with `effective_at`, `settlement_behavior`, `include_pending_adjustments` or `apply_on_payment`)."
               },
@@ -3930,15 +3716,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "price"
-            ],
+            "required": ["price"],
             "properties": {
               "operation": {
                 "type": "string",
-                "enum": [
-                  "add_item"
-                ],
+                "enum": ["add_item"],
                 "default": "add_item"
               },
               "price": {
@@ -3977,15 +3759,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "contract_item"
-            ],
+            "required": ["contract_item"],
             "properties": {
               "operation": {
                 "type": "string",
-                "enum": [
-                  "remove_item"
-                ],
+                "enum": ["remove_item"],
                 "default": "remove_item"
               },
               "contract_item": {
@@ -4009,15 +3787,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "new_billing_anchor_at"
-            ],
+            "required": ["new_billing_anchor_at"],
             "properties": {
               "operation": {
                 "type": "string",
-                "enum": [
-                  "change_anchor"
-                ],
+                "enum": ["change_anchor"],
                 "default": "change_anchor"
               },
               "new_billing_anchor_at": {
@@ -4027,10 +3801,7 @@
               },
               "settlement_behavior": {
                 "type": "string",
-                "enum": [
-                  "next_invoice",
-                  "invoice_now"
-                ],
+                "enum": ["next_invoice", "invoice_now"],
                 "nullable": true,
                 "description": "Defaults to invoice_now with always_invoice proration, otherwise next_invoice. Ignored when proration_behavior is none."
               },
@@ -4052,15 +3823,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "contract_item"
-            ],
+            "required": ["contract_item"],
             "properties": {
               "operation": {
                 "type": "string",
-                "enum": [
-                  "update_item"
-                ],
+                "enum": ["update_item"],
                 "default": "update_item"
               },
               "contract_item": {
@@ -4087,10 +3854,7 @@
               },
               "apply_at": {
                 "type": "string",
-                "enum": [
-                  "now",
-                  "period_end"
-                ],
+                "enum": ["now", "period_end"],
                 "default": "now",
                 "description": "`now` changes the item immediately with proration; `period_end` keeps the current price until the item's current service period ends and applies the change at the next renewal, with no refund or charge now."
               },
@@ -4256,10 +4020,7 @@
           },
           "apply_at": {
             "type": "string",
-            "enum": [
-              "now",
-              "period_end"
-            ],
+            "enum": ["now", "period_end"],
             "description": "update_item only."
           },
           "scheduled_for": {
@@ -4298,12 +4059,7 @@
           },
           "state": {
             "type": "string",
-            "enum": [
-              "pending",
-              "applied",
-              "canceled",
-              "superseded"
-            ],
+            "enum": ["pending", "applied", "canceled", "superseded"],
             "description": "`pending` while it waits for the order before the one it is for; `superseded` when a newer change replaced it."
           },
           "for_order_at": {
@@ -4368,12 +4124,7 @@
           },
           "state": {
             "type": "string",
-            "enum": [
-              "pending",
-              "billed",
-              "canceled",
-              "failed"
-            ],
+            "enum": ["pending", "billed", "canceled", "failed"],
             "description": "`pending` until its order's billing run succeeds (`billed`); `canceled` when removed or when the contract was canceled; `failed` when the order's billing run failed for good (not billed again)."
           },
           "scheduled_for": {
@@ -4470,20 +4221,11 @@
           },
           "operation": {
             "type": "string",
-            "enum": [
-              "update_item",
-              "add_item",
-              "remove_item"
-            ]
+            "enum": ["update_item", "add_item", "remove_item"]
           },
           "state": {
             "type": "string",
-            "enum": [
-              "scheduled",
-              "applied",
-              "canceled",
-              "failed"
-            ]
+            "enum": ["scheduled", "applied", "canceled", "failed"]
           },
           "scheduled_for": {
             "type": "string",
@@ -4659,11 +4401,7 @@
             "properties": {
               "collection_method": {
                 "type": "string",
-                "enum": [
-                  "card",
-                  "claim",
-                  "invoice"
-                ],
+                "enum": ["card", "claim", "invoice"],
                 "default": "card"
               },
               "account_payment_processor": {
@@ -4708,9 +4446,7 @@
       },
       "V2ShippingSelectionInput": {
         "type": "object",
-        "required": [
-          "option"
-        ],
+        "required": ["option"],
         "properties": {
           "option": {
             "type": "integer",
@@ -4745,11 +4481,7 @@
           },
           "handler": {
             "type": "string",
-            "enum": [
-              "dropp",
-              "posturinn",
-              "store_pickup"
-            ]
+            "enum": ["dropp", "posturinn", "store_pickup"]
           },
           "delivery_mode": {
             "type": "string",
@@ -4885,11 +4617,7 @@
             "properties": {
               "collection_method": {
                 "type": "string",
-                "enum": [
-                  "card",
-                  "claim",
-                  "invoice"
-                ],
+                "enum": ["card", "claim", "invoice"],
                 "default": "card"
               },
               "account_payment_processor": {
@@ -4918,18 +4646,11 @@
           },
           "collection_method": {
             "type": "string",
-            "enum": [
-              "card",
-              "claim",
-              "invoice"
-            ]
+            "enum": ["card", "claim", "invoice"]
           },
           "resolution_source": {
             "type": "string",
-            "enum": [
-              "explicit",
-              "eligible"
-            ]
+            "enum": ["explicit", "eligible"]
           },
           "render_mode": {
             "type": "string",
@@ -4958,11 +4679,7 @@
           },
           "registration_mode": {
             "type": "string",
-            "enum": [
-              "card_registration",
-              "claim_setup",
-              "invoice_collection"
-            ]
+            "enum": ["card_registration", "claim_setup", "invoice_collection"]
           },
           "public_registration_config": {
             "type": "object"
@@ -4977,11 +4694,7 @@
           },
           "collection_method": {
             "type": "string",
-            "enum": [
-              "card",
-              "claim",
-              "invoice"
-            ]
+            "enum": ["card", "claim", "invoice"]
           },
           "selected_account_payment_processor_id": {
             "type": "integer",
@@ -5004,9 +4717,7 @@
       },
       "V2CheckoutSessionCreate": {
         "type": "object",
-        "required": [
-          "sales_channel"
-        ],
+        "required": ["sales_channel"],
         "properties": {
           "sales_channel": {
             "type": "string",
@@ -5057,9 +4768,7 @@
       },
       "V2CustomerPortalEntryCreate": {
         "type": "object",
-        "required": [
-          "sales_channel"
-        ],
+        "required": ["sales_channel"],
         "properties": {
           "customer": {
             "type": "integer",
@@ -5116,9 +4825,7 @@
       },
       "V2CustomerPortalSessionCreate": {
         "type": "object",
-        "required": [
-          "sales_channel"
-        ],
+        "required": ["sales_channel"],
         "properties": {
           "customer": {
             "type": "integer",
@@ -5156,10 +4863,7 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": [
-              "session",
-              "handle"
-            ],
+            "enum": ["session", "handle"],
             "description": "`session`: an editing session. `handle`: a read-only handle, exchanged for a session with the email code."
           },
           "token": {
@@ -5228,12 +4932,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "pending",
-              "completed",
-              "expired",
-              "canceled"
-            ],
+            "enum": ["pending", "completed", "expired", "canceled"],
             "description": "`completed` once the session's checkout has been paid (or is awaiting the payment processor); `contract_id` and `initial_billing_run_id` are then set. `expired` is reported once `expires_at` has passed and no payment is in progress. From then on the session's checkout can no longer be finalized or paid again through either finalize endpoint, and a checkout that was still `pending` is canceled. When the session expires, a declined (`failed`) checkout's initial billing run is canceled with its inactive contract, so it is never retried or charged afterwards; look them up through `GET /api/v2/checkouts/{checkout_token}/`. If a seller's manual retry or the payment processor pays that run before then, the checkout and the session complete at once, with the contract. Two purchases are left to the seller although the session reports `expired`: a contract the seller has activated keeps its billing run, and a checkout that was paid but could not be activated (`activation_failure`), or was paid only after its first period had ended (`activation_skipped` on the contract and the run), keeps its paid run and its inactive contract. A session whose checkout or initial billing run is being paid as it expires stays `pending` until that payment completes or fails. So does one whose declined checkout has an earlier charge with an outcome not known yet: automatic retries stop for that run, which waits for the seller to retry it manually or cancel the contract."
           },
           "expires_at": {
@@ -5281,11 +4980,7 @@
         "properties": {
           "collection_method": {
             "type": "string",
-            "enum": [
-              "card",
-              "claim",
-              "invoice"
-            ]
+            "enum": ["card", "claim", "invoice"]
           },
           "claim_rule_id": {
             "type": "integer"
@@ -5346,12 +5041,7 @@
           "funding": {
             "type": "string",
             "nullable": true,
-            "enum": [
-              "credit",
-              "debit",
-              "prepaid",
-              null
-            ],
+            "enum": ["credit", "debit", "prepaid", null],
             "description": "Whether the card is a credit, debit or prepaid card. Only known for processors that report it (Straumur, and Valitor Pay after the card's first successful charge); always `null` for Teya."
           }
         }
@@ -5364,11 +5054,7 @@
           },
           "collection_method": {
             "type": "string",
-            "enum": [
-              "card",
-              "claim",
-              "invoice"
-            ]
+            "enum": ["card", "claim", "invoice"]
           },
           "payment_processor": {
             "type": "string"
@@ -5411,18 +5097,11 @@
       },
       "V2CustomerPaymentMethodCreate": {
         "type": "object",
-        "required": [
-          "collection_method",
-          "account_payment_processor"
-        ],
+        "required": ["collection_method", "account_payment_processor"],
         "properties": {
           "collection_method": {
             "type": "string",
-            "enum": [
-              "card",
-              "claim",
-              "invoice"
-            ]
+            "enum": ["card", "claim", "invoice"]
           },
           "account_payment_processor": {
             "type": "integer",
@@ -5528,9 +5207,7 @@
         "properties": {
           "mode": {
             "type": "string",
-            "enum": [
-              "hosted"
-            ],
+            "enum": ["hosted"],
             "default": "hosted"
           },
           "return_url": {
@@ -5559,12 +5236,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "pending",
-              "succeeded",
-              "failed",
-              "canceled"
-            ]
+            "enum": ["pending", "succeeded", "failed", "canceled"]
           },
           "checkout_token": {
             "type": "string",
@@ -5584,9 +5256,7 @@
           },
           "registration_mode": {
             "type": "string",
-            "enum": [
-              "hosted_card_form"
-            ]
+            "enum": ["hosted_card_form"]
           },
           "temporary_payment_method_token": {
             "type": "string",
@@ -5822,10 +5492,7 @@
         "properties": {
           "input_mode": {
             "type": "string",
-            "enum": [
-              "bundle",
-              "direct_items"
-            ]
+            "enum": ["bundle", "direct_items"]
           },
           "bundle_template_id": {
             "type": "integer",
@@ -5921,11 +5588,7 @@
               },
               "duration": {
                 "type": "string",
-                "enum": [
-                  "forever",
-                  "once",
-                  "repeating"
-                ]
+                "enum": ["forever", "once", "repeating"]
               },
               "duration_in_months": {
                 "type": "integer",
@@ -6185,9 +5848,7 @@
               },
               "status": {
                 "type": "string",
-                "enum": [
-                  "awaiting_payment"
-                ]
+                "enum": ["awaiting_payment"]
               },
               "price_id": {
                 "type": "integer"
@@ -6229,9 +5890,7 @@
               },
               "status": {
                 "type": "string",
-                "enum": [
-                  "awaiting_payment"
-                ]
+                "enum": ["awaiting_payment"]
               },
               "price_id": {
                 "type": "integer"
@@ -6375,13 +6034,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "unpaid",
-              "paid",
-              "cancelled",
-              "invalid",
-              "unknown"
-            ],
+            "enum": ["unpaid", "paid", "cancelled", "invalid", "unknown"],
             "description": "The claim's status at the bank, as Áskell last read it."
           },
           "collection_stage": {
@@ -6512,10 +6165,7 @@
           },
           "category": {
             "type": "string",
-            "enum": [
-              "G8",
-              "37"
-            ],
+            "enum": ["G8", "37"],
             "description": "The claim category: `G8` for subscriptions, `37` for invoices."
           },
           "company_id": {
@@ -6685,9 +6335,7 @@
       },
       "V2BillingRunChangeClaim": {
         "type": "object",
-        "required": [
-          "final_due_date"
-        ],
+        "required": ["final_due_date"],
         "properties": {
           "final_due_date": {
             "type": "string",
@@ -6813,9 +6461,7 @@
       },
       "V2BillingRunRetry": {
         "type": "object",
-        "required": [
-          "reason"
-        ],
+        "required": ["reason"],
         "properties": {
           "reason": {
             "type": "string"
@@ -6953,12 +6599,7 @@
           "handler": {
             "type": "string",
             "description": "The shipping handler the shipment was booked with. Empty when an external fulfillment system shipped the order with a carrier Áskell has no integration for — read `carrier` for the name it reported.",
-            "enum": [
-              "dropp",
-              "posturinn",
-              "store_pickup",
-              ""
-            ]
+            "enum": ["dropp", "posturinn", "store_pickup", ""]
           },
           "carrier": {
             "type": "string",
@@ -7024,12 +6665,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "open",
-              "partially_fulfilled",
-              "fulfilled",
-              "cancelled"
-            ]
+            "enum": ["open", "partially_fulfilled", "fulfilled", "cancelled"]
           },
           "contract_id": {
             "type": "integer"
@@ -7173,12 +6809,7 @@
           },
           "service_state": {
             "type": "string",
-            "enum": [
-              "active",
-              "inactive",
-              "partial",
-              "past_due"
-            ]
+            "enum": ["active", "inactive", "partial", "past_due"]
           },
           "active_service_item_count": {
             "type": "integer"
@@ -7283,12 +6914,7 @@
           },
           "service_state": {
             "type": "string",
-            "enum": [
-              "active",
-              "inactive",
-              "partial",
-              "past_due"
-            ]
+            "enum": ["active", "inactive", "partial", "past_due"]
           },
           "total_active_quantity": {
             "type": "integer"
@@ -7370,17 +6996,11 @@
           },
           "billing_advance_policy": {
             "type": "string",
-            "enum": [
-              "on_run_created",
-              "on_run_succeeded"
-            ]
+            "enum": ["on_run_created", "on_run_succeeded"]
           },
           "service_entitlement_policy": {
             "type": "string",
-            "enum": [
-              "on_run_created",
-              "on_run_succeeded"
-            ],
+            "enum": ["on_run_created", "on_run_succeeded"],
             "description": "When the contract's items get access to a billing period: `on_run_created` when the period's billing run is created, `on_run_succeeded` once it is paid. Set on create (defaulting to the account's setting) and changeable with PATCH."
           },
           "service_active": {
@@ -7388,12 +7008,7 @@
           },
           "service_state": {
             "type": "string",
-            "enum": [
-              "active",
-              "inactive",
-              "partial",
-              "past_due"
-            ]
+            "enum": ["active", "inactive", "partial", "past_due"]
           },
           "active_service_item_count": {
             "type": "integer"
@@ -7620,11 +7235,7 @@
           },
           "duration": {
             "type": "string",
-            "enum": [
-              "forever",
-              "once",
-              "repeating"
-            ]
+            "enum": ["forever", "once", "repeating"]
           },
           "duration_in_months": {
             "type": "integer",
@@ -7696,9 +7307,7 @@
       },
       "V2CouponCreate": {
         "type": "object",
-        "required": [
-          "duration"
-        ],
+        "required": ["duration"],
         "properties": {
           "id": {
             "type": "string",
@@ -7732,11 +7341,7 @@
           },
           "duration": {
             "type": "string",
-            "enum": [
-              "forever",
-              "once",
-              "repeating"
-            ]
+            "enum": ["forever", "once", "repeating"]
           },
           "duration_in_months": {
             "type": "integer",
@@ -7826,11 +7431,7 @@
           },
           "duration": {
             "type": "string",
-            "enum": [
-              "forever",
-              "once",
-              "repeating"
-            ]
+            "enum": ["forever", "once", "repeating"]
           },
           "duration_in_months": {
             "type": "integer",
@@ -7977,9 +7578,7 @@
       },
       "V2PromotionCodeCreate": {
         "type": "object",
-        "required": [
-          "coupon"
-        ],
+        "required": ["coupon"],
         "properties": {
           "id": {
             "type": "string",
@@ -8131,12 +7730,7 @@
         "name": "active",
         "schema": {
           "type": "string",
-          "enum": [
-            "true",
-            "false",
-            "all",
-            "any"
-          ]
+          "enum": ["true", "false", "all", "any"]
         },
         "description": "Filter active resources. Use `all` or `any` to include active and inactive resources."
       },
@@ -8961,9 +8555,7 @@
                 },
                 "code": {
                   "type": "string",
-                  "enum": [
-                    "claim_bank_refused"
-                  ]
+                  "enum": ["claim_bank_refused"]
                 }
               }
             }
@@ -8982,9 +8574,7 @@
                 },
                 "code": {
                   "type": "string",
-                  "enum": [
-                    "bank_connection_unavailable"
-                  ]
+                  "enum": ["bank_connection_unavailable"]
                 }
               }
             }
@@ -9003,9 +8593,7 @@
                 },
                 "code": {
                   "type": "string",
-                  "enum": [
-                    "bank_claims_not_enabled"
-                  ]
+                  "enum": ["bank_claims_not_enabled"]
                 }
               }
             }

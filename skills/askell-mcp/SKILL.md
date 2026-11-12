@@ -27,9 +27,9 @@ Bundled OpenAPI (offline, full 2xx response schemas): resources `askell://spec/v
 
 ## Calling the API
 
-| Intent | Tool |
-|--------|------|
-| GET / HEAD | `askell_call` |
+| Intent                      | Tool            |
+| --------------------------- | --------------- |
+| GET / HEAD                  | `askell_call`   |
 | POST / PUT / PATCH / DELETE | `askell_mutate` |
 
 - `path` — relative to API base (e.g. `/v2/subscription-contracts/` or `/v2/claim-rules/`). Do **not** embed `?query=...` inside `path` — pass query params in `query`.

@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 
-import { spawn } from 'bun';
+import { spawn } from "bun";
 
-import { AskellClient } from '../src/client/askell-client.ts';
-import { loadConfig } from '../src/config.ts';
-import { callTool, McpSession } from './stdio-session.ts';
+import { AskellClient } from "../src/client/askell-client.ts";
+import { loadConfig } from "../src/config.ts";
+import { callTool, McpSession } from "./stdio-session.ts";
 
 const results: Array<{
   name: string;
@@ -20,8 +20,8 @@ function record(
   skipped = false,
 ): void {
   results.push({ name, ok, detail, skipped });
-  const label = skipped ? 'SKIP' : ok ? 'OK' : 'FAIL';
-  console.error(`${label}: ${name}${detail ? ` — ${detail}` : ''}`);
+  const label = skipped ? "SKIP" : ok ? "OK" : "FAIL";
+  console.error(`${label}: ${name}${detail ? ` — ${detail}` : ""}`);
 }
 
 function hmacSecretsRedacted(text: string): boolean {
@@ -34,7 +34,7 @@ function hmacSecretsRedacted(text: string): boolean {
     } catch {
       return false;
     }
-    if (!value.startsWith('<redacted')) {
+    if (!value.startsWith("<redacted")) {
       return false;
     }
   }
@@ -45,7 +45,7 @@ async function readResource(
   session: McpSession,
   uri: string,
 ): Promise<{ text: string; mimeType?: string }> {
-  const response = await session.request('resources/read', { uri });
+  const response = await session.request("resources/read", { uri });
 
   if (response.error) {
     throw new Error(`resources/read ${uri}: ${response.error.message}`);
@@ -53,7 +53,7 @@ async function readResource(
 
   const content = response.result?.contents?.[0];
   return {
-    text: content?.text ?? '',
+    text: content?.text ?? "",
     mimeType: content?.mimeType,
   };
 }
@@ -64,16 +64,16 @@ async function discoverFixtures(client: AskellClient): Promise<{
   billingRunId?: number;
 }> {
   const customerRes = await client.request({
-    method: 'GET',
-    path: '/customers/',
+    method: "GET",
+    path: "/customers/",
     query: { page_size: 1 },
   });
   const customerParsed = JSON.parse(customerRes.text) as { body?: unknown };
   const customers = Array.isArray(customerParsed.body)
     ? customerParsed.body
     : customerParsed.body &&
-        typeof customerParsed.body === 'object' &&
-        'results' in customerParsed.body
+        typeof customerParsed.body === "object" &&
+        "results" in customerParsed.body
       ? (
           customerParsed.body as {
             results: Array<{ customer_reference?: string }>;
@@ -83,31 +83,31 @@ async function discoverFixtures(client: AskellClient): Promise<{
   const customerReference = customers[0]?.customer_reference;
 
   const contractRes = await client.request({
-    method: 'GET',
-    path: '/v2/subscription-contracts/',
+    method: "GET",
+    path: "/v2/subscription-contracts/",
     query: { page_size: 1 },
   });
   const contractParsed = JSON.parse(contractRes.text) as { body?: unknown };
   const contracts = Array.isArray(contractParsed.body)
     ? contractParsed.body
     : contractParsed.body &&
-        typeof contractParsed.body === 'object' &&
-        'results' in contractParsed.body
+        typeof contractParsed.body === "object" &&
+        "results" in contractParsed.body
       ? (contractParsed.body as { results: Array<{ id?: number }> }).results
       : [];
   const contractId = contracts[0]?.id;
 
   const billingRes = await client.request({
-    method: 'GET',
-    path: '/v2/billing-runs/',
+    method: "GET",
+    path: "/v2/billing-runs/",
     query: { page_size: 1 },
   });
   const billingParsed = JSON.parse(billingRes.text) as { body?: unknown };
   const billingRuns = Array.isArray(billingParsed.body)
     ? billingParsed.body
     : billingParsed.body &&
-        typeof billingParsed.body === 'object' &&
-        'results' in billingParsed.body
+        typeof billingParsed.body === "object" &&
+        "results" in billingParsed.body
       ? (billingParsed.body as { results: Array<{ id?: number }> }).results
       : [];
   const billingRunId = billingRuns[0]?.id;
@@ -116,87 +116,87 @@ async function discoverFixtures(client: AskellClient): Promise<{
 }
 
 async function main(): Promise<void> {
-  console.error('askell-mcp integration test');
+  console.error("askell-mcp integration test");
 
   const config = await loadConfig();
   const client = new AskellClient(config);
   const fixtures = await discoverFixtures(client);
 
   const proc = spawn({
-    cmd: ['bun', 'run', 'src/index.ts'],
+    cmd: ["bun", "run", "src/index.ts"],
     cwd: `${import.meta.dir}/..`,
-    stdin: 'pipe',
-    stdout: 'pipe',
-    stderr: 'pipe',
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "pipe",
     env: { ...Bun.env },
   });
 
   const session = new McpSession(proc);
 
   try {
-    const init = await session.request('initialize', {
-      protocolVersion: '2024-11-05',
+    const init = await session.request("initialize", {
+      protocolVersion: "2024-11-05",
       capabilities: {},
-      clientInfo: { name: 'askell-mcp-integration', version: '0.0.0' },
+      clientInfo: { name: "askell-mcp-integration", version: "0.0.0" },
     });
     record(
-      'initialize',
-      init.result?.serverInfo?.name === 'askell-mcp' &&
-        (init.result?.instructions?.includes('askell_list_operations') ??
+      "initialize",
+      init.result?.serverInfo?.name === "askell-mcp" &&
+        (init.result?.instructions?.includes("askell_list_operations") ??
           false) &&
-        (init.result?.instructions?.includes('This instance:') ?? false),
+        (init.result?.instructions?.includes("This instance:") ?? false),
       init.result?.serverInfo?.name,
     );
-    session.notify('notifications/initialized');
+    session.notify("notifications/initialized");
 
-    const toolsList = await session.request('tools/list', {});
+    const toolsList = await session.request("tools/list", {});
     const toolNames = new Set(
       toolsList.result?.tools?.map((tool) => tool.name) ?? [],
     );
     const expectedTools = [
-      'askell_list_operations',
-      'askell_describe_operation',
-      'askell_call',
-      'askell_mutate',
-      'askell_paginate_all',
-      'askell_customer_overview',
-      'askell_contract_overview',
-      'askell_billing_run_triage',
-      'askell_list_webhooks',
+      "askell_list_operations",
+      "askell_describe_operation",
+      "askell_call",
+      "askell_mutate",
+      "askell_paginate_all",
+      "askell_customer_overview",
+      "askell_contract_overview",
+      "askell_billing_run_triage",
+      "askell_list_webhooks",
     ];
     const missingTools = expectedTools.filter((name) => !toolNames.has(name));
     record(
-      'tools/list',
+      "tools/list",
       missingTools.length === 0,
       missingTools.length
-        ? `missing: ${missingTools.join(', ')}`
+        ? `missing: ${missingTools.join(", ")}`
         : `${toolNames.size} tools`,
     );
 
-    const resourcesList = await session.request('resources/list', {});
+    const resourcesList = await session.request("resources/list", {});
     const resourceUris = new Set(
       resourcesList.result?.resources?.map((resource) => resource.uri) ?? [],
     );
     const expectedResources = [
-      'askell://spec/v1',
-      'askell://spec/v2',
-      'askell://docs/webhook-events',
+      "askell://spec/v1",
+      "askell://spec/v2",
+      "askell://docs/webhook-events",
     ];
     const missingResources = expectedResources.filter(
       (uri) => !resourceUris.has(uri),
     );
     record(
-      'resources/list',
+      "resources/list",
       missingResources.length === 0,
       missingResources.length
-        ? `missing: ${missingResources.join(', ')}`
+        ? `missing: ${missingResources.join(", ")}`
         : `${resourceUris.size} resources`,
     );
 
     // Discovery tools
-    const listOps = await callTool(session, 'askell_list_operations', {
-      apiVersion: 'v2',
-      search: 'billing-runs',
+    const listOps = await callTool(session, "askell_list_operations", {
+      apiVersion: "v2",
+      search: "billing-runs",
       limit: 5,
     });
     const listOpsParsed = listOps.parsed as {
@@ -204,7 +204,7 @@ async function main(): Promise<void> {
       totalMatched?: number;
     };
     record(
-      'tool:askell_list_operations',
+      "tool:askell_list_operations",
       !listOps.isError &&
         Array.isArray(listOpsParsed?.operations) &&
         (listOpsParsed.operations?.length ?? 0) > 0 &&
@@ -212,45 +212,45 @@ async function main(): Promise<void> {
       `matched=${listOpsParsed?.totalMatched}, structuredContent=${listOps.structuredContent != null}`,
     );
 
-    const describe = await callTool(session, 'askell_describe_operation', {
-      operationId: 'v1:GET:/hello/',
+    const describe = await callTool(session, "askell_describe_operation", {
+      operationId: "v1:GET:/hello/",
     });
     const describeParsed = describe.parsed as {
       path?: string;
       method?: string;
     };
     record(
-      'tool:askell_describe_operation',
+      "tool:askell_describe_operation",
       !describe.isError &&
-        describeParsed?.path === '/hello/' &&
-        describeParsed?.method === 'GET' &&
+        describeParsed?.path === "/hello/" &&
+        describeParsed?.method === "GET" &&
         describe.structuredContent != null,
     );
 
-    const describeRetry = await callTool(session, 'askell_describe_operation', {
-      operationId: 'v2:POST:/v2/billing-runs/{billingRunId}/retry/',
+    const describeRetry = await callTool(session, "askell_describe_operation", {
+      operationId: "v2:POST:/v2/billing-runs/{billingRunId}/retry/",
     });
     const retryParsed = describeRetry.parsed as {
       requestBody?: { schema?: { required?: string[] } };
     };
     record(
-      'tool:askell_describe_operation (retry body)',
+      "tool:askell_describe_operation (retry body)",
       !describeRetry.isError &&
         describeRetry.structuredContent != null &&
-        retryParsed.requestBody?.schema?.required?.includes('reason') === true,
+        retryParsed.requestBody?.schema?.required?.includes("reason") === true,
       describeRetry.isError
         ? describeRetry.text.slice(0, 180)
-        : `required=${retryParsed.requestBody?.schema?.required?.join(',')}`,
+        : `required=${retryParsed.requestBody?.schema?.required?.join(",")}`,
     );
 
     // askell_call GET
-    const hello = await callTool(session, 'askell_call', {
-      method: 'GET',
-      path: '/hello/',
+    const hello = await callTool(session, "askell_call", {
+      method: "GET",
+      path: "/hello/",
     });
     const helloParsed = hello.parsed as { status?: number; body?: unknown };
     record(
-      'tool:askell_call (GET /hello/)',
+      "tool:askell_call (GET /hello/)",
       !hello.isError &&
         helloParsed?.status === 200 &&
         helloParsed?.body != null,
@@ -258,20 +258,20 @@ async function main(): Promise<void> {
     );
 
     // askell_call path normalization
-    const helloNoSlash = await callTool(session, 'askell_call', {
-      method: 'GET',
-      path: '/hello',
+    const helloNoSlash = await callTool(session, "askell_call", {
+      method: "GET",
+      path: "/hello",
     });
     const helloNoSlashParsed = helloNoSlash.parsed as { status?: number };
     record(
-      'tool:askell_call (path normalization)',
+      "tool:askell_call (path normalization)",
       !helloNoSlash.isError && helloNoSlashParsed?.status === 200,
     );
 
     // askell_paginate_all — must return valid JSON
-    const paginate = await callTool(session, 'askell_paginate_all', {
-      path: '/subscriptions/',
-      query: { page_size: 100, type: 'light' },
+    const paginate = await callTool(session, "askell_paginate_all", {
+      path: "/subscriptions/",
+      query: { page_size: 100, type: "light" },
       maxPages: 100,
     });
     const paginateParsed = paginate.parsed as {
@@ -279,7 +279,7 @@ async function main(): Promise<void> {
       body?: unknown[];
     };
     record(
-      'tool:askell_paginate_all',
+      "tool:askell_paginate_all",
       !paginate.isError &&
         paginate.parsed != null &&
         Array.isArray(paginateParsed?.body) &&
@@ -289,12 +289,12 @@ async function main(): Promise<void> {
     );
 
     // askell_list_webhooks
-    const webhooks = await callTool(session, 'askell_list_webhooks', {
+    const webhooks = await callTool(session, "askell_list_webhooks", {
       page_size: 10,
     });
     const webhooksParsed = webhooks.parsed as { ok?: boolean; data?: unknown };
     record(
-      'tool:askell_list_webhooks',
+      "tool:askell_list_webhooks",
       !webhooks.isError &&
         webhooks.parsed != null &&
         hmacSecretsRedacted(webhooks.text),
@@ -303,7 +303,7 @@ async function main(): Promise<void> {
 
     // askell_customer_overview
     if (fixtures.customerReference) {
-      const customer = await callTool(session, 'askell_customer_overview', {
+      const customer = await callTool(session, "askell_customer_overview", {
         customerReference: fixtures.customerReference,
       });
       const customerParsed = customer.parsed as {
@@ -311,19 +311,19 @@ async function main(): Promise<void> {
         subscriptions?: { ok?: boolean };
       };
       record(
-        'tool:askell_customer_overview',
+        "tool:askell_customer_overview",
         !customer.isError &&
           customerParsed?.customer?.ok === true &&
           customerParsed?.subscriptions?.ok === true,
         fixtures.customerReference,
       );
     } else {
-      record('tool:askell_customer_overview', false, 'no fixture customer');
+      record("tool:askell_customer_overview", false, "no fixture customer");
     }
 
     // askell_contract_overview
     if (fixtures.contractId != null) {
-      const contract = await callTool(session, 'askell_contract_overview', {
+      const contract = await callTool(session, "askell_contract_overview", {
         contractId: fixtures.contractId,
         billingRunLimit: 3,
       });
@@ -332,22 +332,22 @@ async function main(): Promise<void> {
         billingRuns?: { ok?: boolean };
       };
       record(
-        'tool:askell_contract_overview',
+        "tool:askell_contract_overview",
         !contract.isError && contractParsed?.contract?.ok === true,
         `contractId=${fixtures.contractId}`,
       );
     } else {
       record(
-        'tool:askell_contract_overview',
+        "tool:askell_contract_overview",
         true,
-        'account has no v2 subscription contracts',
+        "account has no v2 subscription contracts",
         true,
       );
     }
 
     // askell_billing_run_triage
     if (fixtures.billingRunId != null) {
-      const triage = await callTool(session, 'askell_billing_run_triage', {
+      const triage = await callTool(session, "askell_billing_run_triage", {
         billingRunId: fixtures.billingRunId,
         includeContract: true,
       });
@@ -355,15 +355,15 @@ async function main(): Promise<void> {
         billingRun?: { ok?: boolean };
       };
       record(
-        'tool:askell_billing_run_triage',
+        "tool:askell_billing_run_triage",
         !triage.isError && triageParsed?.billingRun?.ok === true,
         `billingRunId=${fixtures.billingRunId}`,
       );
     } else {
       record(
-        'tool:askell_billing_run_triage',
+        "tool:askell_billing_run_triage",
         true,
-        'account has no v2 billing runs',
+        "account has no v2 billing runs",
         true,
       );
     }
@@ -373,30 +373,30 @@ async function main(): Promise<void> {
       try {
         const resource = await readResource(session, uri);
         let ok = resource.text.length > 0;
-        if (uri.endsWith('/v1') || uri.endsWith('/v2')) {
+        if (uri.endsWith("/v1") || uri.endsWith("/v2")) {
           const spec = JSON.parse(resource.text) as { paths?: unknown };
           ok = ok && spec.paths != null;
         }
-        if (uri.includes('webhook-events')) {
-          ok = ok && resource.text.includes('Hook-HMAC');
+        if (uri.includes("webhook-events")) {
+          ok = ok && resource.text.includes("Hook-HMAC");
         }
         record(`resource:${uri}`, ok, `${resource.text.length} chars`);
       } catch (error) {
         record(
           `resource:${uri}`,
           false,
-          error instanceof Error ? error.message : 'read failed',
+          error instanceof Error ? error.message : "read failed",
         );
       }
     }
 
     // askell_describe_operation unknown id
-    const unknownOp = await callTool(session, 'askell_describe_operation', {
-      operationId: 'v99:GET:/nope/',
+    const unknownOp = await callTool(session, "askell_describe_operation", {
+      operationId: "v99:GET:/nope/",
     });
     record(
-      'tool:askell_describe_operation (unknown id)',
-      unknownOp.isError && unknownOp.text.includes('Unknown operationId'),
+      "tool:askell_describe_operation (unknown id)",
+      unknownOp.isError && unknownOp.text.includes("Unknown operationId"),
     );
   } finally {
     await session.close();
@@ -404,24 +404,24 @@ async function main(): Promise<void> {
 
   const failed = results.filter((result) => !result.ok && !result.skipped);
   const skipped = results.filter((result) => result.skipped);
-  console.error('\n--- summary ---');
+  console.error("\n--- summary ---");
   console.error(
     `passed: ${results.length - failed.length - skipped.length}/${results.length} (${skipped.length} skipped)`,
   );
   if (failed.length > 0) {
-    console.error('failed:');
+    console.error("failed:");
     for (const item of failed) {
-      console.error(`  - ${item.name}${item.detail ? `: ${item.detail}` : ''}`);
+      console.error(`  - ${item.name}${item.detail ? `: ${item.detail}` : ""}`);
     }
     process.exit(1);
   }
 
-  console.error('integration test passed');
+  console.error("integration test passed");
 }
 
 main().catch((error) => {
   console.error(
-    'integration test crashed:',
+    "integration test crashed:",
     error instanceof Error ? error.message : error,
   );
   process.exit(1);

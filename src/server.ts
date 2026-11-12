@@ -1,17 +1,17 @@
-import { McpServer } from '@modelcontextprotocol/server';
+import { McpServer } from "@modelcontextprotocol/server";
 
-import { AskellClient } from './client/askell-client.ts';
+import { AskellClient } from "./client/askell-client.ts";
 import {
   PRODUCTION_API_BASE_URL,
   SANDBOX_API_BASE_URL,
   normalizeBaseUrl,
   type AppConfig,
-} from './config.ts';
-import { registerResources } from './resources/register.ts';
-import { registerAnalysisTools } from './tools/analysis.ts';
-import { registerCallTools } from './tools/call.ts';
-import { registerDiscoveryTools } from './tools/discovery.ts';
-import { PACKAGE_VERSION } from './version.ts';
+} from "./config.ts";
+import { registerResources } from "./resources/register.ts";
+import { registerAnalysisTools } from "./tools/analysis.ts";
+import { registerCallTools } from "./tools/call.ts";
+import { registerDiscoveryTools } from "./tools/discovery.ts";
+import { PACKAGE_VERSION } from "./version.ts";
 
 /**
  * Combined array elements and object members allowed in one `tools/call`
@@ -24,7 +24,7 @@ export const MAX_TOOL_INPUT_ELEMENTS = 10_000;
 export function buildServerInstructions(config: AppConfig): string {
   const apiBase = normalizeBaseUrl(config.apiBaseUrl);
   const envLine =
-    config.askellEnv === 'custom'
+    config.askellEnv === "custom"
       ? `This instance: custom API base ${apiBase} (ASKELL_API_BASE_URL override)`
       : `This instance: ${config.askellEnv} (${apiBase})`;
 
@@ -117,7 +117,7 @@ Resources & Skills (SEP-2640, skills/list):
 export function createServer(config: AppConfig): McpServer {
   const server = new McpServer(
     {
-      name: 'askell-mcp',
+      name: "askell-mcp",
       version: PACKAGE_VERSION,
     },
     {

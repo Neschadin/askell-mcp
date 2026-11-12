@@ -1,59 +1,59 @@
-import type { CallToolResult, McpServer } from '@modelcontextprotocol/server';
-import * as z from 'zod';
+import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
+import * as z from "zod";
 
-import { operationRegistry } from '../openapi/registry.ts';
+import { operationRegistry } from "../openapi/registry.ts";
 
 const listInputSchema = z.object({
   apiVersion: z
-    .enum(['v1', 'v2', 'all'])
-    .default('all')
-    .describe('Filter by API version'),
-  tag: z.string().optional().describe('Filter by OpenAPI tag'),
+    .enum(["v1", "v2", "all"])
+    .default("all")
+    .describe("Filter by API version"),
+  tag: z.string().optional().describe("Filter by OpenAPI tag"),
   method: z
-    .enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'])
+    .enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"])
     .optional()
-    .describe('Filter by HTTP method'),
+    .describe("Filter by HTTP method"),
   pathPrefix: z
     .string()
     .optional()
-    .describe('Filter paths starting with this prefix, e.g. /v2/billing-runs/'),
+    .describe("Filter paths starting with this prefix, e.g. /v2/billing-runs/"),
   search: z
     .string()
     .optional()
     .describe(
-      'Case-insensitive search in id, path, summary, description, tags, and error codes',
+      "Case-insensitive search in id, path, summary, description, tags, and error codes",
     ),
   apiKeyKind: z
-    .enum(['secret', 'public', 'none'])
+    .enum(["secret", "public", "none"])
     .optional()
     .describe(
-      'Filter by required API key type. none means the operation does not use an API key',
+      "Filter by required API key type. none means the operation does not use an API key",
     ),
   limit: z
     .int()
     .positive()
     .max(200)
     .default(50)
-    .describe('Maximum number of operations to return'),
+    .describe("Maximum number of operations to return"),
 });
 
 const describeInputSchema = z.object({
   operationId: z
     .string()
     .describe(
-      'Operation id from askell_list_operations, e.g. v2:GET:/v2/billing-runs/',
+      "Operation id from askell_list_operations, e.g. v2:GET:/v2/billing-runs/",
     ),
 });
 
-const apiVersionSchema = z.enum(['v1', 'v2']);
-const apiKeyKindSchema = z.enum(['secret', 'public', 'none']);
+const apiVersionSchema = z.enum(["v1", "v2"]);
+const apiKeyKindSchema = z.enum(["secret", "public", "none"]);
 const httpMethodSchema = z.enum([
-  'GET',
-  'POST',
-  'PUT',
-  'PATCH',
-  'DELETE',
-  'HEAD',
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "HEAD",
 ]);
 
 const operationSummarySchema = z.object({
@@ -76,7 +76,7 @@ const listOperationsOutputSchema = z.object({
 
 const openApiParameterSchema = z.object({
   name: z.string().optional(),
-  in: z.enum(['query', 'path', 'header', 'cookie']).optional(),
+  in: z.enum(["query", "path", "header", "cookie"]).optional(),
   required: z.boolean().optional(),
   description: z.string().optional(),
   schema: z.json().optional(),
@@ -114,11 +114,11 @@ export const operationDetailSchema = z.object({
 
 export function registerDiscoveryTools(server: McpServer): void {
   server.registerTool(
-    'askell_list_operations',
+    "askell_list_operations",
     {
-      title: 'List Askell API operations',
+      title: "List Askell API operations",
       description:
-        'Discover Askell v1 and v2 API operations from bundled OpenAPI specs. Returns operation ids usable with askell_describe_operation. NOTE: results are capped by `limit` (default 50) — always check `totalMatched` in the response, not just the length of `operations`, to know if more results exist.',
+        "Discover Askell v1 and v2 API operations from bundled OpenAPI specs. Returns operation ids usable with askell_describe_operation. NOTE: results are capped by `limit` (default 50) — always check `totalMatched` in the response, not just the length of `operations`, to know if more results exist.",
       inputSchema: listInputSchema,
       outputSchema: listOperationsOutputSchema,
       annotations: {
@@ -149,18 +149,18 @@ export function registerDiscoveryTools(server: McpServer): void {
       };
 
       return {
-        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
         structuredContent: payload,
       };
     },
   );
 
   server.registerTool(
-    'askell_describe_operation',
+    "askell_describe_operation",
     {
-      title: 'Describe Askell API operation',
+      title: "Describe Askell API operation",
       description:
-        'Return full OpenAPI details for one operation: parameters, request body schema, response status descriptions/schema refs/error codes, and auth requirements.',
+        "Return full OpenAPI details for one operation: parameters, request body schema, response status descriptions/schema refs/error codes, and auth requirements.",
       inputSchema: describeInputSchema,
       outputSchema: operationDetailSchema,
       annotations: {
@@ -177,7 +177,7 @@ export function registerDiscoveryTools(server: McpServer): void {
         return {
           content: [
             {
-              type: 'text',
+              type: "text",
               text: `Unknown operationId: ${operationId}. Use askell_list_operations to discover valid ids.`,
             },
           ],
@@ -190,7 +190,7 @@ export function registerDiscoveryTools(server: McpServer): void {
       const payload = operationDetailSchema.parse(operation);
 
       return {
-        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
         structuredContent: payload,
       };
     },

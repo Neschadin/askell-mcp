@@ -3,8 +3,8 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
-      - 'v*.*.*-*'
+      - "v*.*.*"
+      - "v*.*.*-*"
 
 concurrency:
   group: release-${{ github.ref }}
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  BUN_VERSION: '1.4.4'
+  BUN_VERSION: "1.4.4"
 
 jobs:
   validate:
@@ -189,8 +189,8 @@ jobs:
       # Node is only for npm CLI provenance / trusted publishing (needs npm ≥ 11.5.1)
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
       - name: Install dependencies

@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 
-import { AskellClient } from '../src/client/askell-client.ts';
-import { loadConfig, normalizeBaseUrl, type AppConfig } from '../src/config.ts';
+import { AskellClient } from "../src/client/askell-client.ts";
+import { loadConfig, normalizeBaseUrl, type AppConfig } from "../src/config.ts";
 
-const since = new Date('2026-04-10T00:00:00.000Z');
-const until = new Date('2026-07-11T00:00:00.000Z');
+const since = new Date("2026-04-10T00:00:00.000Z");
+const until = new Date("2026-07-11T00:00:00.000Z");
 
 function inRange(iso: string | null | undefined): boolean {
   if (!iso) return false;
@@ -21,7 +21,7 @@ async function fetchRecentSubscriptionCustomerRefs(
     `${baseUrl}/subscriptions/?page_size=100&ordering=-start_date&type=light`;
   const headers = {
     Authorization: `Api-Key ${config.secretApiKey}`,
-    Accept: 'application/json',
+    Accept: "application/json",
   };
 
   while (nextUrl) {
@@ -31,7 +31,11 @@ async function fetchRecentSubscriptionCustomerRefs(
     }
 
     const data = (await response.json()) as
-      | Array<{ customer?: { customer_reference?: string }; reference?: string; start_date?: string }>
+      | Array<{
+          customer?: { customer_reference?: string };
+          reference?: string;
+          start_date?: string;
+        }>
       | {
           results?: Array<{
             customer?: { customer_reference?: string };
@@ -68,7 +72,7 @@ async function earliestSubscriptionStart(
   customerReference: string,
 ): Promise<string | undefined> {
   const response = await client.request({
-    method: 'GET',
+    method: "GET",
     path: `/customers/${encodeURIComponent(customerReference)}/subscriptions/`,
   });
 
@@ -77,8 +81,8 @@ async function earliestSubscriptionStart(
   const subs = Array.isArray(body)
     ? body
     : body &&
-        typeof body === 'object' &&
-        'results' in body &&
+        typeof body === "object" &&
+        "results" in body &&
         Array.isArray((body as { results: unknown[] }).results)
       ? (body as { results: Array<{ start_date?: string }> }).results
       : [];
@@ -113,7 +117,7 @@ for (const ref of [...candidateRefs].sort()) {
   }
 
   const customerRes = await client.request({
-    method: 'GET',
+    method: "GET",
     path: `/customers/${encodeURIComponent(ref)}/`,
   });
   const customer = JSON.parse(customerRes.text).body as {
@@ -124,28 +128,35 @@ for (const ref of [...candidateRefs].sort()) {
   };
 
   const subsRes = await client.request({
-    method: 'GET',
+    method: "GET",
     path: `/customers/${encodeURIComponent(ref)}/subscriptions/`,
   });
   const subsBody = JSON.parse(subsRes.text).body;
   const subs = Array.isArray(subsBody)
     ? subsBody
     : subsBody &&
-        typeof subsBody === 'object' &&
-        'results' in subsBody &&
+        typeof subsBody === "object" &&
+        "results" in subsBody &&
         Array.isArray((subsBody as { results: unknown[] }).results)
-      ? (subsBody as { results: Array<{ start_date?: string; plan?: { name?: string } | number }> }).results
+      ? (
+          subsBody as {
+            results: Array<{
+              start_date?: string;
+              plan?: { name?: string } | number;
+            }>;
+          }
+        ).results
       : [];
   const firstSub = subs.find((sub) => sub.start_date === firstAt) ?? subs[0];
   const plan =
     firstSub &&
-    typeof firstSub === 'object' &&
-    'plan' in firstSub &&
+    typeof firstSub === "object" &&
+    "plan" in firstSub &&
     firstSub.plan &&
-    typeof firstSub.plan === 'object' &&
-    'name' in firstSub.plan
+    typeof firstSub.plan === "object" &&
+    "name" in firstSub.plan
       ? (firstSub.plan as { name?: string }).name
-      : firstSub && typeof firstSub === 'object' && 'plan' in firstSub
+      : firstSub && typeof firstSub === "object" && "plan" in firstSub
         ? (firstSub.plan as string | number | undefined)
         : undefined;
 
@@ -154,11 +165,11 @@ for (const ref of [...candidateRefs].sort()) {
     name:
       [customer.first_name, customer.last_name]
         .filter(Boolean)
-        .join(' ')
+        .join(" ")
         .trim() ||
       customer.last_name ||
       customer.first_name ||
-      '',
+      "",
     email: customer.email ?? null,
     first_subscription_at: firstAt,
     plan,
@@ -174,9 +185,8 @@ customers.sort(
 console.log(
   JSON.stringify(
     {
-      period: '2026-04-10 — 2026-07-10 (last 3 months)',
-      note:
-        'Askell Customer API has no created_at; list uses first subscription start_date as registration proxy',
+      period: "2026-04-10 — 2026-07-10 (last 3 months)",
+      note: "Askell Customer API has no created_at; list uses first subscription start_date as registration proxy",
       count: customers.length,
       customers,
     },

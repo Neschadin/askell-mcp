@@ -15,10 +15,10 @@ Spec and SDK move faster than training data. **Live docs beat memory.** This pro
 
 ## Sources
 
-| What | Index | How to read |
-|---|---|---|
-| Protocol, Inspector, security | https://modelcontextprotocol.io/llms.txt | MCP tools first, then fetch page `.md` URLs |
-| TypeScript SDK v2 (2026-07-28) | https://ts.sdk.modelcontextprotocol.io/v2/llms.txt | Fetch index, then the page's `.md` URL |
+| What                           | Index                                              | How to read                                 |
+| ------------------------------ | -------------------------------------------------- | ------------------------------------------- |
+| Protocol, Inspector, security  | https://modelcontextprotocol.io/llms.txt           | MCP tools first, then fetch page `.md` URLs |
+| TypeScript SDK v2 (2026-07-28) | https://ts.sdk.modelcontextprotocol.io/v2/llms.txt | Fetch index, then the page's `.md` URL      |
 
 Every SDK page is also plain markdown at the same path with `.md` (e.g. [tools](https://ts.sdk.modelcontextprotocol.io/v2/servers/tools.md)). Full dump: https://ts.sdk.modelcontextprotocol.io/v2/llms-full.txt — only if you need many pages at once.
 

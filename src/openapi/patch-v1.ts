@@ -5,10 +5,10 @@
  * Idempotent: safe to run on an already-patched document.
  */
 
-import { isRecord } from '../is-record.ts';
+import { isRecord } from "../is-record.ts";
 
 type JsonSchema = Record<string, unknown>;
-type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
+type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
 
 type OpenApiResponse = {
   description?: string;
@@ -37,39 +37,39 @@ type OpenApiDocument = {
   [key: string]: unknown;
 };
 
-export const ASKELL_V1_PATCH = 'v1-overlay-1';
-export const WEBHOOK_CALLS_TAG = 'Webhook calls';
+export const ASKELL_V1_PATCH = "v1-overlay-1";
+export const WEBHOOK_CALLS_TAG = "Webhook calls";
 
 /** Success bodies missing from swagger `content` (DELETE 204 stays empty). */
 const RESPONSE_BODIES = [
-  ['/customers/', 'post', '201', 'Customer'],
-  ['/customers/{customerReference}/', 'put', '200', 'Customer'],
-  ['/customers/{customerReference}/', 'patch', '200', 'Customer'],
-  ['/webhooks/', 'post', '201', 'Webhook'],
-  ['/webhooks/{id}/', 'patch', '200', 'Webhook'],
+  ["/customers/", "post", "201", "Customer"],
+  ["/customers/{customerReference}/", "put", "200", "Customer"],
+  ["/customers/{customerReference}/", "patch", "200", "Customer"],
+  ["/webhooks/", "post", "201", "Webhook"],
+  ["/webhooks/{id}/", "patch", "200", "Webhook"],
 ] as const satisfies ReadonlyArray<
   readonly [string, HttpMethod, string, string]
 >;
 
-const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head'] as const;
+const HTTP_METHODS = ["get", "post", "put", "patch", "delete", "head"] as const;
 
 const nullableString = (maxLength?: number): JsonSchema => ({
-  type: 'string',
+  type: "string",
   nullable: true,
   ...(maxLength === undefined ? {} : { maxLength }),
 });
 
 /** Flattened + nested address as returned by GET /customers/ and customer.* webhooks. */
 const CUSTOMER_ADDRESS_SCHEMA: JsonSchema = {
-  type: 'object',
+  type: "object",
   required: [
-    'delivery_name',
-    'address_1',
-    'address_2',
-    'address_3',
-    'zip_code',
-    'city',
-    'country',
+    "delivery_name",
+    "address_1",
+    "address_2",
+    "address_3",
+    "zip_code",
+    "city",
+    "country",
   ],
   properties: {
     delivery_name: nullableString(),
@@ -88,31 +88,31 @@ const CUSTOMER_ADDRESS_SCHEMA: JsonSchema = {
  * required numeric id. Keep CustomerCreate as the POST body.
  */
 const CUSTOMER_READ_SCHEMA: JsonSchema = {
-  type: 'object',
+  type: "object",
   required: [
-    'id',
-    'first_name',
-    'last_name',
-    'email',
-    'customer_reference',
-    'phone',
-    'delivery_name',
-    'address_1',
-    'address_2',
-    'address_3',
-    'zip_code',
-    'city',
-    'country',
-    'payment_method',
-    'address',
+    "id",
+    "first_name",
+    "last_name",
+    "email",
+    "customer_reference",
+    "phone",
+    "delivery_name",
+    "address_1",
+    "address_2",
+    "address_3",
+    "zip_code",
+    "city",
+    "country",
+    "payment_method",
+    "address",
   ],
   properties: {
-    id: { type: 'integer', format: 'int64' },
-    first_name: { type: 'string', maxLength: 128 },
-    last_name: { type: 'string', maxLength: 128 },
+    id: { type: "integer", format: "int64" },
+    first_name: { type: "string", maxLength: 128 },
+    last_name: { type: "string", maxLength: 128 },
     email: nullableString(254),
     phone: nullableString(32),
-    customer_reference: { type: 'string', maxLength: 256 },
+    customer_reference: { type: "string", maxLength: 256 },
     delivery_name: nullableString(),
     address_1: nullableString(),
     address_2: nullableString(),
@@ -121,11 +121,11 @@ const CUSTOMER_READ_SCHEMA: JsonSchema = {
     city: nullableString(),
     country: nullableString(),
     payment_method: {
-      type: 'array',
-      items: { $ref: '#/components/schemas/PaymentMethod' },
+      type: "array",
+      items: { $ref: "#/components/schemas/PaymentMethod" },
     },
     address: {
-      allOf: [{ $ref: '#/components/schemas/CustomerAddress' }],
+      allOf: [{ $ref: "#/components/schemas/CustomerAddress" }],
       nullable: true,
     },
   },
@@ -179,13 +179,13 @@ function ensureResponseBody(
     throw new Error(`Askell spec missing ${label}`);
   }
 
-  if (response.content?.['application/json']?.schema) {
+  if (response.content?.["application/json"]?.schema) {
     return;
   }
 
   response.content = {
     ...response.content,
-    'application/json': {
+    "application/json": {
       schema: { $ref: `#/components/schemas/${schemaName}` },
     },
   };
@@ -193,16 +193,16 @@ function ensureResponseBody(
 
 export function patchAskellV1Spec(spec: unknown): OpenApiDocument {
   if (!isRecord(spec)) {
-    throw new Error('Askell v1 spec is not an object');
+    throw new Error("Askell v1 spec is not an object");
   }
 
   const doc = structuredClone(spec) as OpenApiDocument;
   const schemas = doc.components?.schemas;
   if (!schemas?.Customer) {
-    throw new Error('Askell spec missing components.schemas.Customer');
+    throw new Error("Askell spec missing components.schemas.Customer");
   }
   if (!schemas.Webhook) {
-    throw new Error('Askell spec missing components.schemas.Webhook');
+    throw new Error("Askell spec missing components.schemas.Webhook");
   }
 
   dropWebhookCallOperations(doc);
@@ -222,7 +222,7 @@ export function patchAskellV1Spec(spec: unknown): OpenApiDocument {
 
   doc.info = {
     ...doc.info,
-    'x-askell-mcp-patched': ASKELL_V1_PATCH,
+    "x-askell-mcp-patched": ASKELL_V1_PATCH,
   };
 
   return doc;

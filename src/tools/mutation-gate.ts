@@ -1,12 +1,12 @@
 import {
   CLIENT_CAPABILITIES_META_KEY,
   type ClientCapabilities,
-} from '@modelcontextprotocol/server';
+} from "@modelcontextprotocol/server";
 
-import type { MutationGate } from '../config.ts';
-import { isRecord } from '../is-record.ts';
+import type { MutationGate } from "../config.ts";
+import { isRecord } from "../is-record.ts";
 
-export type MutationGateDecision = { action: 'execute' } | { action: 'elicit' };
+export type MutationGateDecision = { action: "execute" } | { action: "elicit" };
 
 /**
  * Per-request client capabilities (protocol 2026-07-28).
@@ -40,7 +40,7 @@ export function clientSupportsFormElicitation(
   if (elicitation.form != null) return true;
 
   const keys = Object.keys(elicitation);
-  if (elicitation.url != null && keys.every((key) => key === 'url'))
+  if (elicitation.url != null && keys.every((key) => key === "url"))
     return false;
 
   return true;
@@ -57,11 +57,11 @@ export function decideMutationGate(options: {
   alreadyConfirmed: boolean;
   supportsFormElicitation: boolean;
 }): MutationGateDecision {
-  if (options.alreadyConfirmed || options.gate === 'off') {
-    return { action: 'execute' };
+  if (options.alreadyConfirmed || options.gate === "off") {
+    return { action: "execute" };
   }
-  if (options.gate === 'elicit' || options.supportsFormElicitation) {
-    return { action: 'elicit' };
+  if (options.gate === "elicit" || options.supportsFormElicitation) {
+    return { action: "elicit" };
   }
-  return { action: 'execute' };
+  return { action: "execute" };
 }

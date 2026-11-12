@@ -1,18 +1,21 @@
 /** OpenAPI `{param}` template vs a concrete request path. Both should be normalized. */
-export function openApiPathMatches(template: string, concrete: string): boolean {
+export function openApiPathMatches(
+  template: string,
+  concrete: string,
+): boolean {
   if (template === concrete) {
     return true;
   }
 
-  const templateParts = template.split('/');
-  const concreteParts = concrete.split('/');
+  const templateParts = template.split("/");
+  const concreteParts = concrete.split("/");
   if (templateParts.length !== concreteParts.length) {
     return false;
   }
 
   return templateParts.every((part, index) => {
-    if (part.startsWith('{') && part.endsWith('}') && part.length > 2) {
-      return concreteParts[index] !== '';
+    if (part.startsWith("{") && part.endsWith("}") && part.length > 2) {
+      return concreteParts[index] !== "";
     }
     return part === concreteParts[index];
   });
@@ -27,26 +30,26 @@ export function openApiPathMatches(template: string, concrete: string): boolean 
 export function normalizeApiPath(rawPath: string): string {
   const trimmed = rawPath.trim();
 
-  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('//')) {
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("//")) {
     throw new Error(
       `Expected an API path relative to apiBaseUrl, got full URL: ${rawPath}`,
     );
   }
 
-  if (trimmed.includes('?') || trimmed.includes('#')) {
+  if (trimmed.includes("?") || trimmed.includes("#")) {
     throw new Error(
       `Pass query parameters in the "query" object rather than inside "path": ${rawPath}`,
     );
   }
 
-  let normalized = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  let normalized = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
 
-  if (normalized === '/api' || normalized.startsWith('/api/')) {
-    normalized = normalized.slice(4) || '/';
+  if (normalized === "/api" || normalized.startsWith("/api/")) {
+    normalized = normalized.slice(4) || "/";
   }
 
-  if (normalized !== '/' && !normalized.endsWith('/')) {
-    normalized += '/';
+  if (normalized !== "/" && !normalized.endsWith("/")) {
+    normalized += "/";
   }
 
   return normalized;

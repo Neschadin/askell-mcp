@@ -5,9 +5,9 @@
  * Q9–Q10 hit the live account and can drift; everything else is spec/discovery.
  */
 
-import { spawn } from 'bun';
+import { spawn } from "bun";
 
-import { callTool, McpSession } from './stdio-session.ts';
+import { callTool, McpSession } from "./stdio-session.ts";
 
 type QaPair = { question: string; expected: string };
 
@@ -29,22 +29,22 @@ function parseEvaluationXml(xml: string): QaPair[] {
 }
 
 const PAGINATION_PARAMS = new Set([
-  'page',
-  'page_size',
-  'cursor',
-  'offset',
-  'limit',
+  "page",
+  "page_size",
+  "cursor",
+  "offset",
+  "limit",
 ]);
 
 function requiredBodyFields(schema: unknown): string[] {
-  if (schema == null || typeof schema !== 'object') {
+  if (schema == null || typeof schema !== "object") {
     return [];
   }
 
   const node = schema as { required?: unknown; allOf?: unknown[] };
   const fromRequired = Array.isArray(node.required)
     ? node.required.filter(
-        (value): value is string => typeof value === 'string',
+        (value): value is string => typeof value === "string",
       )
     : [];
   const fromAllOf = Array.isArray(node.allOf)
@@ -56,13 +56,13 @@ function requiredBodyFields(schema: unknown): string[] {
 
 function planName(sub: Record<string, unknown>): string {
   const plan = sub.plan;
-  if (typeof plan === 'string' || typeof plan === 'number') {
+  if (typeof plan === "string" || typeof plan === "number") {
     return String(plan);
   }
-  if (plan && typeof plan === 'object' && 'name' in plan) {
+  if (plan && typeof plan === "object" && "name" in plan) {
     return String((plan as { name: unknown }).name);
   }
-  return String(sub.name ?? '');
+  return String(sub.name ?? "");
 }
 
 function customerRef(sub: Record<string, unknown>): string {
@@ -70,13 +70,13 @@ function customerRef(sub: Record<string, unknown>): string {
     return String(sub.customer_reference);
   }
   const customer = sub.customer;
-  if (customer && typeof customer === 'object') {
+  if (customer && typeof customer === "object") {
     const nested = customer as Record<string, unknown>;
     return String(
-      nested.customer_reference ?? nested.reference ?? nested.id ?? '',
+      nested.customer_reference ?? nested.reference ?? nested.id ?? "",
     );
   }
-  return String(sub.customer ?? '');
+  return String(sub.customer ?? "");
 }
 
 function inRange(iso: string, start: string, end: string): boolean {
@@ -100,9 +100,9 @@ async function loadSubscriptions(session: McpSession): Promise<{
     return subscriptionCache;
   }
 
-  const result = await callTool(session, 'askell_paginate_all', {
-    path: '/subscriptions/',
-    query: { type: 'light', page_size: 100 },
+  const result = await callTool(session, "askell_paginate_all", {
+    path: "/subscriptions/",
+    query: { type: "light", page_size: 100 },
     maxPages: 100,
   });
 
@@ -131,36 +131,36 @@ const SOLVERS: Solver[] = [
   {
     match: /total number of API operations/i,
     solve: async (session) => {
-      const result = await callTool(session, 'askell_list_operations', {
-        apiVersion: 'all',
+      const result = await callTool(session, "askell_list_operations", {
+        apiVersion: "all",
         limit: 200,
       });
       const payload = (result.structuredContent ?? result.parsed) as {
         totalMatched?: number;
       };
-      return String(payload.totalMatched ?? 'NOT_FOUND');
+      return String(payload.totalMatched ?? "NOT_FOUND");
     },
   },
   {
     match: /require the public API key/i,
     solve: async (session) => {
-      const result = await callTool(session, 'askell_list_operations', {
-        apiVersion: 'all',
-        apiKeyKind: 'public',
+      const result = await callTool(session, "askell_list_operations", {
+        apiVersion: "all",
+        apiKeyKind: "public",
         limit: 200,
       });
       const payload = (result.structuredContent ?? result.parsed) as {
         totalMatched?: number;
       };
-      return String(payload.totalMatched ?? 'NOT_FOUND');
+      return String(payload.totalMatched ?? "NOT_FOUND");
     },
   },
   {
     match: /Create a V2 subscription contract/i,
     solve: async (session) => {
-      const result = await callTool(session, 'askell_list_operations', {
-        apiVersion: 'v2',
-        search: 'Create a V2 subscription contract',
+      const result = await callTool(session, "askell_list_operations", {
+        apiVersion: "v2",
+        search: "Create a V2 subscription contract",
         limit: 20,
       });
       const payload = (result.structuredContent ?? result.parsed) as {
@@ -168,16 +168,16 @@ const SOLVERS: Solver[] = [
       };
       const hit = payload.operations?.find(
         (operation) =>
-          operation.summary === 'Create a V2 subscription contract',
+          operation.summary === "Create a V2 subscription contract",
       );
-      return hit?.id ?? 'NOT_FOUND';
+      return hit?.id ?? "NOT_FOUND";
     },
   },
   {
     match: /retrying a billing run/i,
     solve: async (session) => {
-      const result = await callTool(session, 'askell_describe_operation', {
-        operationId: 'v2:POST:/v2/billing-runs/{billingRunId}/retry/',
+      const result = await callTool(session, "askell_describe_operation", {
+        operationId: "v2:POST:/v2/billing-runs/{billingRunId}/retry/",
       });
       if (result.isError) {
         throw new Error(result.text);
@@ -186,14 +186,14 @@ const SOLVERS: Solver[] = [
         requestBody?: { schema?: unknown };
       };
       const required = requiredBodyFields(payload.requestBody?.schema);
-      return required[0] ?? 'NOT_FOUND';
+      return required[0] ?? "NOT_FOUND";
     },
   },
   {
     match: /OpenAPI tag is the Askell v1/i,
     solve: async (session) => {
-      const result = await callTool(session, 'askell_describe_operation', {
-        operationId: 'v1:GET:/hello/',
+      const result = await callTool(session, "askell_describe_operation", {
+        operationId: "v1:GET:/hello/",
       });
       if (result.isError) {
         throw new Error(result.text);
@@ -201,42 +201,42 @@ const SOLVERS: Solver[] = [
       const payload = (result.structuredContent ?? result.parsed) as {
         tags?: string[];
       };
-      return payload.tags?.[0] ?? 'NOT_FOUND';
+      return payload.tags?.[0] ?? "NOT_FOUND";
     },
   },
   {
     match: /health-check endpoint/i,
     solve: async (session) => {
-      const result = await callTool(session, 'askell_call', {
-        method: 'GET',
-        path: '/hello/',
+      const result = await callTool(session, "askell_call", {
+        method: "GET",
+        path: "/hello/",
       });
       if (result.isError) {
         throw new Error(result.text);
       }
       const parsed = result.parsed as { body?: { status?: string } };
-      return parsed.body?.status ?? 'NOT_FOUND';
+      return parsed.body?.status ?? "NOT_FOUND";
     },
   },
   {
     match: /HMAC using which hash algorithm/i,
     solve: async (session) => {
-      const response = await session.request('resources/read', {
-        uri: 'askell://docs/webhook-events',
+      const response = await session.request("resources/read", {
+        uri: "askell://docs/webhook-events",
       });
       if (response.error) {
-        throw new Error(response.error.message ?? 'resources/read failed');
+        throw new Error(response.error.message ?? "resources/read failed");
       }
-      const text = response.result?.contents?.[0]?.text ?? '';
+      const text = response.result?.contents?.[0]?.text ?? "";
       const match = text.match(/SHA-?(\d+)/i);
-      return match ? `SHA-${match[1]}` : 'NOT_FOUND';
+      return match ? `SHA-${match[1]}` : "NOT_FOUND";
     },
   },
   {
     match: /filtering by customer/i,
     solve: async (session) => {
-      const result = await callTool(session, 'askell_describe_operation', {
-        operationId: 'v2:GET:/v2/subscription-contracts/',
+      const result = await callTool(session, "askell_describe_operation", {
+        operationId: "v2:GET:/v2/subscription-contracts/",
       });
       if (result.isError) {
         throw new Error(result.text);
@@ -247,13 +247,13 @@ const SOLVERS: Solver[] = [
       const names = (payload.parameters ?? [])
         .filter(
           (parameter) =>
-            parameter.in === 'query' &&
+            parameter.in === "query" &&
             parameter.name &&
             !PAGINATION_PARAMS.has(parameter.name) &&
             /customer/i.test(parameter.name),
         )
         .map((parameter) => parameter.name!);
-      return names.join(', ');
+      return names.join(", ");
     },
   },
   {
@@ -270,9 +270,9 @@ const SOLVERS: Solver[] = [
         items
           .filter((sub) =>
             inRange(
-              String(sub.start_date ?? ''),
-              '2026-07-01T00:00:00Z',
-              '2026-08-01T00:00:00Z',
+              String(sub.start_date ?? ""),
+              "2026-07-01T00:00:00Z",
+              "2026-08-01T00:00:00Z",
             ),
           )
           .map(planName)
@@ -303,16 +303,16 @@ const SOLVERS: Solver[] = [
       const counts = new Map<string, number>();
       for (const subs of byCustomer.values()) {
         const first = [...subs].sort((a, b) =>
-          String(a.start_date ?? '').localeCompare(String(b.start_date ?? '')),
+          String(a.start_date ?? "").localeCompare(String(b.start_date ?? "")),
         )[0];
         if (!first) {
           continue;
         }
         if (
           !inRange(
-            String(first.start_date ?? ''),
-            '2026-04-10T00:00:00Z',
-            '2026-07-11T00:00:00Z',
+            String(first.start_date ?? ""),
+            "2026-04-10T00:00:00Z",
+            "2026-07-11T00:00:00Z",
           )
         ) {
           continue;
@@ -324,7 +324,7 @@ const SOLVERS: Solver[] = [
         counts.set(name, (counts.get(name) ?? 0) + 1);
       }
 
-      let best = 'NOT_FOUND';
+      let best = "NOT_FOUND";
       let bestCount = -1;
       for (const [name, count] of counts) {
         if (count > bestCount) {
@@ -338,10 +338,10 @@ const SOLVERS: Solver[] = [
   {
     match: /active coupon discount/i,
     solve: async (session) => {
-      const result = await callTool(session, 'askell_list_operations', {
-        apiVersion: 'v2',
-        pathPrefix: '/v2/subscription-contracts/',
-        search: 'discount',
+      const result = await callTool(session, "askell_list_operations", {
+        apiVersion: "v2",
+        pathPrefix: "/v2/subscription-contracts/",
+        search: "discount",
         limit: 20,
       });
       const payload = (result.structuredContent ?? result.parsed) as {
@@ -349,11 +349,11 @@ const SOLVERS: Solver[] = [
       };
       const hit = payload.operations?.find(
         (operation) =>
-          operation.method === 'GET' &&
-          operation.path.endsWith('/discount/') &&
+          operation.method === "GET" &&
+          operation.path.endsWith("/discount/") &&
           /discount/i.test(operation.summary),
       );
-      return hit?.path ?? 'NOT_FOUND';
+      return hit?.path ?? "NOT_FOUND";
     },
   },
 ];
@@ -382,38 +382,38 @@ async function main(): Promise<void> {
   );
   if (unmatched.length > 0) {
     throw new Error(
-      `solver(s) match no evaluation.xml question: ${unmatched.map((s) => s.match).join(', ')}`,
+      `solver(s) match no evaluation.xml question: ${unmatched.map((s) => s.match).join(", ")}`,
     );
   }
 
   const proc = spawn({
-    cmd: ['bun', 'run', 'src/index.ts'],
+    cmd: ["bun", "run", "src/index.ts"],
     cwd: root,
-    stdin: 'pipe',
-    stdout: 'pipe',
-    stderr: 'pipe',
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "pipe",
     env: { ...Bun.env },
   });
   const session = new McpSession(proc);
 
   try {
-    const init = await session.request('initialize', {
-      protocolVersion: '2024-11-05',
+    const init = await session.request("initialize", {
+      protocolVersion: "2024-11-05",
       capabilities: {},
-      clientInfo: { name: 'askell-eval-tools', version: '0.0.0' },
+      clientInfo: { name: "askell-eval-tools", version: "0.0.0" },
     });
-    if (init.result?.serverInfo?.name !== 'askell-mcp') {
+    if (init.result?.serverInfo?.name !== "askell-mcp") {
       throw new Error(
         `initialize failed: ${init.result?.serverInfo?.name ?? init.error?.message}`,
       );
     }
-    session.notify('notifications/initialized');
+    session.notify("notifications/initialized");
 
     let passed = 0;
     for (let index = 0; index < pairs.length; index++) {
       const pair = pairs[index]!;
       const solver = findSolver(pair.question);
-      const label = `Q${index + 1}${solver.live ? ' (live)' : ''}`;
+      const label = `Q${index + 1}${solver.live ? " (live)" : ""}`;
 
       let actual: string;
       try {
@@ -426,7 +426,7 @@ async function main(): Promise<void> {
       if (ok) {
         passed += 1;
       }
-      const tag = ok ? 'PASS' : 'FAIL';
+      const tag = ok ? "PASS" : "FAIL";
       console.log(
         `${tag} ${label}: got=${JSON.stringify(actual)} expected=${JSON.stringify(pair.expected)}`,
       );

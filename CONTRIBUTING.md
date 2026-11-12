@@ -29,7 +29,12 @@ Checkout without publishing (this repo's Cursor `.cursor/mcp.json` already does 
     },
     "askell-sandbox": {
       "command": "bun",
-      "args": ["--no-env-file", "--env-file=.env.sandbox", "run", "bin/askell-mcp"]
+      "args": [
+        "--no-env-file",
+        "--env-file=.env.sandbox",
+        "run",
+        "bin/askell-mcp"
+      ]
     }
   }
 }

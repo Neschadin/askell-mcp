@@ -1,19 +1,19 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 import {
   InMemoryTransport,
   type JSONRPCMessage,
-} from '@modelcontextprotocol/server';
+} from "@modelcontextprotocol/server";
 
-import { PRODUCTION_API_BASE_URL, type AppConfig } from './config.ts';
-import { loadPublishedSkills } from './skills.ts';
-import { createServer } from './server.ts';
+import { PRODUCTION_API_BASE_URL, type AppConfig } from "./config.ts";
+import { loadPublishedSkills } from "./skills.ts";
+import { createServer } from "./server.ts";
 
 const baseConfig: AppConfig = {
-  askellEnv: 'production',
+  askellEnv: "production",
   apiBaseUrl: PRODUCTION_API_BASE_URL,
-  secretApiKey: 'secret.key',
+  secretApiKey: "secret.key",
   responseMaxBytes: 131_072,
-  mutationGate: 'auto',
+  mutationGate: "auto",
 };
 
 async function rpcRequest(
@@ -36,8 +36,8 @@ async function rpcRequest(
       clientTransport.onmessage = (message) => {
         if (
           message &&
-          typeof message === 'object' &&
-          'id' in message &&
+          typeof message === "object" &&
+          "id" in message &&
           message.id === 1
         ) {
           clearTimeout(timer);
@@ -46,7 +46,7 @@ async function rpcRequest(
       };
       void clientTransport.start().then(() =>
         clientTransport.send({
-          jsonrpc: '2.0',
+          jsonrpc: "2.0",
           id: 1,
           method,
           params,
@@ -54,7 +54,7 @@ async function rpcRequest(
       );
     });
 
-    if (!('result' in response) || response.result == null) {
+    if (!("result" in response) || response.result == null) {
       throw new Error(
         `expected ${method} result, got ${JSON.stringify(response)}`,
       );
@@ -66,26 +66,26 @@ async function rpcRequest(
   }
 }
 
-describe('published skills', () => {
-  test('loads embedded askell-docs and askell-mcp without filesystem dependency', async () => {
-    const result = (await rpcRequest('skills/list', {})) as {
+describe("published skills", () => {
+  test("loads embedded askell-docs and askell-mcp without filesystem dependency", async () => {
+    const result = (await rpcRequest("skills/list", {})) as {
       skills?: Array<{ frontmatter?: { name?: string }; uri?: string }>;
     };
     const names = (result.skills ?? []).map(
-      (entry) => entry.frontmatter?.name ?? '',
+      (entry) => entry.frontmatter?.name ?? "",
     );
-    expect(names.sort()).toEqual(['askell-docs', 'askell-mcp']);
+    expect(names.sort()).toEqual(["askell-docs", "askell-mcp"]);
   });
 
-  test('serves embedded skill markdown over resources/read with latest spec traps', async () => {
-    const read = (await rpcRequest('resources/read', {
-      uri: 'skill://askell-docs/SKILL.md',
+  test("serves embedded skill markdown over resources/read with latest spec traps", async () => {
+    const read = (await rpcRequest("resources/read", {
+      uri: "skill://askell-docs/SKILL.md",
     })) as { contents?: Array<{ text?: string }> };
-    const markdown = read.contents?.[0]?.text ?? '';
+    const markdown = read.contents?.[0]?.text ?? "";
 
-    expect(markdown).toContain('GET /v2/claim-rules/');
-    expect(markdown).toContain('cancel-claim/');
-    expect(markdown).toContain('service_entitlement_policy');
-    expect(markdown).toContain('POST /payments/{uuid}/cancel/');
+    expect(markdown).toContain("GET /v2/claim-rules/");
+    expect(markdown).toContain("cancel-claim/");
+    expect(markdown).toContain("service_entitlement_policy");
+    expect(markdown).toContain("POST /payments/{uuid}/cancel/");
   });
 });

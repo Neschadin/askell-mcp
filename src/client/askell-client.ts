@@ -1,14 +1,14 @@
-import { normalizeBaseUrl, type AppConfig } from '../config.ts';
-import { normalizeApiPath } from './paths.ts';
-import { redactSecretsInText } from './redact.ts';
+import { normalizeBaseUrl, type AppConfig } from "../config.ts";
+import { normalizeApiPath } from "./paths.ts";
+import { redactSecretsInText } from "./redact.ts";
 import {
   buildBoundedListPayload,
   formatApiResponse,
   isMutatingMethod,
   type FormattedResponse,
-} from './response-formatter.ts';
+} from "./response-formatter.ts";
 
-import type { ApiKeyKind } from '../openapi/types.ts';
+import type { ApiKeyKind } from "../openapi/types.ts";
 
 export interface AskellRequest {
   method: string;
@@ -56,21 +56,21 @@ export class AskellClient {
   private authorizationHeader(
     kind: ApiKeyKind | undefined,
   ): Record<string, string> {
-    const apiKeyKind = kind ?? 'secret';
-    if (apiKeyKind === 'none') {
+    const apiKeyKind = kind ?? "secret";
+    if (apiKeyKind === "none") {
       return {};
     }
 
     const apiKey =
-      apiKeyKind === 'public'
+      apiKeyKind === "public"
         ? this.config.publicApiKey
         : this.config.secretApiKey;
 
     if (!apiKey) {
       throw new Error(
-        apiKeyKind === 'public'
-          ? 'publicApiKey is not configured'
-          : 'secretApiKey is not configured',
+        apiKeyKind === "public"
+          ? "publicApiKey is not configured"
+          : "secretApiKey is not configured",
       );
     }
 
@@ -104,10 +104,10 @@ export class AskellClient {
     const response = await fetch(url, {
       method,
       headers: {
-        Accept: 'application/json',
+        Accept: "application/json",
         ...authorization,
         ...(input.body !== undefined
-          ? { 'Content-Type': 'application/json' }
+          ? { "Content-Type": "application/json" }
           : {}),
         ...input.headers,
       },
@@ -164,9 +164,9 @@ export class AskellClient {
       const started = performance.now();
 
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          Accept: 'application/json',
+          Accept: "application/json",
           ...authorization,
         },
         signal: input.signal,
@@ -183,7 +183,7 @@ export class AskellClient {
             bodyText,
             this.config.responseMaxBytes,
             {
-              method: 'GET',
+              method: "GET",
               url: url.toString(),
               durationMs: Math.round(performance.now() - started),
               mutating: false,
@@ -202,7 +202,7 @@ export class AskellClient {
         return {
           text,
           truncated: false,
-          byteLength: Buffer.byteLength(text, 'utf8'),
+          byteLength: Buffer.byteLength(text, "utf8"),
           ok: false,
           status: lastStatus,
         };
@@ -213,8 +213,8 @@ export class AskellClient {
         nextUrl = null;
       } else if (
         parsed &&
-        typeof parsed === 'object' &&
-        'results' in parsed &&
+        typeof parsed === "object" &&
+        "results" in parsed &&
         Array.isArray((parsed as { results: unknown[] }).results)
       ) {
         const pageBody = parsed as {
@@ -234,7 +234,7 @@ export class AskellClient {
             this.config.responseMaxBytes,
             {
               pagesFetched: page,
-              note: 'Response is not a paginated list; returning raw body',
+              note: "Response is not a paginated list; returning raw body",
             },
           ),
           ok: true,

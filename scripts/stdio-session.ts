@@ -1,4 +1,4 @@
-import type { Subprocess } from 'bun';
+import type { Subprocess } from "bun";
 
 export type JsonRpcResponse = {
   result?: {
@@ -19,14 +19,14 @@ export async function readJsonRpcLine(
 ): Promise<unknown> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
-  let buffer = '';
+  let buffer = "";
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
     buffer += decoder.decode(value, { stream: true });
-    const newline = buffer.indexOf('\n');
+    const newline = buffer.indexOf("\n");
     if (newline !== -1) {
       const line = buffer.slice(0, newline).trim();
       reader.releaseLock();
@@ -41,7 +41,7 @@ export async function readJsonRpcLine(
 export class McpSession {
   private nextId = 1;
 
-  constructor(private readonly proc: Subprocess<'pipe', 'pipe', 'pipe'>) {}
+  constructor(private readonly proc: Subprocess<"pipe", "pipe", "pipe">) {}
 
   async request(
     method: string,
@@ -49,14 +49,14 @@ export class McpSession {
   ): Promise<JsonRpcResponse> {
     const id = this.nextId++;
     this.proc.stdin.write(
-      `${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`,
+      `${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`,
     );
     return (await readJsonRpcLine(this.proc.stdout)) as JsonRpcResponse;
   }
 
   notify(method: string, params: unknown = {}): void {
     this.proc.stdin.write(
-      `${JSON.stringify({ jsonrpc: '2.0', method, params })}\n`,
+      `${JSON.stringify({ jsonrpc: "2.0", method, params })}\n`,
     );
   }
 
@@ -76,16 +76,16 @@ export async function callTool(
   parsed?: unknown;
   structuredContent?: unknown;
 }> {
-  const response = await session.request('tools/call', {
+  const response = await session.request("tools/call", {
     name,
     arguments: args,
   });
 
   if (response.error) {
-    throw new Error(`${name}: ${response.error.message ?? 'RPC error'}`);
+    throw new Error(`${name}: ${response.error.message ?? "RPC error"}`);
   }
 
-  const text = response.result?.content?.[0]?.text ?? '';
+  const text = response.result?.content?.[0]?.text ?? "";
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);

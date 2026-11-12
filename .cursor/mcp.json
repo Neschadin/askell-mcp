@@ -8,12 +8,7 @@
     },
     "askell-prod": {
       "command": "bun",
-      "args": [
-        "--no-env-file",
-        "--env-file=.env",
-        "run",
-        "bin/askell-mcp"
-      ]
+      "args": ["--no-env-file", "--env-file=.env", "run", "bin/askell-mcp"]
     },
     "askell-sandbox": {
       "command": "bun",

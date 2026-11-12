@@ -1,59 +1,62 @@
-import * as z from 'zod';
+import * as z from "zod";
 
-export const PRODUCTION_API_BASE_URL = 'https://askell.is/api';
-export const SANDBOX_API_BASE_URL = 'https://sandbox.askell.is/api';
+export const PRODUCTION_API_BASE_URL = "https://askell.is/api";
+export const SANDBOX_API_BASE_URL = "https://sandbox.askell.is/api";
 
-export const ASKELL_ENVS = ['production', 'sandbox'] as const;
+export const ASKELL_ENVS = ["production", "sandbox"] as const;
 export type AskellOfficialEnv = (typeof ASKELL_ENVS)[number];
-export type AskellEnv = AskellOfficialEnv | 'custom';
+export type AskellEnv = AskellOfficialEnv | "custom";
 
 export const ASKELL_API_BASE_URLS = {
   production: PRODUCTION_API_BASE_URL,
   sandbox: SANDBOX_API_BASE_URL,
 } as const satisfies Record<AskellOfficialEnv, string>;
 
-export const MUTATION_GATES = ['auto', 'elicit', 'off'] as const;
+export const MUTATION_GATES = ["auto", "elicit", "off"] as const;
 export type MutationGate = (typeof MUTATION_GATES)[number];
 
 const httpUrl = z
   .url({ protocol: /^https?$/ })
-  .describe('Custom Askell API base URL (local/fork override)');
+  .describe("Custom Askell API base URL (local/fork override)");
 
 const mutationGateAliases = z
-  .enum(['true', 'false', 'on', 'yes', 'no', '1', '0'])
+  .enum(["true", "false", "on", "yes", "no", "1", "0"])
   .transform((value): MutationGate => {
-    return value === 'true' || value === 'on' || value === 'yes' || value === '1'
-      ? 'elicit'
-      : 'off';
+    return value === "true" ||
+      value === "on" ||
+      value === "yes" ||
+      value === "1"
+      ? "elicit"
+      : "off";
   });
 
 export const MutationGateSchema = z
   .union([
     z.enum(MUTATION_GATES),
-    z.boolean().transform((value): MutationGate => (value ? 'elicit' : 'off')),
+    z.boolean().transform((value): MutationGate => (value ? "elicit" : "off")),
     mutationGateAliases,
   ])
-  .default('auto')
+  .default("auto")
   .describe(
-    'Mutation confirmation: auto (elicit if client declared it), elicit (require form), off (never)',
+    "Mutation confirmation: auto (elicit if client declared it), elicit (require form), off (never)",
   );
 
 export const AskellEnvSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .transform((value) => (value === 'prod' ? 'production' : value))
+  .transform((value) => (value === "prod" ? "production" : value))
   .pipe(z.enum(ASKELL_ENVS));
 
 export function classifyAskellHost(apiBaseUrl: string): AskellEnv {
   const normalized = normalizeBaseUrl(apiBaseUrl);
   if (normalized === PRODUCTION_API_BASE_URL) {
-    return 'production';
+    return "production";
   }
   if (normalized === SANDBOX_API_BASE_URL) {
-    return 'sandbox';
+    return "sandbox";
   }
-  return 'custom';
+  return "custom";
 }
 
 export function resolveAskellTarget(input: {
@@ -65,7 +68,7 @@ export function resolveAskellTarget(input: {
     const classified = classifyAskellHost(apiBaseUrl);
 
     if (input.askellEnv !== undefined) {
-      if (classified === 'custom') {
+      if (classified === "custom") {
         throw new Error(
           `ASKELL_ENV=${input.askellEnv} selects an official Askell host; omit ASKELL_ENV when ASKELL_API_BASE_URL is custom (${apiBaseUrl})`,
         );
@@ -80,25 +83,25 @@ export function resolveAskellTarget(input: {
     return { askellEnv: classified, apiBaseUrl };
   }
 
-  const askellEnv = input.askellEnv ?? 'production';
+  const askellEnv = input.askellEnv ?? "production";
   return { askellEnv, apiBaseUrl: ASKELL_API_BASE_URLS[askellEnv] };
 }
 
 const ConfigInputSchema = z.object({
   askellEnv: AskellEnvSchema.optional(),
   apiBaseUrl: httpUrl.optional(),
-  secretApiKey: z.string().min(1).describe('Secret (private) API key'),
+  secretApiKey: z.string().min(1).describe("Secret (private) API key"),
   publicApiKey: z
     .string()
     .min(1)
     .optional()
-    .describe('Public API key for temporary payment method endpoints'),
+    .describe("Public API key for temporary payment method endpoints"),
   responseMaxBytes: z.coerce
     .number()
     .int()
     .positive()
     .default(131_072)
-    .describe('Max response body size returned to the model'),
+    .describe("Max response body size returned to the model"),
   mutationGate: MutationGateSchema,
 });
 
@@ -110,7 +113,7 @@ export const ConfigSchema = ConfigInputSchema.superRefine((value, ctx) => {
     });
   } catch (error) {
     ctx.addIssue({
-      code: 'custom',
+      code: "custom",
       message: error instanceof Error ? error.message : String(error),
     });
   }
@@ -193,5 +196,5 @@ export async function loadConfig(): Promise<AppConfig> {
 }
 
 export function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/+$/, '');
+  return baseUrl.replace(/\/+$/, "");
 }

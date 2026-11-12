@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
 import {
   buildBoundedListPayload,
@@ -6,39 +6,39 @@ import {
   isMutatingMethod,
   limitText,
   truncateUtf8,
-} from './response-formatter.ts';
+} from "./response-formatter.ts";
 
-describe('truncateUtf8', () => {
-  test('returns original when under limit', () => {
-    expect(truncateUtf8('hello', 100)).toBe('hello');
+describe("truncateUtf8", () => {
+  test("returns original when under limit", () => {
+    expect(truncateUtf8("hello", 100)).toBe("hello");
   });
 
-  test('cuts to max bytes without breaking UTF-8 or surrogate pairs', () => {
-    const text = 'áááá'; // 2 bytes each in UTF-8
+  test("cuts to max bytes without breaking UTF-8 or surrogate pairs", () => {
+    const text = "áááá"; // 2 bytes each in UTF-8
     const out = truncateUtf8(text, 3);
-    expect(Buffer.byteLength(out, 'utf8')).toBeLessThanOrEqual(3);
-    expect(out).toBe('á');
+    expect(Buffer.byteLength(out, "utf8")).toBeLessThanOrEqual(3);
+    expect(out).toBe("á");
 
-    const emoji = 'a🚀b'; // 1 + 4 + 1 bytes
-    expect(truncateUtf8(emoji, 3)).toBe('a');
-    expect(truncateUtf8(emoji, 5)).toBe('a🚀');
-    expect(truncateUtf8(emoji, 0)).toBe('');
+    const emoji = "a🚀b"; // 1 + 4 + 1 bytes
+    expect(truncateUtf8(emoji, 3)).toBe("a");
+    expect(truncateUtf8(emoji, 5)).toBe("a🚀");
+    expect(truncateUtf8(emoji, 0)).toBe("");
   });
 });
 
-describe('limitText', () => {
-  test('marks truncation', () => {
-    const result = limitText('abcdefghij', 5);
+describe("limitText", () => {
+  test("marks truncation", () => {
+    const result = limitText("abcdefghij", 5);
     expect(result.truncated).toBe(true);
-    expect(Buffer.byteLength(result.text, 'utf8')).toBeLessThanOrEqual(5);
+    expect(Buffer.byteLength(result.text, "utf8")).toBeLessThanOrEqual(5);
   });
 });
 
-describe('buildBoundedListPayload', () => {
-  test('returns full payload when under maxBytes', () => {
+describe("buildBoundedListPayload", () => {
+  test("returns full payload when under maxBytes", () => {
     const result = buildBoundedListPayload({
       status: 200,
-      meta: { path: '/customers/' },
+      meta: { path: "/customers/" },
       items: [{ id: 1 }, { id: 2 }],
       maxBytes: 64_000,
     });
@@ -52,23 +52,23 @@ describe('buildBoundedListPayload', () => {
     expect(parsed.meta.truncatedByMaxBytes).toBe(false);
   });
 
-  test('truncates large lists to valid JSON under maxBytes', () => {
+  test("truncates large lists to valid JSON under maxBytes", () => {
     const items = Array.from({ length: 200 }, (_, i) => ({
       id: i,
       name: `customer-${i}`,
       email: `user${i}@example.com`,
-      description: 'x'.repeat(80),
+      description: "x".repeat(80),
     }));
 
     const result = buildBoundedListPayload({
       status: 200,
-      meta: { path: '/customers/', pageCount: 5 },
+      meta: { path: "/customers/", pageCount: 5 },
       items,
       maxBytes: 2_000,
     });
 
     expect(result.truncated).toBe(true);
-    expect(Buffer.byteLength(result.text, 'utf8')).toBeLessThanOrEqual(2_000);
+    expect(Buffer.byteLength(result.text, "utf8")).toBeLessThanOrEqual(2_000);
 
     const parsed = JSON.parse(result.text) as {
       meta: {
@@ -85,29 +85,29 @@ describe('buildBoundedListPayload', () => {
     expect(parsed.body.length).toBeLessThan(200);
   });
 
-  test('compacts all rows instead of dropping them when pretty JSON overflows', () => {
+  test("compacts all rows instead of dropping them when pretty JSON overflows", () => {
     const items = Array.from({ length: 80 }, (_, i) => ({
       id: 60_000 + i,
-      start_date: '2026-07-07T12:00:00.825876Z',
+      start_date: "2026-07-07T12:00:00.825876Z",
       plan: {
         id: 1,
-        name: 'Grunnáskrift',
-        description: 'x'.repeat(400),
+        name: "Grunnáskrift",
+        description: "x".repeat(400),
       },
       customer: {
         id: i,
         customer_reference: `cust_${i}`,
         email: `user${i}@example.com`,
       },
-      description: 'y'.repeat(800),
+      description: "y".repeat(800),
       billing_logs: Array.from({ length: 5 }, () => ({
-        note: 'z'.repeat(120),
+        note: "z".repeat(120),
       })),
     }));
 
     const result = buildBoundedListPayload({
       status: 200,
-      meta: { path: '/subscriptions/' },
+      meta: { path: "/subscriptions/" },
       items,
       maxBytes: 12_000,
     });
@@ -120,10 +120,14 @@ describe('buildBoundedListPayload', () => {
         compacted?: boolean;
         compactedMode?: string;
       };
-      body: Array<{ id?: number; plan?: unknown; customer_reference?: unknown }>;
+      body: Array<{
+        id?: number;
+        plan?: unknown;
+        customer_reference?: unknown;
+      }>;
     };
 
-    expect(Buffer.byteLength(result.text, 'utf8')).toBeLessThanOrEqual(12_000);
+    expect(Buffer.byteLength(result.text, "utf8")).toBeLessThanOrEqual(12_000);
     expect(parsed.meta.itemCount).toBe(80);
     expect(parsed.meta.returnedCount).toBe(80);
     expect(parsed.meta.truncatedByMaxBytes).toBe(false);
@@ -131,14 +135,14 @@ describe('buildBoundedListPayload', () => {
     expect(parsed.body).toHaveLength(80);
   });
 
-  test('502 subscription-like rows fit in a 64k budget', () => {
+  test("502 subscription-like rows fit in a 64k budget", () => {
     const items = Array.from({ length: 502 }, (_, i) => ({
       id: 60_000 + i,
-      start_date: '2026-07-07T12:00:00.825876Z',
-      plan: { id: 1, name: i % 3 === 0 ? 'Grunnáskrift' : 'Plús' },
+      start_date: "2026-07-07T12:00:00.825876Z",
+      plan: { id: 1, name: i % 3 === 0 ? "Grunnáskrift" : "Plús" },
       customer: { id: i, customer_reference: `customer-reference-${i}` },
-      description: 'payload'.repeat(80),
-      billing_logs: [{ id: i, amount: 1000, currency: 'ISK' }],
+      description: "payload".repeat(80),
+      billing_logs: [{ id: i, amount: 1000, currency: "ISK" }],
     }));
 
     const result = buildBoundedListPayload({
@@ -158,29 +162,29 @@ describe('buildBoundedListPayload', () => {
       body: unknown[];
     };
 
-    expect(Buffer.byteLength(result.text, 'utf8')).toBeLessThanOrEqual(64_000);
+    expect(Buffer.byteLength(result.text, "utf8")).toBeLessThanOrEqual(64_000);
     expect(parsed.meta.itemCount).toBe(502);
     expect(parsed.meta.returnedCount).toBe(502);
     expect(parsed.meta.truncatedByMaxBytes).toBe(false);
     expect(parsed.body).toHaveLength(502);
   });
 
-  test('summary compact keeps coupon and promotion-code fields', () => {
+  test("summary compact keeps coupon and promotion-code fields", () => {
     const items = Array.from({ length: 30 }, (_, i) => ({
       id: `promo_${i}`,
       code: `SUMMER${i}`,
-      coupon: 'coupon_summer',
+      coupon: "coupon_summer",
       valid: i % 2 === 0,
-      duration: 'once',
+      duration: "once",
       active: true,
-      created_at: '2026-01-01T00:00:00Z',
-      metadata: { blob: 'x'.repeat(800) },
-      restrictions: { minimum_amount: '1000', note: 'y'.repeat(400) },
+      created_at: "2026-01-01T00:00:00Z",
+      metadata: { blob: "x".repeat(800) },
+      restrictions: { minimum_amount: "1000", note: "y".repeat(400) },
     }));
 
     const result = buildBoundedListPayload({
       status: 200,
-      meta: { path: '/v2/promotion-codes/' },
+      meta: { path: "/v2/promotion-codes/" },
       items,
       maxBytes: 8_000,
     });
@@ -200,31 +204,31 @@ describe('buildBoundedListPayload', () => {
     expect(parsed.meta.compacted).toBe(true);
     expect(parsed.body.length).toBeGreaterThan(0);
     expect(parsed.body[0]).toMatchObject({
-      id: 'promo_0',
-      code: 'SUMMER0',
-      coupon: 'coupon_summer',
+      id: "promo_0",
+      code: "SUMMER0",
+      coupon: "coupon_summer",
       valid: true,
-      duration: 'once',
+      duration: "once",
     });
-    expect(parsed.body[0]).not.toHaveProperty('metadata');
-    expect(parsed.body[0]).not.toHaveProperty('restrictions');
+    expect(parsed.body[0]).not.toHaveProperty("metadata");
+    expect(parsed.body[0]).not.toHaveProperty("restrictions");
   });
 
-  test('summary compact keeps partial-refund amounts', () => {
+  test("summary compact keeps partial-refund amounts", () => {
     const items = Array.from({ length: 40 }, (_, i) => ({
       id: i + 1,
-      state: 'succeeded',
-      amount: '5000.00',
-      refunded_amount: '2500.00',
-      refundable_amount: '2500.00',
-      currency: 'ISK',
-      created_at: '2026-01-01T00:00:00Z',
-      lines: [{ description: 'x'.repeat(500) }],
+      state: "succeeded",
+      amount: "5000.00",
+      refunded_amount: "2500.00",
+      refundable_amount: "2500.00",
+      currency: "ISK",
+      created_at: "2026-01-01T00:00:00Z",
+      lines: [{ description: "x".repeat(500) }],
     }));
 
     const result = buildBoundedListPayload({
       status: 200,
-      meta: { path: '/v2/billing-runs/' },
+      meta: { path: "/v2/billing-runs/" },
       items,
       maxBytes: 8_000,
     });
@@ -240,30 +244,30 @@ describe('buildBoundedListPayload', () => {
     };
 
     expect(parsed.meta.compacted).toBe(true);
-    expect(parsed.meta.compactedMode).toBe('summary');
+    expect(parsed.meta.compactedMode).toBe("summary");
     expect(parsed.body[0]).toMatchObject({
-      state: 'succeeded',
-      refunded_amount: '2500.00',
-      refundable_amount: '2500.00',
+      state: "succeeded",
+      refunded_amount: "2500.00",
+      refundable_amount: "2500.00",
     });
-    expect(parsed.body[0]).not.toHaveProperty('lines');
+    expect(parsed.body[0]).not.toHaveProperty("lines");
   });
 
-  test('index compact keeps customer-facing promotion code', () => {
+  test("index compact keeps customer-facing promotion code", () => {
     const items = Array.from({ length: 200 }, (_, i) => ({
       id: `promo_${i}`,
       code: `WINTER${i}`,
-      coupon: 'coupon_winter',
+      coupon: "coupon_winter",
       valid: true,
       active: true,
-      created_at: '2026-01-01T00:00:00Z',
+      created_at: "2026-01-01T00:00:00Z",
       name: `Promo ${i}`,
-      metadata: { blob: 'z'.repeat(200) },
+      metadata: { blob: "z".repeat(200) },
     }));
 
     const result = buildBoundedListPayload({
       status: 200,
-      meta: { path: '/v2/promotion-codes/' },
+      meta: { path: "/v2/promotion-codes/" },
       items,
       maxBytes: 6_000,
     });
@@ -274,32 +278,32 @@ describe('buildBoundedListPayload', () => {
     };
 
     expect(parsed.meta.compacted).toBe(true);
-    expect(parsed.body[0]?.code).toBe('WINTER0');
-    expect(parsed.body[0]?.id).toBe('promo_0');
+    expect(parsed.body[0]?.code).toBe("WINTER0");
+    expect(parsed.body[0]?.id).toBe("promo_0");
   });
 
-  test('summary and index compact keep V2ClaimRule, V2ClaimTemplate, and BillingRun.claim fields', () => {
+  test("summary and index compact keep V2ClaimRule, V2ClaimTemplate, and BillingRun.claim fields", () => {
     const runs = Array.from({ length: 40 }, (_, i) => ({
       id: i + 1,
-      state: 'pending_external',
-      total_amount: '2990.00',
-      currency: 'ISK',
+      state: "pending_external",
+      total_amount: "2990.00",
+      currency: "ISK",
       claim: {
         id: 500 + i,
-        claim_number: '054966000123',
-        state: 'sent_to_bank',
-        status: 'unpaid',
-        due_date: '2026-12-01',
-        final_due_date: '2026-12-15',
-        amount: '2990',
-        payor_id: '0101302989',
+        claim_number: "054966000123",
+        state: "sent_to_bank",
+        status: "unpaid",
+        due_date: "2026-12-01",
+        final_due_date: "2026-12-15",
+        amount: "2990",
+        payor_id: "0101302989",
       },
-      lines: [{ description: 'x'.repeat(600) }],
+      lines: [{ description: "x".repeat(600) }],
     }));
 
     const summaryRes = buildBoundedListPayload({
       status: 200,
-      meta: { path: '/v2/billing-runs/' },
+      meta: { path: "/v2/billing-runs/" },
       items: runs,
       maxBytes: 12_000,
     });
@@ -307,25 +311,25 @@ describe('buildBoundedListPayload', () => {
       meta: { compactedMode?: string };
       body: Array<{ claim?: Record<string, unknown> }>;
     };
-    expect(summaryParsed.meta.compactedMode).toBe('summary');
+    expect(summaryParsed.meta.compactedMode).toBe("summary");
     expect(summaryParsed.body[0]?.claim).toMatchObject({
       id: 500,
-      claim_number: '054966000123',
-      state: 'sent_to_bank',
-      status: 'unpaid',
-      final_due_date: '2026-12-15',
+      claim_number: "054966000123",
+      state: "sent_to_bank",
+      status: "unpaid",
+      final_due_date: "2026-12-15",
     });
 
     const templates = Array.from({ length: 120 }, (_, i) => ({
       id: i + 1,
-      bank_account: `0549-26-510${String(i).padStart(3, '0')}`,
-      category: 'G8',
-      company_id: '5501002290',
-      extra: 'z'.repeat(300),
+      bank_account: `0549-26-510${String(i).padStart(3, "0")}`,
+      category: "G8",
+      company_id: "5501002290",
+      extra: "z".repeat(300),
     }));
     const indexRes = buildBoundedListPayload({
       status: 200,
-      meta: { path: '/v2/claim-templates/' },
+      meta: { path: "/v2/claim-templates/" },
       items: templates,
       maxBytes: 7_500,
     });
@@ -333,26 +337,26 @@ describe('buildBoundedListPayload', () => {
       meta: { compactedMode?: string };
       body: Array<{ id?: number; bank_account?: string; category?: string }>;
     };
-    expect(indexParsed.meta.compactedMode).toBe('index');
+    expect(indexParsed.meta.compactedMode).toBe("index");
     expect(indexParsed.body[0]).toEqual({
       id: 1,
-      bank_account: '0549-26-510000',
-      category: 'G8',
+      bank_account: "0549-26-510000",
+      category: "G8",
     });
   });
 });
 
-describe('formatApiResponse', () => {
-  test('redacts hmac_secret in JSON bodies', () => {
-    const secret = 'live-hmac-secret-value';
+describe("formatApiResponse", () => {
+  test("redacts hmac_secret in JSON bodies", () => {
+    const secret = "live-hmac-secret-value";
     const result = formatApiResponse(
       200,
-      new Headers({ 'content-type': 'application/json' }),
+      new Headers({ "content-type": "application/json" }),
       JSON.stringify([
         {
           id: 1,
-          event: 'payment.*',
-          hmac_digest: 'SHA512',
+          event: "payment.*",
+          hmac_digest: "SHA512",
           hmac_secret: secret,
         },
       ]),
@@ -363,22 +367,18 @@ describe('formatApiResponse', () => {
     const parsed = JSON.parse(result.text) as {
       body: Array<{ hmac_secret: string; hmac_digest: string }>;
     };
-    expect(parsed.body[0]?.hmac_digest).toBe('SHA512');
-    expect(parsed.body[0]?.hmac_secret).toBe(
-      `<redacted len=${secret.length}>`,
-    );
+    expect(parsed.body[0]?.hmac_digest).toBe("SHA512");
+    expect(parsed.body[0]?.hmac_secret).toBe(`<redacted len=${secret.length}>`);
   });
 });
 
-describe('buildBoundedListPayload secrets', () => {
-  test('redacts hmac_secret before compacting', () => {
-    const secret = 'paginate-hmac-secret';
+describe("buildBoundedListPayload secrets", () => {
+  test("redacts hmac_secret before compacting", () => {
+    const secret = "paginate-hmac-secret";
     const result = buildBoundedListPayload({
       status: 200,
-      meta: { path: '/webhooks/' },
-      items: [
-        { id: 1, event: 'checkout.*', hmac_secret: secret, uuid: 'u1' },
-      ],
+      meta: { path: "/webhooks/" },
+      items: [{ id: 1, event: "checkout.*", hmac_secret: secret, uuid: "u1" }],
       maxBytes: 64_000,
     });
 
@@ -386,23 +386,21 @@ describe('buildBoundedListPayload secrets', () => {
     const parsed = JSON.parse(result.text) as {
       body: Array<{ hmac_secret: string }>;
     };
-    expect(parsed.body[0]?.hmac_secret).toBe(
-      `<redacted len=${secret.length}>`,
-    );
+    expect(parsed.body[0]?.hmac_secret).toBe(`<redacted len=${secret.length}>`);
   });
 });
 
-describe('isMutatingMethod', () => {
-  test('GET/HEAD/OPTIONS are read-only', () => {
-    expect(isMutatingMethod('GET')).toBe(false);
-    expect(isMutatingMethod('head')).toBe(false);
-    expect(isMutatingMethod('OPTIONS')).toBe(false);
+describe("isMutatingMethod", () => {
+  test("GET/HEAD/OPTIONS are read-only", () => {
+    expect(isMutatingMethod("GET")).toBe(false);
+    expect(isMutatingMethod("head")).toBe(false);
+    expect(isMutatingMethod("OPTIONS")).toBe(false);
   });
 
-  test('POST/PUT/PATCH/DELETE mutate', () => {
-    expect(isMutatingMethod('POST')).toBe(true);
-    expect(isMutatingMethod('put')).toBe(true);
-    expect(isMutatingMethod('PATCH')).toBe(true);
-    expect(isMutatingMethod('DELETE')).toBe(true);
+  test("POST/PUT/PATCH/DELETE mutate", () => {
+    expect(isMutatingMethod("POST")).toBe(true);
+    expect(isMutatingMethod("put")).toBe(true);
+    expect(isMutatingMethod("PATCH")).toBe(true);
+    expect(isMutatingMethod("DELETE")).toBe(true);
   });
 });

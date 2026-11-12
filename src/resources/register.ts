@@ -1,6 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from "@modelcontextprotocol/server";
 
-import { getBundledSpec } from '../openapi/registry.ts';
+import { getBundledSpec } from "../openapi/registry.ts";
 
 export const WEBHOOK_EVENTS_DOC = `# Askell webhook events (reference)
 
@@ -100,57 +100,58 @@ Register \`fulfillment_order.*\` on \`POST /webhooks/\`. REST backfill: \`GET /v
 
 export function registerResources(server: McpServer): void {
   server.registerResource(
-    'openapi-v1',
-    'askell://spec/v1',
+    "openapi-v1",
+    "askell://spec/v1",
     {
-      title: 'Askell OpenAPI v1',
-      description: 'Bundled OpenAPI 3 spec for Askell API v1',
-      mimeType: 'application/json',
+      title: "Askell OpenAPI v1",
+      description: "Bundled OpenAPI 3 spec for Askell API v1",
+      mimeType: "application/json",
     },
     async () => ({
       contents: [
         {
-          uri: 'askell://spec/v1',
-          mimeType: 'application/json',
-          text: JSON.stringify(getBundledSpec('v1'), null, 2),
+          uri: "askell://spec/v1",
+          mimeType: "application/json",
+          text: JSON.stringify(getBundledSpec("v1"), null, 2),
         },
       ],
     }),
   );
 
   server.registerResource(
-    'openapi-v2',
-    'askell://spec/v2',
+    "openapi-v2",
+    "askell://spec/v2",
     {
-      title: 'Askell OpenAPI v2',
+      title: "Askell OpenAPI v2",
       description:
-        'Bundled OpenAPI 3 spec for Askell Subscription Contracts V2',
-      mimeType: 'application/json',
+        "Bundled OpenAPI 3 spec for Askell Subscription Contracts V2",
+      mimeType: "application/json",
     },
     async () => ({
       contents: [
         {
-          uri: 'askell://spec/v2',
-          mimeType: 'application/json',
-          text: JSON.stringify(getBundledSpec('v2'), null, 2),
+          uri: "askell://spec/v2",
+          mimeType: "application/json",
+          text: JSON.stringify(getBundledSpec("v2"), null, 2),
         },
       ],
     }),
   );
 
   server.registerResource(
-    'webhook-events',
-    'askell://docs/webhook-events',
+    "webhook-events",
+    "askell://docs/webhook-events",
     {
-      title: 'Askell webhook events',
-      description: 'Inbound webhook events, payload shapes, HMAC, and /webhooks/ management',
-      mimeType: 'text/markdown',
+      title: "Askell webhook events",
+      description:
+        "Inbound webhook events, payload shapes, HMAC, and /webhooks/ management",
+      mimeType: "text/markdown",
     },
     async () => ({
       contents: [
         {
-          uri: 'askell://docs/webhook-events',
-          mimeType: 'text/markdown',
+          uri: "askell://docs/webhook-events",
+          mimeType: "text/markdown",
           text: WEBHOOK_EVENTS_DOC,
         },
       ],
