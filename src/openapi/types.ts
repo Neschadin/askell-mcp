@@ -13,6 +13,13 @@ export interface OpenApiParameter {
   $ref?: string;
 }
 
+export interface ApiResponseSummary {
+  description?: string;
+  contentTypes?: string[];
+  schemaRef?: string;
+  errorCodes?: string[];
+}
+
 export interface ApiOperation {
   id: string;
   apiVersion: ApiVersion;
@@ -28,8 +35,15 @@ export interface ApiOperation {
     contentTypes: string[];
     schema?: unknown;
   };
+  responses?: Record<string, ApiResponseSummary>;
   apiKeyKind: ApiKeyKind;
   deprecated?: boolean;
+}
+
+export interface OpenApiResponseObject {
+  $ref?: string;
+  description?: string;
+  content?: Record<string, { schema?: unknown }>;
 }
 
 export interface OpenApiDocument {
@@ -56,6 +70,7 @@ export interface OpenApiDocument {
             description?: string;
             content?: Record<string, { schema?: unknown }>;
           };
+          responses?: Record<string, OpenApiResponseObject>;
           security?: Array<Record<string, unknown[]>>;
         }
       >
@@ -64,6 +79,6 @@ export interface OpenApiDocument {
   components?: {
     parameters?: Record<string, OpenApiParameter>;
     schemas?: Record<string, unknown>;
-    responses?: Record<string, unknown>;
+    responses?: Record<string, OpenApiResponseObject>;
   };
 }

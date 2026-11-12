@@ -35,7 +35,7 @@ function buildConfigFromEnv(): AppConfig {
       : {}),
     secretApiKey,
     publicApiKey,
-    responseMaxBytes: 64_000,
+    responseMaxBytes: 131_072,
     mutationGate: 'auto',
   });
 }

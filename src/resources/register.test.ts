@@ -83,5 +83,9 @@ describe('webhook-events resource', () => {
     expect(WEBHOOK_EVENTS_DOC).not.toContain(
       'do not assume the payload gained them',
     );
+    expect(WEBHOOK_EVENTS_DOC).toContain('cancel-claim/');
+    expect(WEBHOOK_EVENTS_DOC).toContain('claim_cancelled_contract_closed');
+    expect(WEBHOOK_EVENTS_DOC).toContain('POST /payments/{uuid}/cancel/');
+    expect(WEBHOOK_EVENTS_DOC).toContain('service_entitlement_policy');
   });
 });

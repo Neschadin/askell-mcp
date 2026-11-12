@@ -21,7 +21,7 @@ const listInputSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Case-insensitive search in id, path, summary, description, tags',
+      'Case-insensitive search in id, path, summary, description, tags, and error codes',
     ),
   apiKeyKind: z
     .enum(['secret', 'public', 'none'])
@@ -83,6 +83,13 @@ const openApiParameterSchema = z.object({
   $ref: z.string().optional(),
 });
 
+const operationResponseSummarySchema = z.object({
+  description: z.string().optional(),
+  contentTypes: z.array(z.string()).optional(),
+  schemaRef: z.string().optional(),
+  errorCodes: z.array(z.string()).optional(),
+});
+
 export const operationDetailSchema = z.object({
   id: z.string(),
   apiVersion: apiVersionSchema,
@@ -100,6 +107,7 @@ export const operationDetailSchema = z.object({
       schema: z.json().optional(),
     })
     .optional(),
+  responses: z.record(z.string(), operationResponseSummarySchema).optional(),
   apiKeyKind: apiKeyKindSchema,
   deprecated: z.boolean().optional(),
 });
@@ -115,6 +123,8 @@ export function registerDiscoveryTools(server: McpServer): void {
       outputSchema: listOperationsOutputSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
         openWorldHint: false,
       },
     },
@@ -150,11 +160,13 @@ export function registerDiscoveryTools(server: McpServer): void {
     {
       title: 'Describe Askell API operation',
       description:
-        'Return full OpenAPI details for one operation: parameters, request body schema, auth requirements.',
+        'Return full OpenAPI details for one operation: parameters, request body schema, response status descriptions/schema refs/error codes, and auth requirements.',
       inputSchema: describeInputSchema,
       outputSchema: operationDetailSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
         openWorldHint: false,
       },
     },

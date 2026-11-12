@@ -8,7 +8,7 @@ Connect it to Cursor, Claude Desktop, or any MCP client to discover Askell endpo
 
 - An [Askell](https://askell.is) account and **secret API key** (from the Askell dashboard). The **public** key is optional — only temporary payment-method and checkout status endpoints use it
 - One of:
-  - [Bun](https://bun.sh) ≥ 1.4.0 (for `bunx`), or
+  - [Bun](https://bun.sh) ≥ 1.4.4 (for `bunx`), or
   - a prebuilt binary from [Releases](https://github.com/Neschadin/askell-mcp/releases) (no Bun needed)
 
 ## Quick start
@@ -126,7 +126,7 @@ Project `.mcp.json` expands `${VAR}` from the environment of the process that la
 | `ASKELL_PUBLIC_API_KEY`            | no       | —            | Public key for a few checkout/payment endpoints                                     |
 | `ASKELL_ENV`                       | no       | `production` | `production` \| `sandbox` — selects the official API host                           |
 | `ASKELL_API_BASE_URL`              | no       | —            | Custom/local API base only. Do not set together with `ASKELL_ENV` unless it matches |
-| `ASKELL_RESPONSE_MAX_BYTES`        | no       | `64000`      | Max response size returned to the model                                             |
+| `ASKELL_RESPONSE_MAX_BYTES`        | no       | `131072`     | Max response size returned to the model                                             |
 | `ASKELL_MUTATION_GATE`             | no       | `auto`       | `auto` / `elicit` / `off` — see below                                               |
 | `ASKELL_REQUIRE_MUTATION_APPROVAL` | no       | —            | Deprecated alias: `true`→`elicit`, `false`→`off`                                    |
 
@@ -149,17 +149,17 @@ If both `ASKELL_MUTATION_GATE` and `ASKELL_REQUIRE_MUTATION_APPROVAL` are set, `
 
 ### Tools
 
-| Tool                        | Description                                       |
-| --------------------------- | ------------------------------------------------- |
-| `askell_list_operations`    | Search bundled OpenAPI operations                 |
-| `askell_describe_operation` | Params and body schema for one operation          |
-| `askell_call`               | GET/HEAD any v1/v2 endpoint                       |
-| `askell_mutate`             | POST/PUT/PATCH/DELETE any v1/v2 endpoint          |
-| `askell_paginate_all`       | Follow paginated list endpoints                   |
-| `askell_customer_overview`  | v1 customer + subscriptions                       |
-| `askell_contract_overview`  | v2 subscription contract + billing runs           |
-| `askell_billing_run_triage` | v2 billing run (+ optional contract)              |
-| `askell_list_webhooks`      | List configured webhooks (`hmac_secret` redacted) |
+| Tool                        | Description                                                      |
+| --------------------------- | ---------------------------------------------------------------- |
+| `askell_list_operations`    | Search bundled OpenAPI operations (paths, tags, error codes)     |
+| `askell_describe_operation` | Params, body schema, and response/error codes for one operation  |
+| `askell_call`               | GET/HEAD any v1/v2 endpoint                                      |
+| `askell_mutate`             | POST/PUT/PATCH/DELETE any v1/v2 endpoint                         |
+| `askell_paginate_all`       | Follow paginated list endpoints                                  |
+| `askell_customer_overview`  | v1 customer + subscriptions (+ optional v2 contracts)            |
+| `askell_contract_overview`  | v2 subscription contract + billing runs                          |
+| `askell_billing_run_triage` | v2 billing run (+ optional contract)                             |
+| `askell_list_webhooks`      | List configured webhooks (`hmac_secret` redacted)                |
 
 `hmac_secret` is the only field redacted in tool output. Customer-portal sign-in URLs and widget tokens (`POST /v2/customer-portal-entries/`, `POST /v2/customer-portal-sessions/`) are returned in full so the browser can use them. Do not put the widget token in a URL.
 
@@ -170,6 +170,15 @@ If both `ASKELL_MUTATION_GATE` and `ASKELL_REQUIRE_MUTATION_APPROVAL` are set, `
 | `askell://spec/v1`             | OpenAPI v1              |
 | `askell://spec/v2`             | OpenAPI v2              |
 | `askell://docs/webhook-events` | Webhook event reference |
+
+### Skills (SEP-2640)
+
+Clients supporting MCP Skills (`skills/list`, `skills/get`) can load bundled guidance on demand:
+
+| Skill         | Purpose                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------- |
+| `askell-docs` | Live Askell docs workflow and integration traps (claims, coupons, checkouts, webhooks)  |
+| `askell-mcp`  | Tool selection, discovery, read/mutate split, and prod vs sandbox safety                |
 
 Docs: [docs.askell.is](https://docs.askell.is/) · OpenAPI: [v1](https://askell.is/api/swagger/swagger.json) · [v2](https://askell.is/api/swagger/v2/swagger.json)
 

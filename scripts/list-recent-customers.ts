@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { AskellClient } from '../src/client/askell-client.ts';
-import { loadConfig } from '../src/config.ts';
+import { loadConfig, normalizeBaseUrl, type AppConfig } from '../src/config.ts';
 
 const since = new Date('2026-04-10T00:00:00.000Z');
 const until = new Date('2026-07-11T00:00:00.000Z');
@@ -13,12 +13,12 @@ function inRange(iso: string | null | undefined): boolean {
 }
 
 async function fetchRecentSubscriptionCustomerRefs(
-  client: AskellClient,
+  config: AppConfig,
 ): Promise<Set<string>> {
   const refs = new Set<string>();
+  const baseUrl = normalizeBaseUrl(config.apiBaseUrl);
   let nextUrl: string | null =
-    'https://askell.is/api/subscriptions/?page_size=100&ordering=-start_date&type=light';
-  const config = await loadConfig();
+    `${baseUrl}/subscriptions/?page_size=100&ordering=-start_date&type=light`;
   const headers = {
     Authorization: `Api-Key ${config.secretApiKey}`,
     Accept: 'application/json',
@@ -96,7 +96,7 @@ async function earliestSubscriptionStart(
 
 const config = await loadConfig();
 const client = new AskellClient(config);
-const candidateRefs = await fetchRecentSubscriptionCustomerRefs(client);
+const candidateRefs = await fetchRecentSubscriptionCustomerRefs(config);
 
 const customers: Array<{
   customer_reference: string;

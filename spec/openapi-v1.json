@@ -99,7 +99,49 @@
           "Plan"
         ],
         "summary": "Get a list of plans",
-        "description": "Lists all plans. Requires a secret key.",
+        "description": "Lists all plans. Each entry is a plan variant: one price and interval of a plan. Requires a secret key.",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Plan"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/plans/{planId}/": {
+      "get": {
+        "tags": [
+          "Plan"
+        ],
+        "summary": "Get a plan",
+        "description": "Get a plan variant by its id, as listed by `/plans/`. Its `payment_processor` belongs to the plan the variant is part of, and is the same for every variant of that plan. Requires a secret key.",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "path",
+            "description": "Id of the plan variant",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful operation",
@@ -110,6 +152,113 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Plan"
+        ],
+        "summary": "Update a plan",
+        "description": "Update a plan variant. `interval`, `interval_count`, `amount` and `currency` are the variant's own.\n\n`payment_processor` belongs to the plan the variant is part of, so setting it changes it for every variant of that plan. Subscriptions on those variants that have no payment processor of their own bill with it from their next billing. Send the payment processor's id, an object with `id` (the `payment_processor` object a GET returns can be sent back), or `null` to clear it. For a claim processor (`type` `claim`) the object can also carry `claim_rule_id` and `claim_template_id`, the claim rule and claim template the plan's claims are created with: send both, or neither to use the account's default claim rule and template. Setting the processor without them, or setting another processor, clears them. Leave `payment_processor` out to keep it and its claim rule and template as they are. Requires a secret key.\n",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "path",
+            "description": "Id of the plan variant",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plan"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, e.g. a payment processor, claim rule or claim template that is not this account's, or claim ids for a processor that is not a claim processor. Errors are keyed by field, e.g. `{\"payment_processor\": {\"claim_rule_id\": [\"Active claim rule not found for this account.\"]}}`."
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Plan"
+        ],
+        "summary": "Partially update a plan",
+        "description": "Update a plan variant. All fields are optional.\n\n`payment_processor` belongs to the plan the variant is part of, so setting it changes it for every variant of that plan. Subscriptions on those variants that have no payment processor of their own bill with it from their next billing. See the PUT operation for its forms. Leave it out to keep it and its claim rule and template as they are. Requires a secret key.\n",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "path",
+            "description": "Id of the plan variant",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plan"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input. Errors are keyed by field."
+          },
+          "404": {
+            "description": "Not found"
           }
         },
         "security": [
@@ -1967,6 +2116,98 @@
         ]
       }
     },
+    "/payments/{uuid}/cancel/": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "summary": "Cancel an unpaid Payment",
+        "description": "Cancels a Payment that has not been paid. Requires a secret key; no request body.\n\nA Payment billed as a bank claim (created with `payment_options.payment_processor` `claim`) whose claim is in the payer's online bank, unpaid, is cancelled at the bank first, so the claim no longer shows there; the Payment and its transaction then move to `canceled`. Any claim of an earlier transaction of the Payment (an earlier attempt to bill it) still unpaid at the bank is cancelled there too, the latest claim first, and the bank is asked about any claim of the Payment whose arrival there was not confirmed. A Payment with nothing at the bank or with a payment processor is cancelled in Áskell only: one whose charge failed (`failed`), which then is not retried, once any claim of it still unpaid at the bank is cancelled there, or one with no transaction.\n\nA Payment that moves to `canceled` sends the `payment.changed` webhook with `state` `canceled`, as it does when its claim is cancelled from the dashboard or by the bank. Calling this again for a cancelled Payment finishes whatever of its claims is left at the bank: the bank is asked about any claim whose arrival there was not confirmed, and any claim still unpaid there is cancelled. It then answers 200 with the Payment, so the request is safe to repeat. The exceptions keep their codes: 409 `payment_settled` if money was collected for the Payment, and 409 `payment_not_cancellable`, 502, 403 or 503 while one of its claims cannot be finished yet.\n\nErrors are `{\"error\": ..., \"code\": ...}`: **409** `payment_settled` (the Payment has been paid, or paid and refunded) or `payment_not_cancellable` (a card charge in progress, a bank claim that has not been created or sent to the bank yet, a claim whose creation at the bank was not confirmed, which cannot be cancelled through the API (contact Áskell), a claim of a `failed` or `canceled` Payment whose arrival at the bank was not confirmed and that the bank has not yet confirmed it does not have (try again later), or one cancelled at the bank that the Payment has not followed yet, so read it again shortly; `error` says which). `payment_settled` is also the answer when money was collected for a Payment whose state does not say so (a settled transaction, or a claim the bank has as paid), before anything is sent to the bank. A claim found paid while the Payment's claims are being cancelled stops it there with 409 `payment_settled`: a claim the bank cancelled before it stays cancelled, and the Payment may be `canceled` with it, so read it again. A claim the bank has paid before Áskell recorded it is read again first, so the Payment settles and the answer is 409 `payment_settled`; one the bank has cancelled is read again too, so the Payment is cancelled with it, and the answer is 200 once the rest of its claims are finished. **502** `claim_cancel_refused`: the bank did not cancel a claim of the Payment, and `error` gives its reason; that claim is as it was. When the Payment has more than one claim, the others may have been cancelled, and the Payment with them: read it again. Repeating the request later tries that claim again, even when the Payment was cancelled. **403** `bank_claims_not_enabled` or **503** `bank_connection_unavailable`: the bank could not be reached from this server. Usually nothing reached the bank, but the error can also come from reading the claim's status again after the bank accepted the cancellation, so the claim may already be cancelled there: read the Payment again, or repeat the request, which then answers 200 if the claim was cancelled. A 403 without a `code` is the Payment of another account, or a public key.",
+        "responses": {
+          "200": {
+            "description": "The Payment is cancelled (or was already, and no money was collected for it), and whatever of its claims was left at the bank has been finished.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "The bank cancelled the claim, but the Payment has not followed yet: it moves to `canceled` shortly, and `payment.changed` is sent then. Wait for the webhook or read the Payment again; do not treat this as a failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`bank_claims_not_enabled`: bank claims are not enabled for the account on this test server. Usually nothing reached the bank, but if the error came from reading the claim's status again after the bank accepted the cancellation, the claim may already be cancelled there: read the Payment again, or repeat the request, which then answers 200 if the claim was cancelled. Without a `code`: the Payment belongs to another account, or the key is not a secret key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCancelError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "There is no Payment with this uuid."
+          },
+          "409": {
+            "description": "`payment_settled`: the Payment has been paid, or paid and refunded, or money was collected for it although its state does not say so. `payment_not_cancellable`: its charge cannot be stopped (now), or a claim of it cannot be finished at the bank yet; `error` says why. Another claim of the Payment may have been cancelled at the bank, and the Payment with it, before that: read it again, and repeat the request later to finish.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCancelError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "`claim_cancel_refused`: the bank did not cancel a claim of the Payment; `error` gives the bank's reason. That claim is as it was. When the Payment has more than one claim, the others may have been cancelled, and the Payment with them: read it again. Repeating the request later tries that claim again, even when the Payment was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCancelError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`bank_connection_unavailable`: the connection to the bank is unavailable on this server. Usually nothing reached the bank, but if the error came from reading the claim's status again after the bank accepted the cancellation, the claim may already be cancelled there: read the Payment again, or repeat the request in a few minutes, which then answers 200 if the claim was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCancelError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
     "/webhooks/": {
       "get": {
         "tags": [
@@ -2326,6 +2567,8 @@
           },
           "payment_processor": {
             "type": "object",
+            "nullable": true,
+            "description": "The payment processor of the plan the variant is part of, the same for every variant of that plan. Null when the plan has none.",
             "required": [
               "id"
             ],
@@ -2341,8 +2584,81 @@
               "type": {
                 "type": "string",
                 "example": "adyen"
+              },
+              "claim_rule_id": {
+                "type": "integer",
+                "nullable": true,
+                "example": null,
+                "description": "The claim rule the plan's claims are created with. Null unless `type` is `claim` and one is set; then the account's default claim rule is used."
+              },
+              "claim_template_id": {
+                "type": "integer",
+                "nullable": true,
+                "example": null,
+                "description": "The claim template the plan's claims are created with. Null unless `type` is `claim` and one is set; then the account's default claim template is used."
               }
             }
+          }
+        }
+      },
+      "PlanUpdate": {
+        "type": "object",
+        "properties": {
+          "interval": {
+            "type": "string",
+            "example": "month",
+            "description": "day|week|month|year"
+          },
+          "interval_count": {
+            "type": "integer",
+            "example": 1
+          },
+          "amount": {
+            "type": "string",
+            "example": "1990.0000"
+          },
+          "currency": {
+            "type": "string",
+            "example": "ISK"
+          },
+          "payment_processor": {
+            "description": "The payment processor of the plan the variant is part of; setting it changes it for every variant of the plan. An id, an object, or null to clear it. Leave it out to keep it as it is.",
+            "oneOf": [
+              {
+                "type": "integer",
+                "nullable": true,
+                "description": "The payment processor's id, or null to clear it. For a claim processor an id alone clears the plan's claim rule and template, so the account's defaults are used.",
+                "example": 3
+              },
+              {
+                "$ref": "#/components/schemas/PlanPaymentProcessorUpdate"
+              }
+            ]
+          }
+        }
+      },
+      "PlanPaymentProcessorUpdate": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 3,
+            "description": "The payment processor's id. It must be one of this account's payment processors."
+          },
+          "claim_rule_id": {
+            "type": "integer",
+            "nullable": true,
+            "example": 7,
+            "description": "Only for a claim processor, and only with `claim_template_id`: an active claim rule of this account. Leave both out (or null) to use the account's default claim rule and template."
+          },
+          "claim_template_id": {
+            "type": "integer",
+            "nullable": true,
+            "example": 2,
+            "description": "Only for a claim processor, and only with `claim_rule_id`: an active claim template of this account that the bank has registered."
           }
         }
       },
@@ -3120,6 +3436,26 @@
             "type": "string",
             "example": "2500",
             "description": "How much to refund, as a decimal string or a number, in the charge's currency and with no more decimals than the currency has (ISK: whole krónur). Omit it to refund everything left."
+          }
+        }
+      },
+      "PaymentCancelError": {
+        "type": "object",
+        "description": "Why a Payment was not cancelled. `error` is a message in English; `code` is what to act on.",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "The bank did not cancel the claim: The claim has been paid."
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "payment_settled",
+              "payment_not_cancellable",
+              "claim_cancel_refused",
+              "bank_claims_not_enabled",
+              "bank_connection_unavailable"
+            ]
           }
         }
       },

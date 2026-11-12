@@ -20,11 +20,37 @@ export interface AskellRequest {
   signal?: AbortSignal;
 }
 
+function appendQueryParams(url: URL, query?: Record<string, unknown>): void {
+  if (!query) return;
+
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item !== undefined && item !== null) {
+          url.searchParams.append(key, String(item));
+        }
+      }
+      continue;
+    }
+
+    url.searchParams.set(key, String(value));
+  }
+}
+
 export class AskellClient {
   private readonly baseUrl: string;
+  private readonly baseOrigin: string;
+  private readonly baseProtocol: string;
 
   constructor(private readonly config: AppConfig) {
     this.baseUrl = normalizeBaseUrl(config.apiBaseUrl);
+    const parsedBase = new URL(this.baseUrl);
+    this.baseOrigin = parsedBase.origin;
+    this.baseProtocol = parsedBase.protocol;
   }
 
   private authorizationHeader(
@@ -51,29 +77,26 @@ export class AskellClient {
     return { Authorization: `Api-Key ${apiKey}` };
   }
 
+  private resolveSafeNextUrl(next: string): URL {
+    const candidate = new URL(next, `${this.baseUrl}/`);
+    if (
+      candidate.origin !== this.baseOrigin ||
+      candidate.protocol !== this.baseProtocol
+    ) {
+      throw new Error(
+        `Refusing cross-origin or protocol-downgraded pagination URL: ${candidate.origin}`,
+      );
+    }
+    return candidate;
+  }
+
   async request(
     input: AskellRequest,
   ): Promise<FormattedResponse & { ok: boolean; status: number }> {
     const method = input.method.toUpperCase();
     const path = normalizeApiPath(input.path);
     const url = new URL(`${this.baseUrl}${path}`);
-
-    if (input.query) {
-      for (const [key, value] of Object.entries(input.query)) {
-        if (value === undefined || value === null) {
-          continue;
-        }
-
-        if (Array.isArray(value)) {
-          for (const item of value) {
-            url.searchParams.append(key, String(item));
-          }
-          continue;
-        }
-
-        url.searchParams.set(key, String(value));
-      }
-    }
+    appendQueryParams(url, input.query);
 
     const authorization = this.authorizationHeader(input.apiKeyKind);
 
@@ -131,16 +154,7 @@ export class AskellClient {
     const buildInitialUrl = (): URL => {
       const path = normalizeApiPath(input.path);
       const url = new URL(`${this.baseUrl}${path}`);
-
-      if (input.query) {
-        for (const [key, value] of Object.entries(input.query)) {
-          if (value === undefined || value === null) {
-            continue;
-          }
-          url.searchParams.set(key, String(value));
-        }
-      }
-
+      appendQueryParams(url, input.query);
       return url;
     };
 
@@ -208,15 +222,15 @@ export class AskellClient {
           next?: string | null;
         };
         collected.push(...pageBody.results);
-        nextUrl = pageBody.next ? new URL(pageBody.next) : null;
+        nextUrl = pageBody.next ? this.resolveSafeNextUrl(pageBody.next) : null;
       } else {
-        const bodyText = JSON.stringify(parsed, null, 2);
+        const rawBody = JSON.stringify(parsed, null, 2);
 
         return {
           ...formatApiResponse(
             lastStatus,
             response.headers,
-            bodyText,
+            rawBody,
             this.config.responseMaxBytes,
             {
               pagesFetched: page,

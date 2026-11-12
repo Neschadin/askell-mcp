@@ -7,12 +7,12 @@
     "url": "https://github.com/Neschadin/askell-mcp",
     "source": "github"
   },
-  "version": "0.4.27",
+  "version": "0.5.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "askell-mcp",
-      "version": "0.4.27",
+      "version": "0.5.0",
       "runtimeHint": "bunx",
       "runtimeArguments": [
         {
@@ -39,8 +39,20 @@
           "isSecret": true
         },
         {
+          "name": "ASKELL_PUBLIC_API_KEY",
+          "description": "Optional public API key for temporary payment method and v1 checkout status endpoints",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
           "name": "ASKELL_ENV",
           "description": "production (default) or sandbox",
+          "format": "string",
+          "isRequired": false
+        },
+        {
+          "name": "ASKELL_MUTATION_GATE",
+          "description": "Mutation confirmation mode: auto (default), elicit, or off",
           "format": "string",
           "isRequired": false
         }

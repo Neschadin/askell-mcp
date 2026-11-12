@@ -380,16 +380,24 @@ describe('askell_describe_operation payload', () => {
     expect(fields?.properties?.apply_at?.enum).toEqual(['now', 'period_end']);
   });
 
-  test('contract patch schema does not include description-only fields', () => {
+  test('contract patch schema includes service_entitlement_policy and omits description-only fields', () => {
     const spec = getBundledSpec('v2');
     const patch = spec.components?.schemas?.V2SubscriptionContractPatch as {
-      properties?: Record<string, { description?: string; maxLength?: number }>;
+      properties?: Record<
+        string,
+        { description?: string; maxLength?: number; enum?: string[] }
+      >;
     };
     expect(Object.keys(patch.properties ?? {}).sort()).toEqual([
       'metadata',
       'payment_processor_override',
       'reference',
       'sales_channel',
+      'service_entitlement_policy',
+    ]);
+    expect(patch.properties?.service_entitlement_policy?.enum).toEqual([
+      'on_run_created',
+      'on_run_succeeded',
     ]);
     expect(patch.properties).not.toHaveProperty('delivery_address');
     expect(patch.properties).not.toHaveProperty('accounting_department');
@@ -404,6 +412,111 @@ describe('askell_describe_operation payload', () => {
     );
     expect(operation?.description).toMatch(/accounting_department/);
     expect(operation?.description).toMatch(/sales_channel/);
+    expect(operation?.description).toMatch(/service_entitlement_policy/);
+  });
+
+  test('v1 plan get/put/patch, payment cancel, and v2 bank claim operations & responses are registered', () => {
+    expect(operationRegistry.operations.length).toBe(110);
+
+    for (const method of ['GET', 'PUT', 'PATCH'] as const) {
+      const op = operationRegistry.getById(
+        `v1:${method}:/plans/{planId}/`,
+      );
+      expect(op).toMatchObject({
+        method,
+        apiKeyKind: 'secret',
+        tags: ['Plan'],
+      });
+    }
+
+    const planPut = operationRegistry.getById('v1:PUT:/plans/{planId}/');
+    const planPutSchema = planPut?.requestBody?.schema as {
+      properties?: {
+        payment_processor?: { oneOf?: Array<{ properties?: Record<string, unknown> }> };
+      };
+    };
+    const objBranch = planPutSchema.properties?.payment_processor?.oneOf?.find(
+      (branch) => branch.properties && 'claim_rule_id' in branch.properties,
+    );
+    expect(objBranch?.properties).toHaveProperty('claim_rule_id');
+    expect(objBranch?.properties).toHaveProperty('claim_template_id');
+
+    const paymentCancel = operationRegistry.getById(
+      'v1:POST:/payments/{uuid}/cancel/',
+    );
+    expect(paymentCancel).toMatchObject({
+      method: 'POST',
+      apiKeyKind: 'secret',
+      tags: ['Payment'],
+    });
+    expect(paymentCancel?.responses?.['202']?.description).toMatch(
+      /do not treat this as a failure/i,
+    );
+    expect(paymentCancel?.responses?.['409']?.errorCodes).toContain(
+      'payment_settled',
+    );
+    expect(paymentCancel?.responses?.['409']?.errorCodes).toContain(
+      'payment_not_cancellable',
+    );
+    expect(paymentCancel?.responses?.['502']?.errorCodes).toContain(
+      'claim_cancel_refused',
+    );
+
+    expect(
+      operationRegistry.getById('v2:GET:/v2/claim-rules/'),
+    ).toMatchObject({
+      method: 'GET',
+      apiKeyKind: 'secret',
+      tags: ['V2 Claims'],
+    });
+    expect(
+      operationRegistry.getById('v2:GET:/v2/claim-templates/'),
+    ).toMatchObject({
+      method: 'GET',
+      apiKeyKind: 'secret',
+      tags: ['V2 Claims'],
+    });
+
+    const cancelClaim = operationRegistry.getById(
+      'v2:POST:/v2/billing-runs/{billingRunId}/cancel-claim/',
+    );
+    expect(cancelClaim).toMatchObject({
+      method: 'POST',
+      apiKeyKind: 'secret',
+      tags: ['V2 Billing Runs'],
+    });
+    expect(cancelClaim?.responses?.['400']?.errorCodes).toEqual([
+      'billing_run_not_pending',
+      'no_open_claim',
+      'invalid_final_due_date',
+    ]);
+    expect(cancelClaim?.responses?.['502']?.errorCodes).toEqual([
+      'claim_bank_refused',
+    ]);
+
+    const changeClaim = operationRegistry.getById(
+      'v2:POST:/v2/billing-runs/{billingRunId}/change-claim/',
+    );
+    const changeSchema = changeClaim?.requestBody?.schema as {
+      required?: string[];
+    };
+    expect(changeSchema.required).toEqual(['final_due_date']);
+
+    const contractCancel = operationRegistry.getById(
+      'v2:POST:/v2/subscription-contracts/{contractId}/cancel/',
+    );
+    const cancelSchema = contractCancel?.requestBody?.schema as {
+      properties?: Record<string, unknown>;
+    };
+    expect(cancelSchema.properties).toHaveProperty('cancel_open_claims');
+
+    // Error code search works across operations
+    const foundByErrorCode = operationRegistry.find({
+      search: 'claim_cancel_refused',
+    });
+    expect(foundByErrorCode.map((op) => op.id)).toContain(
+      'v1:POST:/payments/{uuid}/cancel/',
+    );
   });
 
   test('portal, one-off purchases, and scheduled-change operations', () => {

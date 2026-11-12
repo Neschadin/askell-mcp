@@ -26,6 +26,31 @@ describe('summarizeApiFailure', () => {
       'HTTP 500',
     );
   });
+
+  test('formats Askell {error, code} envelopes even when numeric metadata is present', () => {
+    expect(
+      summarizeApiFailure(400, {
+        error: 'This subscription is managed by contract 123.',
+        code: 'subscription_managed_by_contract',
+        migrated_to_contract_id: 123,
+        v2_endpoint: '/api/v2/subscription-contracts/123/cancel/',
+      }),
+    ).toBe(
+      'HTTP 400: [subscription_managed_by_contract] This subscription is managed by contract 123.',
+    );
+  });
+
+  test('summarizes nested field validation errors such as PlanUpdate.payment_processor', () => {
+    expect(
+      summarizeApiFailure(400, {
+        payment_processor: {
+          claim_rule_id: ['Active claim rule not found for this account.'],
+        },
+      }),
+    ).toBe(
+      'HTTP 400: payment_processor.claim_rule_id: Active claim rule not found for this account.',
+    );
+  });
 });
 
 type Route = { status: number; body: unknown } | Error;
@@ -192,6 +217,33 @@ describe('analysis tool errors', () => {
       ok: false,
       data: null,
       error: 'secretApiKey is not configured',
+    });
+  });
+
+  test('customer overview optionally fetches v2 contracts in parallel', async () => {
+    const result = await callTool(
+      fakeClient({
+        'GET /customers/cust_1/': {
+          status: 200,
+          body: { customer_reference: 'cust_1' },
+        },
+        'GET /customers/cust_1/subscriptions/': {
+          status: 200,
+          body: [],
+        },
+        'GET /v2/subscription-contracts/': {
+          status: 200,
+          body: { results: [{ id: 99, state: 'active' }] },
+        },
+      }),
+      'askell_customer_overview',
+      { customerReference: 'cust_1', includeV2Contracts: true },
+    );
+
+    expect(result.isError).toBe(false);
+    expect(result.body.contracts).toEqual({
+      ok: true,
+      data: { results: [{ id: 99, state: 'active' }] },
     });
   });
 });

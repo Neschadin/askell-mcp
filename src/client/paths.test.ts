@@ -19,6 +19,28 @@ describe('normalizeApiPath', () => {
     expect(normalizeApiPath('/')).toBe('/');
   });
 
+  test('strips redundant leading /api prefix copied from prose docs', () => {
+    expect(normalizeApiPath('/api/v2/claim-rules/')).toBe('/v2/claim-rules/');
+    expect(normalizeApiPath('api/payments/123/cancel')).toBe(
+      '/payments/123/cancel/',
+    );
+    expect(normalizeApiPath('/api')).toBe('/');
+    expect(normalizeApiPath('/api/')).toBe('/');
+  });
+
+  test('rejects full URLs and inline query/hash fragments', () => {
+    expect(() =>
+      normalizeApiPath('https://askell.is/api/v2/claim-rules/'),
+    ).toThrow(/relative to apiBaseUrl/i);
+    expect(() => normalizeApiPath('//evil.example/v2/')).toThrow(
+      /relative to apiBaseUrl/i,
+    );
+    expect(() =>
+      normalizeApiPath('/v2/subscription-contracts/?reference=ord-1'),
+    ).toThrow(/query/i);
+    expect(() => normalizeApiPath('/customers/#section')).toThrow(/query/i);
+  });
+
   test('matches OpenAPI templates to concrete paths', () => {
     expect(
       openApiPathMatches(

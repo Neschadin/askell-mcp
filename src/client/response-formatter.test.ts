@@ -13,11 +13,16 @@ describe('truncateUtf8', () => {
     expect(truncateUtf8('hello', 100)).toBe('hello');
   });
 
-  test('cuts to max bytes without breaking UTF-8', () => {
+  test('cuts to max bytes without breaking UTF-8 or surrogate pairs', () => {
     const text = 'áááá'; // 2 bytes each in UTF-8
     const out = truncateUtf8(text, 3);
     expect(Buffer.byteLength(out, 'utf8')).toBeLessThanOrEqual(3);
     expect(out).toBe('á');
+
+    const emoji = 'a🚀b'; // 1 + 4 + 1 bytes
+    expect(truncateUtf8(emoji, 3)).toBe('a');
+    expect(truncateUtf8(emoji, 5)).toBe('a🚀');
+    expect(truncateUtf8(emoji, 0)).toBe('');
   });
 });
 
@@ -126,7 +131,7 @@ describe('buildBoundedListPayload', () => {
     expect(parsed.body).toHaveLength(80);
   });
 
-  test('502 subscription-like rows fit in the default 64k budget', () => {
+  test('502 subscription-like rows fit in a 64k budget', () => {
     const items = Array.from({ length: 502 }, (_, i) => ({
       id: 60_000 + i,
       start_date: '2026-07-07T12:00:00.825876Z',
@@ -271,6 +276,69 @@ describe('buildBoundedListPayload', () => {
     expect(parsed.meta.compacted).toBe(true);
     expect(parsed.body[0]?.code).toBe('WINTER0');
     expect(parsed.body[0]?.id).toBe('promo_0');
+  });
+
+  test('summary and index compact keep V2ClaimRule, V2ClaimTemplate, and BillingRun.claim fields', () => {
+    const runs = Array.from({ length: 40 }, (_, i) => ({
+      id: i + 1,
+      state: 'pending_external',
+      total_amount: '2990.00',
+      currency: 'ISK',
+      claim: {
+        id: 500 + i,
+        claim_number: '054966000123',
+        state: 'sent_to_bank',
+        status: 'unpaid',
+        due_date: '2026-12-01',
+        final_due_date: '2026-12-15',
+        amount: '2990',
+        payor_id: '0101302989',
+      },
+      lines: [{ description: 'x'.repeat(600) }],
+    }));
+
+    const summaryRes = buildBoundedListPayload({
+      status: 200,
+      meta: { path: '/v2/billing-runs/' },
+      items: runs,
+      maxBytes: 12_000,
+    });
+    const summaryParsed = JSON.parse(summaryRes.text) as {
+      meta: { compactedMode?: string };
+      body: Array<{ claim?: Record<string, unknown> }>;
+    };
+    expect(summaryParsed.meta.compactedMode).toBe('summary');
+    expect(summaryParsed.body[0]?.claim).toMatchObject({
+      id: 500,
+      claim_number: '054966000123',
+      state: 'sent_to_bank',
+      status: 'unpaid',
+      final_due_date: '2026-12-15',
+    });
+
+    const templates = Array.from({ length: 120 }, (_, i) => ({
+      id: i + 1,
+      bank_account: `0549-26-510${String(i).padStart(3, '0')}`,
+      category: 'G8',
+      company_id: '5501002290',
+      extra: 'z'.repeat(300),
+    }));
+    const indexRes = buildBoundedListPayload({
+      status: 200,
+      meta: { path: '/v2/claim-templates/' },
+      items: templates,
+      maxBytes: 7_500,
+    });
+    const indexParsed = JSON.parse(indexRes.text) as {
+      meta: { compactedMode?: string };
+      body: Array<{ id?: number; bank_account?: string; category?: string }>;
+    };
+    expect(indexParsed.meta.compactedMode).toBe('index');
+    expect(indexParsed.body[0]).toEqual({
+      id: 1,
+      bank_account: '0549-26-510000',
+      category: 'G8',
+    });
   });
 });
 

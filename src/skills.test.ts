@@ -12,11 +12,14 @@ const baseConfig: AppConfig = {
   askellEnv: 'production',
   apiBaseUrl: PRODUCTION_API_BASE_URL,
   secretApiKey: 'secret.key',
-  responseMaxBytes: 64_000,
+  responseMaxBytes: 131_072,
   mutationGate: 'auto',
 };
 
-async function listSkills(): Promise<string[]> {
+async function rpcRequest(
+  method: string,
+  params: Record<string, unknown>,
+): Promise<unknown> {
   const catalog = await loadPublishedSkills();
   const server = createServer(baseConfig);
   catalog.attach(server);
@@ -27,7 +30,7 @@ async function listSkills(): Promise<string[]> {
   try {
     const response = await new Promise<JSONRPCMessage>((resolve, reject) => {
       const timer = setTimeout(
-        () => reject(new Error('skills/list timed out')),
+        () => reject(new Error(`${method} timed out`)),
         2000,
       );
       clientTransport.onmessage = (message) => {
@@ -45,30 +48,44 @@ async function listSkills(): Promise<string[]> {
         clientTransport.send({
           jsonrpc: '2.0',
           id: 1,
-          method: 'skills/list',
-          params: {},
+          method,
+          params,
         }),
       );
     });
 
     if (!('result' in response) || response.result == null) {
       throw new Error(
-        `expected skills/list result, got ${JSON.stringify(response)}`,
+        `expected ${method} result, got ${JSON.stringify(response)}`,
       );
     }
 
-    const result = response.result as {
-      skills?: Array<{ frontmatter?: { name?: string } }>;
-    };
-    return (result.skills ?? []).map((entry) => entry.frontmatter?.name ?? '');
+    return response.result;
   } finally {
     await server.close();
   }
 }
 
 describe('published skills', () => {
-  test('loads askell-docs and askell-mcp', async () => {
-    const names = await listSkills();
+  test('loads embedded askell-docs and askell-mcp without filesystem dependency', async () => {
+    const result = (await rpcRequest('skills/list', {})) as {
+      skills?: Array<{ frontmatter?: { name?: string }; uri?: string }>;
+    };
+    const names = (result.skills ?? []).map(
+      (entry) => entry.frontmatter?.name ?? '',
+    );
     expect(names.sort()).toEqual(['askell-docs', 'askell-mcp']);
+  });
+
+  test('serves embedded skill markdown over resources/read with latest spec traps', async () => {
+    const read = (await rpcRequest('resources/read', {
+      uri: 'skill://askell-docs/SKILL.md',
+    })) as { contents?: Array<{ text?: string }> };
+    const markdown = read.contents?.[0]?.text ?? '';
+
+    expect(markdown).toContain('GET /v2/claim-rules/');
+    expect(markdown).toContain('cancel-claim/');
+    expect(markdown).toContain('service_entitlement_policy');
+    expect(markdown).toContain('POST /payments/{uuid}/cancel/');
   });
 });

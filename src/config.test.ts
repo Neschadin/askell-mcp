@@ -17,7 +17,7 @@ describe('ConfigSchema', () => {
     const parsed = ConfigSchema.parse({ secretApiKey: 'secret.key' });
     expect(parsed.askellEnv).toBe('production');
     expect(parsed.apiBaseUrl).toBe(PRODUCTION_API_BASE_URL);
-    expect(parsed.responseMaxBytes).toBe(64_000);
+    expect(parsed.responseMaxBytes).toBe(131_072);
     expect(parsed.mutationGate).toBe('auto');
     expect(parsed.publicApiKey).toBeUndefined();
   });

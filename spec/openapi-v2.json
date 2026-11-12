@@ -67,6 +67,10 @@
     {
       "name": "V2 Coupons",
       "description": "Coupon and promotion code management APIs, requires secret api key."
+    },
+    {
+      "name": "V2 Claims",
+      "description": "The claim rules and claim templates a bank claim (krafa) payment method can be set up with, requires secret api key."
     }
   ],
   "paths": {
@@ -711,7 +715,7 @@
           "V2 Subscription Contracts"
         ],
         "summary": "Partially update a V2 subscription contract",
-        "description": "Restricted patch endpoint. Only `metadata`, `reference`, `payment_processor_override`, `sales_channel`, `delivery_address`, `accounting_department` and `accounting_cost_center` may be updated. Requires a secret key.",
+        "description": "Restricted patch endpoint. Only `metadata`, `reference`, `payment_processor_override`, `sales_channel`, `delivery_address`, `accounting_department`, `accounting_cost_center` and `service_entitlement_policy` may be updated. Requires a secret key.",
         "parameters": [
           {
             "$ref": "#/components/parameters/V2ContractId"
@@ -1131,7 +1135,7 @@
           "V2 Subscription Contracts"
         ],
         "summary": "Cancel a V2 subscription contract",
-        "description": "Cancels a V2 subscription contract immediately or schedules cancellation at the end of the current billing cycle. Requires a secret key.",
+        "description": "Cancels a V2 subscription contract immediately or schedules cancellation at the end of the current billing cycle. Requires a secret key.\n\nAn immediate cancellation also cancels at the bank the open claims of the periods the customer will not be served, unless `cancel_open_claims` is `false`: see `cancel_open_claims`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/V2ContractId"
@@ -2052,6 +2056,97 @@
         ]
       }
     },
+    "/v2/billing-runs/{billingRunId}/cancel-claim/": {
+      "post": {
+        "tags": [
+          "V2 Billing Runs"
+        ],
+        "summary": "Cancel the open bank claim of a V2 billing run",
+        "description": "Cancels at the bank the open claim a `pending_external` billing run is waiting on, as \"Fella niður\" does in the dashboard: the run must be `pending_external` and waiting on an open claim, one sent to the bank and unpaid there (its `claim.state` `sent_to_bank` and `claim.status` `unpaid`). That is the run's `claim`: the claim of its latest pending attempt whose claim is open. A newer pending attempt whose claim failed as it was created (`claim.state` `failed`) is passed over; Áskell re-checks such a claim at the bank itself. Requires a secret key (public keys and legacy tokens are rejected). Takes no body.\n\n**200**: the bank cancelled the claim and the run is completed. On an active contract the run fails terminally (`failed_terminal`, the attempt's `fail_code` `claim_cancelled`), with the failure emails, `billing_run.failed` and the account's payment failure policy, as when a seller cancels the claim in the dashboard. On a canceled or ended contract the run is `canceled` instead (`metadata.cancellation.reason` `claim_cancelled_contract_closed`), with no failure emails, no `billing_run.failed` and no payment failure policy. The active-contract outcome sends a `billing_run.failed` webhook and the closed-contract outcome a `billing_run.changed` webhook; both send `payment.changed`. When a newer attempt of the run is still pending on a claim that failed as it was created, the run is not completed: only the cancelled claim's attempt fails, and the run stays `pending_external` until Áskell has re-checked the other claim at the bank.\n\n**202**: the bank cancelled the claim but Áskell has not read it back yet; the run is completed once it has. Wait for the run's `billing_run.failed` webhook (active contract) or `billing_run.changed` webhook (canceled or ended contract), or re-read the run; do not resend the request.\n\n**400**: `{\"error\": ..., \"code\": ...}`, `billing_run_not_pending` (the run is not `pending_external`) or `no_open_claim` (the run is not waiting on an open claim: it was paid or cancelled, or never reached the bank, or the run is charged another way). **502** `claim_bank_refused`: the bank did not cancel the claim (for example because it was paid in the meantime); `error` gives the bank's reason when it gave one, and nothing was changed. **403** `bank_claims_not_enabled`: bank claims are not enabled for the account on this test server; nothing was sent to the bank. Contact Áskell. **503** `bank_connection_unavailable`: the connection to the bank is not available on a test server; try again later.\n\nTwo requests for the same claim at the same time may both reach the bank; the second is answered with 502.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2BillingRunId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2BillingRun"
+          },
+          "202": {
+            "$ref": "#/components/responses/V2BillingRunClaimCancelPending"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2BillingRunClaimError"
+          },
+          "403": {
+            "$ref": "#/components/responses/V2BankClaimsNotEnabled"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          },
+          "502": {
+            "$ref": "#/components/responses/V2BillingRunClaimBankRefused"
+          },
+          "503": {
+            "$ref": "#/components/responses/V2BankConnectionUnavailable"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/billing-runs/{billingRunId}/change-claim/": {
+      "post": {
+        "tags": [
+          "V2 Billing Runs"
+        ],
+        "summary": "Change the final due date of a V2 billing run's open bank claim",
+        "description": "Moves the final due date (eindagi) of the open claim a `pending_external` billing run is waiting on, at the bank, as the dashboard does. The run must be `pending_external` and its claim open, as for `cancel-claim/`. Requires a secret key (public keys and legacy tokens are rejected).\n\n**200**: the bank accepted the change; the run's `claim.final_due_date` is the new date.\n\n**400**: `{\"error\": ..., \"code\": ...}`, `billing_run_not_pending`, `no_open_claim` or `invalid_final_due_date` (missing, not `YYYY-MM-DD`, in the past, or after the claim's cancellation date). **502** `claim_bank_refused`: the bank did not change the date; the claim keeps its date. **403** `bank_claims_not_enabled`: bank claims are not enabled for the account on this test server; nothing was sent to the bank. Contact Áskell. **503** `bank_connection_unavailable`: the connection to the bank is not available on a test server; try again later.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/V2BillingRunId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2BillingRunChangeClaim"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2BillingRun"
+          },
+          "400": {
+            "$ref": "#/components/responses/V2BillingRunClaimError"
+          },
+          "403": {
+            "$ref": "#/components/responses/V2BankClaimsNotEnabled"
+          },
+          "404": {
+            "$ref": "#/components/responses/V2NotFound"
+          },
+          "502": {
+            "$ref": "#/components/responses/V2BillingRunClaimBankRefused"
+          },
+          "503": {
+            "$ref": "#/components/responses/V2BankConnectionUnavailable"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
     "/v2/fulfillment-orders/": {
       "get": {
         "tags": [
@@ -2624,6 +2719,54 @@
           },
           "404": {
             "$ref": "#/components/responses/V2NotFound"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/claim-rules/": {
+      "get": {
+        "tags": [
+          "V2 Claims"
+        ],
+        "summary": "List V2 claim rules",
+        "description": "Lists the account's active claim rules, ordered by id. A claim rule sets the due date, final due date, cancellation date, fee and default interest of the bank claims a claim payment method issues. Pass a rule's `id` as `claim_rule_id` to `POST /api/v2/customers/{customerReference}/payment-methods/` (or its PATCH); when `claim_rule_id` is omitted, the first rule in this list is used. This list is exactly the set of rules that endpoint accepts. Requires a secret key: public keys and legacy token authentication are refused.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageSizeFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2ClaimRuleList"
+          }
+        },
+        "security": [
+          {
+            "Secret-Api-Key": []
+          }
+        ]
+      }
+    },
+    "/v2/claim-templates/": {
+      "get": {
+        "tags": [
+          "V2 Claims"
+        ],
+        "summary": "List V2 claim templates",
+        "description": "Lists the account's claim templates that a claim payment method can use, ordered by id: active templates the bank has finished setting up (templates still being set up, or that the bank rejected, are left out). A claim template is the claimant kennitala, the bank account the claims are paid into and the claim category. Pass a template's `id` as `claim_template_id` to `POST /api/v2/customers/{customerReference}/payment-methods/` (or its PATCH); when `claim_template_id` is omitted, the first template in this list is used. This list is exactly the set of templates that endpoint accepts. Requires a secret key: public keys and legacy token authentication are refused.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageSizeFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/V2ClaimTemplateList"
           }
         },
         "security": [
@@ -3402,6 +3545,14 @@
                 ],
                 "default": "none",
                 "description": "`none` creates recurring schedules without a first-period billing artifact. `create_initial_run` creates a scheduled initial BillingRun with first-period recurring lines and one-time initial items. `next_invoice` creates pending first-period recurring proration lines for the first scheduled invoice."
+              },
+              "service_entitlement_policy": {
+                "type": "string",
+                "enum": [
+                  "on_run_created",
+                  "on_run_succeeded"
+                ],
+                "description": "When the contract's items get access to a billing period. `on_run_created` grants it when the period's billing run is created, before it is paid; `on_run_succeeded` grants it once the run is paid. Optional; defaults to the account's setting (dashboard billing settings, `on_run_succeeded` unless changed). A failed payment does not take back a period already granted. The contract must still be active for its items to have access."
               }
             }
           }
@@ -3432,6 +3583,14 @@
             "type": "string",
             "nullable": true,
             "description": "Sales channel id or account-scoped reference, putting the contract under that channel's self-service settings. `null` or a blank value removes the contract from its channel."
+          },
+          "service_entitlement_policy": {
+            "type": "string",
+            "enum": [
+              "on_run_created",
+              "on_run_succeeded"
+            ],
+            "description": "When the contract's items get access to a billing period: `on_run_created` when the period's billing run is created, `on_run_succeeded` once it is paid. Applies to billing runs created from now on; a run already open keeps the policy it was created under, and nothing already granted is recalculated."
           }
         }
       },
@@ -3486,6 +3645,11 @@
           "preview_token": {
             "type": "string",
             "nullable": true
+          },
+          "cancel_open_claims": {
+            "type": "boolean",
+            "default": true,
+            "description": "Immediate cancellations only (a `cancel_at` in the past included): also cancel at the bank the open claims of the contract's `pending_external` billing runs whose period has not ended at the cancellation, the periods the customer will not be served: both claims of a run a manual retry gave a second one, and a claim that failed as it was created (`claim.state` `failed`) if the bank turns out to have it open. Claims for periods already served stay open. A prorated cancellation (any of `proration_behavior`, `settlement_behavior`, `include_pending_adjustments` or `preview_token` sent, with a `proration_behavior` other than `none`; the contract's default when it is not sent) also keeps the claim of the period it falls in: the credit for the unused part settles that period like a paid one, so only the claims of periods starting at or after the cancellation are cancelled. The claims are cancelled in the background after the response; each run records the request under `metadata.claim_cancellation`, with an entry per claim in `claims` (`claim_id`, and once tried `outcome`, `error`, `attempted_at` and `attempts`; `outcome` is `cancelled`, `pending_refresh`, `refused`, `error`, `skipped` or `not_at_bank`, the last for a claim that failed as it was created and never reached the bank), and is `canceled` once its claims are. `false` leaves every claim open. Ignored for period-end and future cancellations, which never cancel claims."
           }
         }
       },
@@ -5290,11 +5454,13 @@
           },
           "claim_rule_id": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "Claim payment methods only. An id from `GET /api/v2/claim-rules/`. When omitted, the first one in that list is used."
           },
           "claim_template_id": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "Claim payment methods only. An id from `GET /api/v2/claim-templates/`. When omitted, the first one in that list is used."
           },
           "payor_id": {
             "type": "string",
@@ -5323,11 +5489,13 @@
           },
           "claim_rule_id": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "Claim payment methods only. An id from `GET /api/v2/claim-rules/`."
           },
           "claim_template_id": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "Claim payment methods only. An id from `GET /api/v2/claim-templates/`."
           },
           "payor_id": {
             "type": "string"
@@ -6193,6 +6361,169 @@
           }
         }
       },
+      "V2Claim": {
+        "type": "object",
+        "description": "A bank claim (krafa) issued to collect a payment. Read-only.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "claim_number": {
+            "type": "string",
+            "example": "054966000123",
+            "description": "The number the claim is registered under at the bank."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "unpaid",
+              "paid",
+              "cancelled",
+              "invalid",
+              "unknown"
+            ],
+            "description": "The claim's status at the bank, as Áskell last read it."
+          },
+          "collection_stage": {
+            "type": "string",
+            "enum": [
+              "primary_collection",
+              "secondary_collection",
+              "legal_collection"
+            ],
+            "description": "The bank's collection stage: primary collection, secondary (intermediary) collection, or legal collection."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "initial",
+              "sent_to_bank",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "description": "Áskell's processing state: `initial` (created, not yet sent to the bank), `sent_to_bank` (open at the bank), `completed` (paid), `failed` (sending it to the bank failed) or `cancelled` (cancelled at the bank)."
+          },
+          "payor_id": {
+            "type": "string",
+            "description": "The payor's kennitala."
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "final_due_date": {
+            "type": "string",
+            "format": "date",
+            "description": "The last day the claim can be paid without default interest."
+          },
+          "cancellation_date": {
+            "type": "string",
+            "format": "date",
+            "description": "The day the bank cancels the claim if it is still unpaid."
+          },
+          "amount": {
+            "type": "string",
+            "format": "decimal",
+            "example": "2990",
+            "description": "The claimed amount in ISK, without the notice fee."
+          },
+          "notice_fee": {
+            "type": "string",
+            "format": "decimal",
+            "example": "250",
+            "description": "The notice and payment fee added to the claim, in ISK."
+          },
+          "interest_amount": {
+            "type": "string",
+            "format": "decimal",
+            "example": "0",
+            "description": "Default interest due on the claim, as Áskell last read it from the bank."
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the bank recorded the payment. This is the bank's time, not when Áskell settled the transaction. `null` until the claim is paid."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "V2ClaimRule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Pass as `claim_rule_id` when setting up a claim payment method."
+          },
+          "title": {
+            "type": "string"
+          },
+          "notice_and_payment_fee": {
+            "type": "string",
+            "format": "decimal",
+            "example": "250",
+            "description": "The notice and payment fee added to each claim, in ISK."
+          },
+          "due_date_rule": {
+            "type": "string",
+            "example": "0",
+            "description": "How a claim's due date is set from the day it is issued: a number of days (`7`), or `m` and a number of days counted from the first day of the next month (`m0`)."
+          },
+          "final_due_date_rule": {
+            "type": "string",
+            "example": "m0",
+            "description": "How the final due date is set from the due date, in the same form as `due_date_rule`."
+          },
+          "cancellation_rule": {
+            "type": "integer",
+            "example": 365,
+            "description": "Days after the due date at which the bank cancels an unpaid claim."
+          },
+          "interest_rule": {
+            "type": "string",
+            "enum": [
+              "NoDefaultInterest",
+              "DefaultInterestAmount",
+              "DefaultInterestAmountAndDefaultCharge"
+            ],
+            "description": "Whether default interest, or default interest and a default charge, is added to a claim paid after its final due date."
+          }
+        }
+      },
+      "V2ClaimTemplate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Pass as `claim_template_id` when setting up a claim payment method."
+          },
+          "bank_account": {
+            "type": "string",
+            "example": "0549-26-510413",
+            "description": "The account the claims are paid into: bank, ledger and account number."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "G8",
+              "37"
+            ],
+            "description": "The claim category: `G8` for subscriptions, `37` for invoices."
+          },
+          "company_id": {
+            "type": "string",
+            "description": "The claimant's kennitala."
+          }
+        }
+      },
       "V2BillingRunAttempt": {
         "type": "object",
         "properties": {
@@ -6219,6 +6550,15 @@
           "transaction_external_reference": {
             "type": "string",
             "nullable": true
+          },
+          "claim": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2Claim"
+              }
+            ],
+            "nullable": true,
+            "description": "The bank claim the attempt's transaction is collected by. `null` when the attempt has no transaction or it is not collected by a claim."
           },
           "fail_code": {
             "type": "string",
@@ -6343,6 +6683,20 @@
           }
         }
       },
+      "V2BillingRunChangeClaim": {
+        "type": "object",
+        "required": [
+          "final_due_date"
+        ],
+        "properties": {
+          "final_due_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-12-15",
+            "description": "The claim's new final due date (eindagi), `YYYY-MM-DD`: not in the past and not after the claim's `cancellation_date`."
+          }
+        }
+      },
       "V2BillingRun": {
         "type": "object",
         "properties": {
@@ -6412,6 +6766,15 @@
           "transaction_external_reference": {
             "type": "string",
             "nullable": true
+          },
+          "claim": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V2Claim"
+              }
+            ],
+            "nullable": true,
+            "description": "For a `pending_external` run waiting on an open bank claim, that claim: the claim of its latest pending attempt whose claim is open, which a newer attempt whose claim failed as it was created (`claim.state` `failed`) does not hide. The run's `transaction_id` is `null` until the claim is paid. Otherwise the bank claim of the latest attempt that has one; `null` when no attempt is collected by a claim. The claim actions (`cancel-claim/`, `change-claim/`) act on the open claim shown here."
           },
           "refunded_amount": {
             "type": "string",
@@ -7017,7 +7380,8 @@
             "enum": [
               "on_run_created",
               "on_run_succeeded"
-            ]
+            ],
+            "description": "When the contract's items get access to a billing period: `on_run_created` when the period's billing run is created, `on_run_succeeded` once it is paid. Set on create (defaulting to the account's setting) and changeable with PATCH."
           },
           "service_active": {
             "type": "boolean"
@@ -8467,6 +8831,180 @@
                     "refund_amount_exceeds_refundable",
                     "refund_failed",
                     "refund_pending"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "V2ClaimRuleList": {
+        "description": "V2 claim rule list",
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/V2ClaimRule"
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/V2ClaimRule"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "V2ClaimTemplateList": {
+        "description": "V2 claim template list",
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/V2ClaimTemplate"
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "next": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "previous": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/V2ClaimTemplate"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "V2BillingRunClaimCancelPending": {
+        "description": "The bank cancelled the claim, but Áskell has not read it back yet: the returned run is still `pending_external`, and it is completed once the claim is read back. Wait for the run's `billing_run.failed` webhook (active contract) or `billing_run.changed` webhook (canceled or ended contract), or re-read the run; do not resend the request.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/V2BillingRun"
+            }
+          }
+        }
+      },
+      "V2BillingRunClaimError": {
+        "description": "The claim action was refused. `code` is `billing_run_not_pending` (the run is not `pending_external`), `no_open_claim` (the run is not waiting on a claim that is sent to the bank and unpaid there) or `invalid_final_due_date` (`change-claim/` only: missing, not `YYYY-MM-DD`, in the past, or after the claim's cancellation date).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "billing_run_not_pending",
+                    "no_open_claim",
+                    "invalid_final_due_date"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "V2BillingRunClaimBankRefused": {
+        "description": "The bank did not accept the change; nothing was changed. `error` gives the bank's reason when it gave one.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "claim_bank_refused"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "V2BankConnectionUnavailable": {
+        "description": "The connection to the bank is not available on this test server. Nothing was sent to the bank; try again later.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "bank_connection_unavailable"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "V2BankClaimsNotEnabled": {
+        "description": "Bank claims are not enabled for the account on this test server, which talks to the bank's production environment. Nothing was sent to the bank. Contact Áskell to have the account enabled.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "bank_claims_not_enabled"
                   ]
                 }
               }

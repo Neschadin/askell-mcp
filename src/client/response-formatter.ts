@@ -8,20 +8,19 @@ export interface FormattedResponse {
 }
 
 export function truncateUtf8(text: string, maxBytes: number): string {
-  if (Buffer.byteLength(text, 'utf8') <= maxBytes) {
-    return text;
-  }
+  if (maxBytes <= 0) return '';
 
-  let end = Math.min(text.length, maxBytes);
-  while (end > 0) {
-    const slice = text.slice(0, end);
-    if (Buffer.byteLength(slice, 'utf8') <= maxBytes) {
-      return slice;
-    }
+  const buf = Buffer.from(text, 'utf8');
+  if (buf.byteLength <= maxBytes) return text;
+
+  // Step back across UTF-8 continuation bytes (`10xxxxxx`) so we never split
+  // a multibyte code point or surrogate pair.
+  let end = maxBytes;
+  while (end > 0 && (buf[end]! & 0xc0) === 0x80) {
     end -= 1;
   }
 
-  return '';
+  return buf.subarray(0, end).toString('utf8');
 }
 
 export function limitText(
@@ -48,6 +47,7 @@ function summarizeListItem(item: unknown): unknown {
     'customer_reference',
     'uuid',
     'name',
+    'title',
     'state',
     'status',
     'active',
@@ -68,6 +68,13 @@ function summarizeListItem(item: unknown): unknown {
     'valid',
     'duration',
     'coupon',
+    'category',
+    'bank_account',
+    'company_id',
+    'due_date_rule',
+    'final_due_date_rule',
+    'notice_and_payment_fee',
+    'service_entitlement_policy',
   ] as const;
 
   for (const key of scalarKeys) {
@@ -93,10 +100,22 @@ function summarizeListItem(item: unknown): unknown {
     };
   }
 
+  if (isRecord(item.claim)) {
+    out.claim = {
+      id: item.claim.id,
+      claim_number: item.claim.claim_number,
+      state: item.claim.state,
+      status: item.claim.status,
+      due_date: item.claim.due_date,
+      final_due_date: item.claim.final_due_date,
+      amount: item.claim.amount,
+    };
+  }
+
   return Object.keys(out).length > 0 ? out : item;
 }
 
-/** Tight projection for analytical list queries (dates, plan name, customer). */
+/** Tight projection for analytical list queries (dates, plan name, customer, claim rules/templates). */
 function indexListItem(item: unknown): unknown {
   if (!isRecord(item)) return item;
 
@@ -123,6 +142,13 @@ function indexListItem(item: unknown): unknown {
     out.plan = (plan as { name: unknown }).name;
   } else if ('name' in item && typeof item.name === 'string') {
     out.name = item.name;
+  } else if (typeof item.title === 'string') {
+    out.title = item.title;
+  } else if (typeof item.bank_account === 'string') {
+    out.bank_account = item.bank_account;
+    if (typeof item.category === 'string') {
+      out.category = item.category;
+    }
   }
 
   if (typeof item.code === 'string') {

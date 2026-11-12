@@ -1,13 +1,16 @@
 import v1Spec from '../../spec/openapi-v1.json';
 import v2Spec from '../../spec/openapi-v2.json';
 
+import { isRecord } from '../is-record.ts';
 import type {
   ApiKeyKind,
   ApiOperation,
+  ApiResponseSummary,
   ApiVersion,
   HttpMethod,
   OpenApiDocument,
   OpenApiParameter,
+  OpenApiResponseObject,
 } from './types.ts';
 
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head'] as const;
@@ -137,6 +140,131 @@ function resolveRequestBody(
   };
 }
 
+function extractErrorCodes(
+  doc: OpenApiDocument,
+  schema: unknown,
+  seen = new Set<string>(),
+): string[] {
+  if (!isRecord(schema)) {
+    return [];
+  }
+
+  if (typeof schema.$ref === 'string') {
+    if (seen.has(schema.$ref)) {
+      return [];
+    }
+    const next = new Set(seen);
+    next.add(schema.$ref);
+    return extractErrorCodes(doc, resolveRef(doc, schema.$ref), next);
+  }
+
+  const codes = new Set<string>();
+  const properties = isRecord(schema.properties) ? schema.properties : undefined;
+  const codePropRaw = properties?.code;
+  const codeProp =
+    isRecord(codePropRaw) && typeof codePropRaw.$ref === 'string'
+      ? resolveRef(doc, codePropRaw.$ref)
+      : codePropRaw;
+
+  if (isRecord(codeProp) && Array.isArray(codeProp.enum)) {
+    for (const entry of codeProp.enum) {
+      if (typeof entry === 'string' && entry.length > 0) {
+        codes.add(entry);
+      }
+    }
+  }
+
+  for (const keyword of ['allOf', 'anyOf', 'oneOf'] as const) {
+    const branches = schema[keyword];
+    if (Array.isArray(branches)) {
+      for (const branch of branches) {
+        for (const code of extractErrorCodes(doc, branch, seen)) {
+          codes.add(code);
+        }
+      }
+    }
+  }
+
+  return [...codes];
+}
+
+function summarizeSchemaRef(schema: unknown): string | undefined {
+  if (!isRecord(schema)) {
+    return undefined;
+  }
+
+  if (typeof schema.$ref === 'string') {
+    return schema.$ref;
+  }
+
+  if (
+    schema.type === 'array' &&
+    isRecord(schema.items) &&
+    typeof schema.items.$ref === 'string'
+  ) {
+    return `array<${schema.items.$ref}>`;
+  }
+
+  const refs = new Set<string>();
+  for (const keyword of ['allOf', 'anyOf', 'oneOf'] as const) {
+    const branches = schema[keyword];
+    if (!Array.isArray(branches)) continue;
+    for (const branch of branches) {
+      const ref = summarizeSchemaRef(branch);
+      if (ref) refs.add(ref);
+    }
+  }
+
+  if (refs.size > 0) {
+    return [...refs].join(' | ');
+  }
+
+  return undefined;
+}
+
+function resolveResponses(
+  doc: OpenApiDocument,
+  responses: Record<string, OpenApiResponseObject> | undefined,
+): Record<string, ApiResponseSummary> | undefined {
+  if (!responses || Object.keys(responses).length === 0) {
+    return undefined;
+  }
+
+  const out: Record<string, ApiResponseSummary> = {};
+
+  for (const [status, rawResponse] of Object.entries(responses)) {
+    let source: OpenApiResponseObject = rawResponse;
+    if (typeof rawResponse.$ref === 'string') {
+      const resolved = resolveRef(doc, rawResponse.$ref);
+      if (isRecord(resolved)) {
+        source = resolved as OpenApiResponseObject;
+      }
+    }
+
+    const content = source.content ?? {};
+    const contentTypes = Object.keys(content);
+    const firstSchema = contentTypes[0]
+      ? content[contentTypes[0]]?.schema
+      : undefined;
+    const schemaRef = summarizeSchemaRef(firstSchema);
+    const isErrorStatus = status.startsWith('4') || status.startsWith('5');
+    const errorCodes = isErrorStatus
+      ? extractErrorCodes(doc, firstSchema)
+      : [];
+
+    out[status] = {
+      ...(source.description !== undefined
+        ? { description: source.description }
+        : {}),
+      ...(contentTypes.length > 0 ? { contentTypes } : {}),
+      ...(schemaRef !== undefined ? { schemaRef } : {}),
+      ...(errorCodes.length > 0 ? { errorCodes } : {}),
+    };
+  }
+
+  return out;
+}
+
 function resolveParameters(
   doc: OpenApiDocument,
   parameters: OpenApiParameter[] | undefined,
@@ -158,7 +286,7 @@ function resolveParameters(
     // Pick known fields only — OpenAPI params often include style/explode/example,
     // which MCP outputSchema rejects (additionalProperties: false).
     return {
-      ...(source.name !== undefined ? { name: source.name } : {}),
+      ...(source.name !== undefined ? { name: parameter.name ?? source.name } : {}),
       ...(source.in !== undefined ? { in: source.in } : {}),
       ...(source.required !== undefined ? { required: source.required } : {}),
       ...(source.description !== undefined
@@ -235,6 +363,7 @@ function parseDocument(
         requestBody: operation.requestBody
           ? resolveRequestBody(doc, operation.requestBody)
           : undefined,
+        responses: resolveResponses(doc, operation.responses),
         apiKeyKind: inferApiKeyKind(operation.security),
         deprecated: operation.deprecated,
       });
@@ -297,12 +426,17 @@ export class OperationRegistry {
       }
 
       if (search) {
+        const responseErrorCodes = Object.values(operation.responses ?? {})
+          .flatMap((res) => res.errorCodes ?? [])
+          .join(' ');
+
         const haystack = [
           operation.id,
           operation.path,
           operation.summary,
           operation.description ?? '',
           operation.tags.join(' '),
+          responseErrorCodes,
         ]
           .join(' ')
           .toLowerCase();

@@ -97,7 +97,7 @@ const ConfigInputSchema = z.object({
     .number()
     .int()
     .positive()
-    .default(64_000)
+    .default(131_072)
     .describe('Max response body size returned to the model'),
   mutationGate: MutationGateSchema,
 });

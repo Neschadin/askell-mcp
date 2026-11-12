@@ -21,7 +21,7 @@ const baseConfig: AppConfig = {
   askellEnv: 'production',
   apiBaseUrl: PRODUCTION_API_BASE_URL,
   secretApiKey: 'secret.key',
-  responseMaxBytes: 64_000,
+  responseMaxBytes: 131_072,
   mutationGate: 'auto',
 };
 
@@ -146,9 +146,11 @@ describe('buildServerInstructions', () => {
     );
   });
 
-  test('encodes v2 quote combo, finalize PM, and shipping traps', () => {
+  test('encodes v2 quote combo, finalize PM, shipping, claims, and PATCH traps', () => {
     const text = buildServerInstructions(baseConfig);
 
+    expect(text).toContain('https://docs.askell.is/llms.txt');
+    expect(text).not.toContain('https://docs.askell.is/api/');
     expect(text).toContain('pass customer (numeric id)');
     expect(text).toContain('combo_discounts[]');
     expect(text).toContain('Combo is automatic, not apply-code');
@@ -168,7 +170,6 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('discount.recurring_final_amount');
     expect(text).toContain('allowed_origin');
     expect(text).toContain('Rejected on /v2/checkout-sessions/');
-    expect(text).toContain('V2CheckoutSession.status is only on the response schema');
     expect(text).toContain('initial_billing_run_id');
     expect(text).toContain('activation_skipped');
     expect(text).toContain('stays pending past expires_at');
@@ -180,7 +181,7 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('POST .../{id}/fulfill/');
     expect(text).toContain('POST .../{id}/cancel/');
     expect(text).toContain('order_cancelled | order_fulfilled | booking_in_progress');
-    expect(text).toContain('shipment.handler is ""');
+    expect(text).toContain('shipment.handler ""');
     expect(text).toContain('CRUD /v2/coupons/');
     expect(text).toContain('/v2/promotion-codes/');
     expect(text).toContain('exactly one of amount_off+currency or percent_off');
@@ -203,16 +204,9 @@ describe('buildServerInstructions', () => {
       'contract.discount.coupon does not include these arrays',
     );
     expect(text).toContain('GET /v2/coupons/{id}/');
-    expect(text).toContain('does not document applies_to_* yet');
+    expect(text).not.toContain('does not document applies_to_* yet');
+    expect(text).toContain('wrongly mentions restrictions on the coupon');
     expect(text).toContain("none of the offer's prices is in scope");
-    expect(text).toContain(
-      'plans-only or plan-variants-only coupon is refused on a contract quote',
-    );
-    expect(text).not.toContain('Both empty applies to everything');
-    expect(text).not.toContain("none of the offer's products is in scope");
-    expect(text).not.toContain('cannot mark shipped via the API');
-    expect(text).not.toContain('warehouse, read-only');
-    expect(text).not.toContain('Writes die');
     expect(text).toContain('status: error');
     expect(text).toContain('subscription_contract_scheduled_change.*');
     expect(text).toContain('subscription_contract_item.*');
@@ -236,7 +230,6 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('not an array');
     expect(text).toContain('POST /transactions/{uuid}/refund/');
     expect(text).toContain('billing_run_charge');
-    expect(text).not.toContain('full amount only');
     expect(text).toContain('apply_at=period_end');
     expect(text).toContain('future_effective_at_not_supported');
     expect(text).toContain('scheduled_change_exists');
@@ -254,22 +247,30 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('max 128, no commas');
     expect(text).toContain('contract_reference');
     expect(text).toContain('too late for subscription_contract.created');
-    expect(text).toContain('contract_reference null');
     expect(text).toContain('sales_channel');
     expect(text).toContain('null or blank removes the channel');
+    expect(text).toContain('service_entitlement_policy');
+    expect(text).toContain('on_run_created | on_run_succeeded');
     expect(text).toContain(
       'does not include delivery_address, accounting_department, accounting_cost_center — do not send them',
     );
-    expect(text).not.toContain(
-      'PATCH body is only metadata, reference, payment_processor_override.',
-    );
-    expect(text).toContain('one_off_purchases is pending only');
+    expect(text).toContain('cancel_open_claims');
+    expect(text).toContain('GET /v2/claim-rules/');
+    expect(text).toContain('GET /v2/claim-templates/');
+    expect(text).toContain('cancel-claim/');
+    expect(text).toContain('change-claim/');
+    expect(text).toContain('claim_cancelled_contract_closed');
+    expect(text).toContain('POST /payments/{uuid}/cancel/');
+    expect(text).toContain('claim_cancel_refused');
+    expect(text).toContain('/plans/{planId}/');
+    expect(text).toContain('every variant of that plan');
+    expect(text).toContain('one_off_purchases on the contract is pending only');
     expect(text).toContain('one-off-purchases/');
     expect(text).toContain('No POST or DELETE');
     expect(text).toContain('pending_delivery_change');
     expect(text).toContain('subscription_contract.changed fires when it is queued');
     expect(text).toContain('update_item | add_item | remove_item');
-    expect(text).toContain('canceling one cancels the others');
+    expect(text).toContain('canceling one customer interval_change cancels the others');
     expect(text).toContain('POST /v2/customer-portal-entries/');
     expect(text).toContain('POST /v2/customer-portal-sessions/');
     expect(text).toContain('Customer-Session');
@@ -277,7 +278,7 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('Do not redact url or token');
     expect(text).toContain('not a seller-verified portal link');
     expect(text).toContain('On a shared key the session value wins');
-    expect(text).toContain('sending them does nothing');
+    expect(text).toContain('sending Askell-owned keys on PATCH metadata does nothing');
   });
 
   test('encodes v1 promotion codes, keyless discount paths, and v2 card', () => {
@@ -289,7 +290,7 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('payment_method.token on POST /subscriptions/multi/');
     expect(text).toContain('has_discount: false');
     expect(text).toContain('apiKeyKind none');
-    expect(text).toContain('Treat it as a secret');
+    expect(text).toContain('treat subscription_token = Subscription.token as a secret');
     expect(text).toContain('no Authorization header');
     expect(text).toContain('V2CustomerPaymentMethod.card');
     expect(text).toContain('Visa Electron is visa');
@@ -302,11 +303,11 @@ describe('buildServerInstructions', () => {
     expect(text).toContain('half away from zero');
     expect(text).toContain('discount.id');
     expect(text).toContain('not an integer');
-    expect(text).toContain('plan-scoped code');
+    expect(text).toContain('Plan-scoped code');
     expect(text).toContain('applies_to_plan_variants');
     expect(text).toContain('this plan or plan variant');
     expect(text).toContain(
-      'its 400 sentence still names only applies_to_plans / applies_to_products',
+      "quote's 400 sentence still names only applies_to_plans / applies_to_products",
     );
     expect(text).toContain('A coupon limited to other plans is refused');
   });

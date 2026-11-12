@@ -10,9 +10,18 @@ try {
     loadPublishedSkills(),
   ]);
 
-  const server = createServer(config);
-  skillCatalog.attach(server);
-  void serveStdio(() => server);
+  serveStdio(
+    () => {
+      const server = createServer(config);
+      skillCatalog.attach(server);
+      return server;
+    },
+    {
+      onerror: (error) => {
+        console.error(`[askell-mcp] stdio error: ${error.message}`);
+      },
+    },
+  );
 
   console.error(
     `askell-mcp running on stdio (${config.askellEnv} ${config.apiBaseUrl})`,
